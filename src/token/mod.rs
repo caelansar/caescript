@@ -11,6 +11,12 @@ pub(crate) enum TokenType {
     Assign,
     #[strum(serialize = "+")]
     Plus,
+    #[strum(serialize = "-")]
+    Minus,
+    #[strum(serialize = "*")]
+    Asterisk,
+    #[strum(serialize = "/")]
+    Slash,
     #[strum(serialize = ",")]
     Comma,
     #[strum(serialize = ";")]
@@ -23,8 +29,21 @@ pub(crate) enum TokenType {
     Lbrace,
     #[strum(serialize = "}")]
     Rbrace,
+    #[strum(serialize = ">")]
+    Gt,
+    #[strum(serialize = "<")]
+    Lt,
+    #[strum(serialize = "==")]
+    Eq,
+    #[strum(serialize = "!=")]
+    Ne,
     Function,
     Let,
+    True,
+    False,
+    If,
+    Else,
+    Return,
 }
 
 #[derive(Debug)]
@@ -48,8 +67,15 @@ impl Token {
     }
 }
 
-static KEY_WORDS: &[(&'static str, TokenType)] =
-    &[("fn", TokenType::Function), ("let", TokenType::Let)];
+static KEY_WORDS: &[(&'static str, TokenType)] = &[
+    ("else", TokenType::Else),
+    ("false", TokenType::False),
+    ("fn", TokenType::Function),
+    ("if", TokenType::If),
+    ("let", TokenType::Let),
+    ("return", TokenType::Return),
+    ("true", TokenType::True),
+];
 
 #[cfg(test)]
 mod test {
