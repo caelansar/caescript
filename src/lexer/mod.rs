@@ -31,7 +31,7 @@ impl<'a> Lexer<'a> {
 
     fn read_identifier(&mut self) -> String {
         let pos = self.pos;
-        while self.ch.is_some() && char::is_alphabetic(self.ch.unwrap()) {
+        while let Some(true) = self.ch.map(|c| c.is_alphabetic()) {
             self.read_char();
         }
         return self.input[pos..self.pos].to_string();
@@ -39,14 +39,14 @@ impl<'a> Lexer<'a> {
 
     fn read_number(&mut self) -> String {
         let pos = self.pos;
-        while self.ch.is_some() && char::is_numeric(self.ch.unwrap()) {
+        while let Some(true) = self.ch.map(|c| c.is_numeric()) {
             self.read_char();
         }
         return self.input[pos..self.pos].to_string();
     }
 
     fn eat_whitespace(&mut self) {
-        while self.ch.is_some() && char::is_whitespace(self.ch.unwrap()) {
+        while let Some(true) = self.ch.map(|c| c.is_whitespace()) {
             self.read_char()
         }
     }
@@ -60,31 +60,7 @@ impl<'a> Lexer<'a> {
                     TokenType::from_str(token.to_string().as_str()).unwrap(),
                     token.to_string(),
                 ),
-                ',' => Token::new(
-                    TokenType::from_str(token.to_string().as_str()).unwrap(),
-                    token.to_string(),
-                ),
-                ';' => Token::new(
-                    TokenType::from_str(token.to_string().as_str()).unwrap(),
-                    token.to_string(),
-                ),
-                '(' => Token::new(
-                    TokenType::from_str(token.to_string().as_str()).unwrap(),
-                    token.to_string(),
-                ),
-                ')' => Token::new(
-                    TokenType::from_str(token.to_string().as_str()).unwrap(),
-                    token.to_string(),
-                ),
-                '{' => Token::new(
-                    TokenType::from_str(token.to_string().as_str()).unwrap(),
-                    token.to_string(),
-                ),
-                '}' => Token::new(
-                    TokenType::from_str(token.to_string().as_str()).unwrap(),
-                    token.to_string(),
-                ),
-                '+' => Token::new(
+                ',' | ';' | '(' | ')' | '{' | '}' | '+' => Token::new(
                     TokenType::from_str(token.to_string().as_str()).unwrap(),
                     token.to_string(),
                 ),
