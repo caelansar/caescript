@@ -20,7 +20,7 @@ pub(crate) enum TokenType {
     #[strum(serialize = ",")]
     Comma,
     #[strum(serialize = ";")]
-    SimiColon,
+    SemiColon,
     #[strum(serialize = "(")]
     Lparen,
     #[strum(serialize = ")")]
@@ -46,10 +46,10 @@ pub(crate) enum TokenType {
     Return,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Token {
-    pub typ: TokenType,
-    pub literal: String,
+    pub(crate) typ: TokenType,
+    pub(crate) literal: String,
 }
 
 impl Token {

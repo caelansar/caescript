@@ -2,7 +2,7 @@ use crate::token::{Token, TokenType};
 use std::str::FromStr;
 
 #[derive(Default)]
-struct Lexer<'a> {
+pub(crate) struct Lexer<'a> {
     input: &'a str,
     pos: usize,
     next_pos: usize,
@@ -10,7 +10,7 @@ struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    fn new(input: &'a str) -> Self {
+    pub(crate) fn new(input: &'a str) -> Self {
         let mut l = Lexer {
             input,
             ..Default::default()
@@ -91,11 +91,11 @@ impl<'a> Lexer<'a> {
                     token.to_string(),
                 ),
                 _ => {
-                    if char::is_alphabetic(token) {
+                    if token.is_alphabetic() {
                         let literal = self.read_identifier();
                         let typ = Token::lookup_ident(literal.clone());
                         return Token::new(typ, literal);
-                    } else if char::is_numeric(token) {
+                    } else if token.is_numeric() {
                         let literal = self.read_number();
                         return Token::new(TokenType::Int, literal);
                     } else {
@@ -157,7 +157,7 @@ mod test {
                 expected_literal: "10".to_string(),
             },
             Testcase {
-                expected_type: TokenType::SimiColon,
+                expected_type: TokenType::SemiColon,
                 expected_literal: ";".to_string(),
             },
             Testcase {
@@ -177,7 +177,7 @@ mod test {
                 expected_literal: "20".to_string(),
             },
             Testcase {
-                expected_type: TokenType::SimiColon,
+                expected_type: TokenType::SemiColon,
                 expected_literal: ";".to_string(),
             },
             Testcase {
@@ -233,7 +233,7 @@ mod test {
                 expected_literal: "y".to_string(),
             },
             Testcase {
-                expected_type: TokenType::SimiColon,
+                expected_type: TokenType::SemiColon,
                 expected_literal: ";".to_string(),
             },
             Testcase {
@@ -241,7 +241,7 @@ mod test {
                 expected_literal: "}".to_string(),
             },
             Testcase {
-                expected_type: TokenType::SimiColon,
+                expected_type: TokenType::SemiColon,
                 expected_literal: ";".to_string(),
             },
             Testcase {
@@ -281,7 +281,7 @@ mod test {
                 expected_literal: ")".to_string(),
             },
             Testcase {
-                expected_type: TokenType::SimiColon,
+                expected_type: TokenType::SemiColon,
                 expected_literal: ";".to_string(),
             },
             Testcase {
@@ -321,7 +321,7 @@ mod test {
                 expected_literal: "true".to_string(),
             },
             Testcase {
-                expected_type: TokenType::SimiColon,
+                expected_type: TokenType::SemiColon,
                 expected_literal: ";".to_string(),
             },
             Testcase {
@@ -345,7 +345,7 @@ mod test {
                 expected_literal: "false".to_string(),
             },
             Testcase {
-                expected_type: TokenType::SimiColon,
+                expected_type: TokenType::SemiColon,
                 expected_literal: ";".to_string(),
             },
             Testcase {
