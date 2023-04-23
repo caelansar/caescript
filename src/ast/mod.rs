@@ -102,9 +102,6 @@ impl Statement for ReturnStatement {}
 
 impl ReturnStatement {
     pub(crate) fn new(token: token::Token) -> Self {
-        Self {
-            token,
-            value: None,
-        }
+        Self { token, value: None }
     }
 }
