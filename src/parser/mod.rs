@@ -187,20 +187,21 @@ mod test {
             stmt.token_literal()
         );
 
-        assert!(stmt.name().is_some(), "let stmt should have name");
+        let let_stmt = stmt.as_any().downcast_ref::<ast::LetStatement>();
+        assert!(let_stmt.is_some(), "stmt should be LetStatement");
 
         assert!(
-            stmt.name().unwrap().value == name,
+            let_stmt.unwrap().name.value == name,
             "name.value expect to be {}, got {} instead",
             name,
-            stmt.name().unwrap().value,
+            let_stmt.unwrap().name.value,
         );
 
         assert!(
-            stmt.name().unwrap().token_literal() == name,
+            let_stmt.unwrap().name.token_literal() == name,
             "name.token_literal expect to be {}, got {} instead",
             name,
-            stmt.name().unwrap().token_literal(),
+            let_stmt.unwrap().name.token_literal(),
         );
     }
 
@@ -220,6 +221,9 @@ mod test {
         assert_eq!(3, program.statements.len());
 
         program.statements.iter().for_each(|x| {
+            let let_stmt = x.as_any().downcast_ref::<ast::ReturnStatement>();
+            assert!(let_stmt.is_some(), "stmt should be ReturnStatement");
+
             assert!(
                 x.token_literal() == "return".to_string(),
                 "token_literal should be `return`"

@@ -1,13 +1,14 @@
+use std::any::Any;
+
 use crate::token;
 
 pub(crate) trait Node {
     fn token_literal(&self) -> String;
-    fn name(&self) -> Option<Identifier> {
-        None
-    }
 }
 
-pub(crate) trait Statement: Node {}
+pub(crate) trait Statement: Node {
+    fn as_any(&self) -> &dyn Any;
+}
 
 pub(crate) trait Expression: Node {}
 
@@ -29,20 +30,12 @@ impl Node for Program {
             "".into()
         }
     }
-
-    fn name(&self) -> Option<Identifier> {
-        if self.statements.len() > 0 {
-            self.statements[0].name()
-        } else {
-            None
-        }
-    }
 }
 
 pub(crate) struct LetStatement {
-    token: token::Token,
-    name: Identifier,
-    value: Option<Box<dyn Expression>>,
+    pub(crate) token: token::Token,
+    pub(crate) name: Identifier,
+    pub(crate) value: Option<Box<dyn Expression>>,
 }
 
 impl LetStatement {
@@ -59,13 +52,13 @@ impl Node for LetStatement {
     fn token_literal(&self) -> String {
         self.token.literal.clone()
     }
-
-    fn name(&self) -> Option<Identifier> {
-        Some(self.name.clone())
-    }
 }
 
-impl Statement for LetStatement {}
+impl Statement for LetStatement {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
 
 #[derive(Clone, Debug)]
 pub(crate) struct Identifier {
@@ -98,7 +91,11 @@ impl Node for ReturnStatement {
     }
 }
 
-impl Statement for ReturnStatement {}
+impl Statement for ReturnStatement {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
 
 impl ReturnStatement {
     pub(crate) fn new(token: token::Token) -> Self {
