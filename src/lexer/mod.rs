@@ -2,17 +2,17 @@ use crate::token::{Token, TokenType};
 use std::str::FromStr;
 
 #[derive(Default)]
-pub(crate) struct Lexer<'a> {
-    input: &'a str,
+pub(crate) struct Lexer {
+    input: String,
     pos: usize,
     next_pos: usize,
     ch: Option<char>,
 }
 
-impl<'a> Lexer<'a> {
-    pub(crate) fn new(input: &'a str) -> Self {
+impl Lexer {
+    pub(crate) fn new(input: impl AsRef<str>) -> Self {
         let mut l = Lexer {
-            input,
+            input: input.as_ref().to_string(),
             ..Default::default()
         };
         l.read_char();

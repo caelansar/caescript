@@ -2,15 +2,17 @@ use std::{any::Any, fmt::Display};
 
 use crate::token;
 
+pub(crate) trait AsAny {
+    fn as_any(&self) -> &dyn Any;
+}
+
 pub(crate) trait Node: Display {
     fn token_literal(&self) -> String;
 }
 
-pub(crate) trait Statement: Node {
-    fn as_any(&self) -> &dyn Any;
-}
+pub(crate) trait Statement: Node + AsAny {}
 
-pub(crate) trait Expression: Node {}
+pub(crate) trait Expression: Node + AsAny {}
 
 pub(crate) struct Program {
     pub(crate) statements: Vec<Box<dyn Statement>>,
@@ -78,7 +80,9 @@ impl Node for LetStatement {
     }
 }
 
-impl Statement for LetStatement {
+impl Statement for LetStatement {}
+
+impl AsAny for LetStatement {
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -110,6 +114,12 @@ impl Node for Identifier {
 
 impl Expression for Identifier {}
 
+impl AsAny for Identifier {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
 pub(crate) struct ReturnStatement {
     token: token::Token,
     value: Option<Box<dyn Expression>>,
@@ -133,7 +143,9 @@ impl Node for ReturnStatement {
     }
 }
 
-impl Statement for ReturnStatement {
+impl Statement for ReturnStatement {}
+
+impl AsAny for ReturnStatement {
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -146,8 +158,14 @@ impl ReturnStatement {
 }
 
 pub(crate) struct ExpressionStatement {
-    token: token::Token,
-    expression: Option<Box<dyn Expression>>,
+    pub(crate) token: token::Token,
+    pub(crate) expression: Option<Box<dyn Expression>>,
+}
+
+impl ExpressionStatement {
+    pub(crate) fn new(token: token::Token, expression: Option<Box<dyn Expression>>) -> Self {
+        Self { token, expression }
+    }
 }
 
 impl Display for ExpressionStatement {
@@ -169,7 +187,9 @@ impl Node for ExpressionStatement {
     }
 }
 
-impl Statement for ExpressionStatement {
+impl Statement for ExpressionStatement {}
+
+impl AsAny for ExpressionStatement {
     fn as_any(&self) -> &dyn Any {
         self
     }

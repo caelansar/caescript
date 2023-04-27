@@ -1,20 +1,30 @@
+use std::collections::hash_map::HashMap;
+
 use crate::{ast, lexer, token};
 
-struct Parser<'a> {
-    lexer: lexer::Lexer<'a>,
+type PrefixParseFn = fn(&Parser) -> Box<dyn ast::Expression>;
+
+struct Parser {
+    lexer: lexer::Lexer,
     current_token: Option<token::Token>,
     peek_token: Option<token::Token>,
     errors: Vec<String>,
+    prefix_parse_fn: HashMap<token::TokenType, PrefixParseFn>,
 }
 
-impl<'a> Parser<'a> {
-    fn new(lexer: lexer::Lexer<'a>) -> Self {
+impl Parser {
+    fn new(lexer: lexer::Lexer) -> Self {
         let mut parser = Self {
             lexer,
             current_token: None,
             peek_token: None,
             errors: Vec::new(),
+            prefix_parse_fn: HashMap::new(),
         };
+
+        parser
+            .prefix_parse_fn
+            .insert(token::TokenType::Ident, Parser::parse_identifier);
         parser.next_token();
         parser.next_token();
         parser
@@ -47,6 +57,12 @@ impl<'a> Parser<'a> {
         self.peek_token = Some(self.lexer.next_token());
     }
 
+    fn parse_identifier(&self) -> Box<dyn ast::Expression> {
+        let tok = self.current_token.clone().unwrap();
+        let literal = tok.clone().literal;
+        Box::new(ast::Identifier::new(tok, literal))
+    }
+
     fn parse_program(&mut self) -> ast::Program {
         let mut stmts = Vec::new();
         while self
@@ -69,17 +85,15 @@ impl<'a> Parser<'a> {
                 token::TokenType::Let => self
                     .parse_let_statement()
                     .and_then(|x| Some(Box::new(x) as Box<dyn ast::Statement>)),
-                token::TokenType::Return => self
-                    .parse_return_statement()
-                    .and_then(|x| Some(Box::new(x) as Box<dyn ast::Statement>)),
-                _ => None,
+                token::TokenType::Return => Some(Box::new(self.parse_return_statement())),
+                _ => Some(Box::new(self.parse_expression_statement())),
             }
         } else {
             None
         }
     }
 
-    fn parse_return_statement(&mut self) -> Option<ast::ReturnStatement> {
+    fn parse_return_statement(&mut self) -> impl ast::Statement {
         let tok = self.current_token.take();
         let stmt = ast::ReturnStatement::new(tok.unwrap());
 
@@ -88,7 +102,7 @@ impl<'a> Parser<'a> {
         while !self.current_token_is(token::TokenType::SemiColon) {
             self.next_token();
         }
-        Some(stmt)
+        stmt
     }
 
     fn parse_let_statement(&mut self) -> Option<ast::LetStatement> {
@@ -109,6 +123,26 @@ impl<'a> Parser<'a> {
         }
 
         Some(stmt)
+    }
+
+    fn parse_expression_statement(&mut self) -> impl ast::Statement {
+        let expression = self.parse_expression();
+        let stmt = ast::ExpressionStatement::new(self.current_token.clone().unwrap(), expression);
+
+        while !self.current_token_is(token::TokenType::SemiColon) {
+            self.next_token();
+        }
+        stmt
+    }
+
+    fn parse_expression(&self) -> Option<Box<dyn ast::Expression>> {
+        let f = self
+            .prefix_parse_fn
+            .get(&self.current_token.clone().unwrap().typ);
+        match f {
+            Some(f) => Some(f(self)),
+            None => None,
+        }
     }
 
     fn current_token_is(&self, tok: token::TokenType) -> bool {
@@ -227,6 +261,41 @@ mod test {
             assert!(
                 x.token_literal() == "return".to_string(),
                 "token_literal should be `return`"
+            )
+        })
+    }
+
+    #[test]
+    fn identifier_expression_should_work() {
+        let input = "cae;";
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parse_error(&parser);
+
+        assert_eq!(1, program.statements.len());
+
+        program.statements.iter().for_each(|x| {
+            let stmt = x.as_any().downcast_ref::<ast::ExpressionStatement>();
+            assert!(stmt.is_some(), "stmt should be ExpressionStatement");
+
+            let exp = stmt
+                .unwrap()
+                .expression
+                .as_ref()
+                .and_then(|exp| {
+                    exp.as_any()
+                        .downcast_ref::<ast::Identifier>()
+                        .and_then(|exp| Some(exp))
+                })
+                .unwrap();
+
+            assert_eq!("cae", &exp.value);
+
+            assert!(
+                x.token_literal() == "cae".to_string(),
+                "token_literal should be `cae`"
             )
         })
     }

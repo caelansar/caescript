@@ -1,7 +1,7 @@
 use strum_macros::Display;
 use strum_macros::EnumString;
 
-#[derive(EnumString, Display, Debug, PartialEq, Clone, Copy)]
+#[derive(EnumString, Display, Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub(crate) enum TokenType {
     Illegal,
     EOF,
