@@ -20,8 +20,6 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
       - name: Install Rust
         run: rustup toolchain install nightly --component llvm-tools-preview
       - name: Use nightly
