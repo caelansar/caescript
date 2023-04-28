@@ -18,6 +18,12 @@ pub(crate) struct Program {
     pub(crate) statements: Vec<Box<dyn Statement>>,
 }
 
+impl<T: 'static> AsAny for T {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
 impl Program {
     pub(crate) fn new(statements: Vec<Box<dyn Statement>>) -> Self {
         Self { statements }
@@ -82,12 +88,6 @@ impl Node for LetStatement {
 
 impl Statement for LetStatement {}
 
-impl AsAny for LetStatement {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
 #[derive(Clone, Debug)]
 pub(crate) struct Identifier {
     pub(crate) token: token::Token,
@@ -114,12 +114,6 @@ impl Node for Identifier {
 
 impl Expression for Identifier {}
 
-impl AsAny for Identifier {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
 pub(crate) struct ReturnStatement {
     token: token::Token,
     value: Option<Box<dyn Expression>>,
@@ -144,12 +138,6 @@ impl Node for ReturnStatement {
 }
 
 impl Statement for ReturnStatement {}
-
-impl AsAny for ReturnStatement {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
 
 impl ReturnStatement {
     pub(crate) fn new(token: token::Token) -> Self {
@@ -189,9 +177,28 @@ impl Node for ExpressionStatement {
 
 impl Statement for ExpressionStatement {}
 
-impl AsAny for ExpressionStatement {
-    fn as_any(&self) -> &dyn Any {
-        self
+pub struct IntegerLiteral {
+    pub(crate) token: token::Token,
+    pub(crate) value: i64,
+}
+
+impl Display for IntegerLiteral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.token.literal)
+    }
+}
+
+impl Node for IntegerLiteral {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
+
+impl Expression for IntegerLiteral {}
+
+impl IntegerLiteral {
+    pub(crate) fn new(token: token::Token, value: i64) -> Self {
+        Self { token, value }
     }
 }
 
