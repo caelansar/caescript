@@ -177,27 +177,27 @@ impl Node for ExpressionStatement {
 
 impl Statement for ExpressionStatement {}
 
-pub struct IntegerLiteral {
+pub struct Literal<T> {
     pub(crate) token: token::Token,
-    pub(crate) value: i64,
+    pub(crate) value: T,
 }
 
-impl Display for IntegerLiteral {
+impl<T> Display for Literal<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.token.literal)
     }
 }
 
-impl Node for IntegerLiteral {
+impl<T> Node for Literal<T> {
     fn token_literal(&self) -> String {
         self.token.literal.clone()
     }
 }
 
-impl Expression for IntegerLiteral {}
+impl<T: 'static> Expression for Literal<T> {}
 
-impl IntegerLiteral {
-    pub(crate) fn new(token: token::Token, value: i64) -> Self {
+impl<T> Literal<T> {
+    pub(crate) fn new(token: token::Token, value: T) -> Self {
         Self { token, value }
     }
 }

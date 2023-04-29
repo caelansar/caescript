@@ -22,12 +22,10 @@ impl Parser {
             prefix_parse_fn: HashMap::new(),
         };
 
-        parser
-            .prefix_parse_fn
-            .insert(token::TokenType::Ident, Parser::parse_identifier);
-        parser
-            .prefix_parse_fn
-            .insert(token::TokenType::Int, Parser::parse_integer_literal);
+        parser.register_prefix_parse_fn(token::TokenType::Ident, Parser::parse_identifier);
+        parser.register_prefix_parse_fn(token::TokenType::Int, Parser::parse_integer_literal);
+        parser.register_prefix_parse_fn(token::TokenType::True, Parser::parse_boolean_literal);
+        parser.register_prefix_parse_fn(token::TokenType::False, Parser::parse_boolean_literal);
 
         parser.next_token();
         parser.next_token();
@@ -61,6 +59,10 @@ impl Parser {
         self.peek_token = Some(self.lexer.next_token());
     }
 
+    fn register_prefix_parse_fn(&mut self, token: token::TokenType, parse_fn: PrefixParseFn) {
+        self.prefix_parse_fn.insert(token, parse_fn);
+    }
+
     fn parse_identifier(&self) -> Box<dyn ast::Expression> {
         let tok = self.current_token.clone().unwrap();
         let literal = tok.clone().literal;
@@ -77,7 +79,16 @@ impl Parser {
             .parse()
             .expect("not number");
 
-        Box::new(ast::IntegerLiteral::new(
+        Box::new(ast::Literal::new(
+            self.current_token.clone().unwrap(),
+            value,
+        ))
+    }
+
+    fn parse_boolean_literal(&self) -> Box<dyn ast::Expression> {
+        let value = self.current_token_is(token::TokenType::True);
+
+        Box::new(ast::Literal::new(
             self.current_token.clone().unwrap(),
             value,
         ))
@@ -319,6 +330,7 @@ mod test {
             )
         })
     }
+
     #[test]
     fn integer_expression_should_work() {
         let input = "4;";
@@ -344,7 +356,7 @@ mod test {
                 .as_ref()
                 .and_then(|exp| {
                     exp.as_any()
-                        .downcast_ref::<ast::IntegerLiteral>()
+                        .downcast_ref::<ast::Literal<i64>>()
                         .and_then(|exp| Some(exp))
                 })
                 .unwrap();
@@ -354,6 +366,45 @@ mod test {
             assert!(
                 x.token_literal() == "4".to_string(),
                 "token_literal should be 4"
+            )
+        })
+    }
+
+    #[test]
+    fn boolean_expression_should_work() {
+        let input = "false;";
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parse_error(&parser);
+
+        assert_eq!(1, program.statements.len());
+
+        program.statements.iter().for_each(|x| {
+            let stmt = x.as_any().downcast_ref::<ast::ExpressionStatement>();
+            assert!(
+                stmt.is_some(),
+                "stmt ({}) should be ExpressionStatement",
+                &x
+            );
+
+            let exp = stmt
+                .unwrap()
+                .expression
+                .as_ref()
+                .and_then(|exp| {
+                    exp.as_any()
+                        .downcast_ref::<ast::Literal<bool>>()
+                        .and_then(|exp| Some(exp))
+                })
+                .unwrap();
+
+            assert_eq!(false, exp.value);
+
+            assert!(
+                x.token_literal() == "false".to_string(),
+                "token_literal should be false"
             )
         })
     }
