@@ -193,9 +193,39 @@ impl Parser {
 
 #[cfg(test)]
 mod test {
-    use crate::{ast, ast::Node, lexer};
+    use crate::{
+        ast,
+        ast::{ExpressionStatement, Node},
+        lexer,
+    };
 
     use super::Parser;
+
+    macro_rules! assert_literal_expression {
+        ($stmt:ident,$typ:ident,$val_typ:ident,$val:expr) => {
+            let stmt = $stmt.as_any().downcast_ref::<$typ>();
+            assert!(
+                stmt.is_some(),
+                "stmt ({}) should be ExpressionStatement",
+                &$stmt
+            );
+
+            let exp = stmt
+                .unwrap()
+                .expression
+                .as_ref()
+                .and_then(|exp| {
+                    exp.as_any()
+                        .downcast_ref::<ast::Literal<$val_typ>>()
+                        .and_then(|exp| Some(exp))
+                })
+                .unwrap();
+
+            assert_eq!($val, exp.value);
+
+            assert!($stmt.token_literal() == $val.to_string())
+        };
+    }
 
     #[test]
     fn let_statement_should_work() {
@@ -343,30 +373,7 @@ mod test {
         assert_eq!(1, program.statements.len());
 
         program.statements.iter().for_each(|x| {
-            let stmt = x.as_any().downcast_ref::<ast::ExpressionStatement>();
-            assert!(
-                stmt.is_some(),
-                "stmt ({}) should be ExpressionStatement",
-                &x
-            );
-
-            let exp = stmt
-                .unwrap()
-                .expression
-                .as_ref()
-                .and_then(|exp| {
-                    exp.as_any()
-                        .downcast_ref::<ast::Literal<i64>>()
-                        .and_then(|exp| Some(exp))
-                })
-                .unwrap();
-
-            assert_eq!(4, exp.value);
-
-            assert!(
-                x.token_literal() == "4".to_string(),
-                "token_literal should be 4"
-            )
+            assert_literal_expression!(x, ExpressionStatement, i64, 4);
         })
     }
 
@@ -382,30 +389,7 @@ mod test {
         assert_eq!(1, program.statements.len());
 
         program.statements.iter().for_each(|x| {
-            let stmt = x.as_any().downcast_ref::<ast::ExpressionStatement>();
-            assert!(
-                stmt.is_some(),
-                "stmt ({}) should be ExpressionStatement",
-                &x
-            );
-
-            let exp = stmt
-                .unwrap()
-                .expression
-                .as_ref()
-                .and_then(|exp| {
-                    exp.as_any()
-                        .downcast_ref::<ast::Literal<bool>>()
-                        .and_then(|exp| Some(exp))
-                })
-                .unwrap();
-
-            assert_eq!(false, exp.value);
-
-            assert!(
-                x.token_literal() == "false".to_string(),
-                "token_literal should be false"
-            )
+            assert_literal_expression!(x, ExpressionStatement, bool, false);
         })
     }
 }
