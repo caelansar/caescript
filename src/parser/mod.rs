@@ -195,14 +195,14 @@ impl Parser {
 mod test {
     use crate::{
         ast,
-        ast::{ExpressionStatement, Node},
+        ast::{ExpressionStatement, Identifier, Literal, Node},
         lexer,
     };
 
     use super::Parser;
 
-    macro_rules! assert_literal_expression {
-        ($stmt:ident,$typ:ident,$val_typ:ident,$val:expr) => {
+    macro_rules! assert_expression {
+        ($stmt:ident,$typ:ident,$val_typ:ty,$val:expr) => {
             let stmt = $stmt.as_any().downcast_ref::<$typ>();
             assert!(
                 stmt.is_some(),
@@ -216,7 +216,7 @@ mod test {
                 .as_ref()
                 .and_then(|exp| {
                     exp.as_any()
-                        .downcast_ref::<ast::Literal<$val_typ>>()
+                        .downcast_ref::<$val_typ>()
                         .and_then(|exp| Some(exp))
                 })
                 .unwrap();
@@ -338,26 +338,7 @@ mod test {
         assert_eq!(1, program.statements.len());
 
         program.statements.iter().for_each(|x| {
-            let stmt = x.as_any().downcast_ref::<ast::ExpressionStatement>();
-            assert!(stmt.is_some(), "stmt should be ExpressionStatement");
-
-            let exp = stmt
-                .unwrap()
-                .expression
-                .as_ref()
-                .and_then(|exp| {
-                    exp.as_any()
-                        .downcast_ref::<ast::Identifier>()
-                        .and_then(|exp| Some(exp))
-                })
-                .unwrap();
-
-            assert_eq!("cae", &exp.value);
-
-            assert!(
-                x.token_literal() == "cae".to_string(),
-                "token_literal should be `cae`"
-            )
+            assert_expression!(x, ExpressionStatement, Identifier, "cae");
         })
     }
 
@@ -373,7 +354,7 @@ mod test {
         assert_eq!(1, program.statements.len());
 
         program.statements.iter().for_each(|x| {
-            assert_literal_expression!(x, ExpressionStatement, i64, 4);
+            assert_expression!(x, ExpressionStatement, Literal<i64>, 4);
         })
     }
 
@@ -389,7 +370,7 @@ mod test {
         assert_eq!(1, program.statements.len());
 
         program.statements.iter().for_each(|x| {
-            assert_literal_expression!(x, ExpressionStatement, bool, false);
+            assert_expression!(x, ExpressionStatement, Literal<bool>, false);
         })
     }
 }
