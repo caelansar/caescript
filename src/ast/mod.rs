@@ -202,6 +202,43 @@ impl<T> Literal<T> {
     }
 }
 
+pub struct PrefixExpression {
+    pub(crate) token: token::Token,
+    pub(crate) operator: String,
+    pub(crate) rhs: Box<dyn Expression>,
+}
+
+impl PrefixExpression {
+    pub(crate) fn new(token: token::Token, operator: String, rhs: Box<dyn Expression>) -> Self {
+        Self {
+            token,
+            operator,
+            rhs,
+        }
+    }
+}
+
+impl Display for PrefixExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut out = String::new();
+
+        out.push_str("(");
+        out.push_str(&self.operator);
+        out.push_str(&self.rhs.to_string());
+        out.push_str(")");
+
+        f.write_str(&out)
+    }
+}
+
+impl Node for PrefixExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
+
+impl Expression for PrefixExpression {}
+
 #[cfg(test)]
 mod test {
     use crate::token::{Token, TokenType};

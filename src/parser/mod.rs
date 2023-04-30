@@ -2,7 +2,7 @@ use std::collections::hash_map::HashMap;
 
 use crate::{ast, lexer, token};
 
-type PrefixParseFn = fn(&Parser) -> Box<dyn ast::Expression>;
+type PrefixParseFn = fn(&mut Parser) -> Box<dyn ast::Expression>;
 
 struct Parser {
     lexer: lexer::Lexer,
@@ -26,6 +26,8 @@ impl Parser {
         parser.register_prefix_parse_fn(token::TokenType::Int, Parser::parse_integer_literal);
         parser.register_prefix_parse_fn(token::TokenType::True, Parser::parse_boolean_literal);
         parser.register_prefix_parse_fn(token::TokenType::False, Parser::parse_boolean_literal);
+        parser.register_prefix_parse_fn(token::TokenType::Minus, Parser::parse_prefix_expression);
+        parser.register_prefix_parse_fn(token::TokenType::Bang, Parser::parse_prefix_expression);
 
         parser.next_token();
         parser.next_token();
@@ -36,20 +38,20 @@ impl Parser {
         self.errors.clone()
     }
 
-    fn peek_error(&mut self, tok: token::TokenType) {
+    fn peek_error(&mut self, token: &token::TokenType) {
         self.errors.push(format!(
             "expect next_token to be {}, got {} instead",
-            tok,
+            token,
             self.peek_token.as_ref().unwrap().typ
         ))
     }
 
-    fn expect_peek(&mut self, tok: token::TokenType) -> bool {
-        if self.peek_token_is(tok) {
+    fn expect_peek(&mut self, token: &token::TokenType) -> bool {
+        if self.peek_token_is(token) {
             self.next_token();
             true
         } else {
-            self.peek_error(tok);
+            self.peek_error(token);
             false
         }
     }
@@ -63,13 +65,28 @@ impl Parser {
         self.prefix_parse_fn.insert(token, parse_fn);
     }
 
-    fn parse_identifier(&self) -> Box<dyn ast::Expression> {
+    fn parse_prefix_expression(&mut self) -> Box<dyn ast::Expression> {
+        let current_token = self.current_token.take().unwrap();
+        let operator = current_token.literal.clone();
+
+        self.next_token();
+
+        let rhs = self.parse_expression();
+
+        Box::new(ast::PrefixExpression::new(
+            current_token,
+            operator,
+            rhs.unwrap(),
+        ))
+    }
+
+    fn parse_identifier(&mut self) -> Box<dyn ast::Expression> {
         let tok = self.current_token.clone().unwrap();
         let literal = tok.clone().literal;
         Box::new(ast::Identifier::new(tok, literal))
     }
 
-    fn parse_integer_literal(&self) -> Box<dyn ast::Expression> {
+    fn parse_integer_literal(&mut self) -> Box<dyn ast::Expression> {
         let value: i64 = self
             .current_token
             .as_ref()
@@ -85,7 +102,7 @@ impl Parser {
         ))
     }
 
-    fn parse_boolean_literal(&self) -> Box<dyn ast::Expression> {
+    fn parse_boolean_literal(&mut self) -> Box<dyn ast::Expression> {
         let value = self.current_token_is(token::TokenType::True);
 
         Box::new(ast::Literal::new(
@@ -138,14 +155,14 @@ impl Parser {
 
     fn parse_let_statement(&mut self) -> Option<ast::LetStatement> {
         let tok = self.current_token.take();
-        if !self.expect_peek(token::TokenType::Ident) {
+        if !self.expect_peek(&token::TokenType::Ident) {
             return None;
         }
         let curr_tok = self.current_token.take().unwrap();
         let identifier = ast::Identifier::new(curr_tok.clone(), curr_tok.literal.clone());
         let stmt = ast::LetStatement::new(tok.unwrap(), identifier);
 
-        if !self.expect_peek(token::TokenType::Assign) {
+        if !self.expect_peek(&token::TokenType::Assign) {
             return None;
         }
 
@@ -166,13 +183,21 @@ impl Parser {
         stmt
     }
 
-    fn parse_expression(&self) -> Option<Box<dyn ast::Expression>> {
+    fn no_prefix_parse_fn_error(&mut self, token: &token::TokenType) {
+        self.errors
+            .push(format!("no prefix parse fn found for {}", token))
+    }
+
+    fn parse_expression(&mut self) -> Option<Box<dyn ast::Expression>> {
         let f = self
             .prefix_parse_fn
             .get(&self.current_token.clone().unwrap().typ);
         match f {
             Some(f) => Some(f(self)),
-            None => None,
+            None => {
+                self.no_prefix_parse_fn_error(&self.current_token.clone().unwrap().typ);
+                None
+            }
         }
     }
 
@@ -183,10 +208,10 @@ impl Parser {
             .is_some_and(|x| x)
     }
 
-    fn peek_token_is(&self, tok: token::TokenType) -> bool {
+    fn peek_token_is(&self, tok: &token::TokenType) -> bool {
         self.peek_token
             .as_ref()
-            .map(|x| x.typ == tok)
+            .map(|x| &x.typ == tok)
             .is_some_and(|x| x)
     }
 }
@@ -195,7 +220,7 @@ impl Parser {
 mod test {
     use crate::{
         ast,
-        ast::{ExpressionStatement, Identifier, Literal, Node},
+        ast::{ExpressionStatement, Identifier, Literal, Node, PrefixExpression},
         lexer,
     };
 
@@ -221,9 +246,64 @@ mod test {
                 })
                 .unwrap();
 
-            assert_eq!($val, exp.value);
+            assert_eq!(
+                $val, exp.value,
+                "exp.value should be {}, got {}",
+                $val, exp.value
+            );
 
-            assert!($stmt.token_literal() == $val.to_string())
+            assert_eq!(
+                $stmt.token_literal(),
+                $val.to_string(),
+                "token_literal should be {}, got {}",
+                $val,
+                $stmt.token_literal()
+            );
+        };
+    }
+
+    macro_rules! assert_prefix_expression {
+        ($stmt:ident,$typ:ty,$exp_typ:ty,$operator:literal,$rhs_typ:ty,$rhs_val:literal) => {
+            let stmt = $stmt.as_any().downcast_ref::<$typ>();
+            assert!(
+                stmt.is_some(),
+                "stmt ({}) should be ExpressionStatement",
+                &$stmt
+            );
+
+            let exp = stmt
+                .unwrap()
+                .expression
+                .as_ref()
+                .and_then(|exp| {
+                    exp.as_any()
+                        .downcast_ref::<$exp_typ>()
+                        .and_then(|exp| Some(exp))
+                })
+                .unwrap();
+
+            assert_eq!($operator, exp.operator);
+
+            let rhs = exp
+                .rhs
+                .as_ref()
+                .as_any()
+                .downcast_ref::<$rhs_typ>()
+                .unwrap();
+
+            assert_eq!(
+                rhs.value, $rhs_val,
+                "rhs.value should be {}, got {}",
+                $rhs_val, rhs.value
+            );
+
+            assert_eq!(
+                rhs.token_literal(),
+                $rhs_val.to_string(),
+                "token_literal should be {}, got {}",
+                $rhs_val,
+                rhs.token_literal()
+            );
         };
     }
 
@@ -371,6 +451,52 @@ mod test {
 
         program.statements.iter().for_each(|x| {
             assert_expression!(x, ExpressionStatement, Literal<bool>, false);
+        })
+    }
+
+    #[test]
+    fn minus_expression_should_work() {
+        let input = "-5;";
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parse_error(&parser);
+
+        assert_eq!(1, program.statements.len());
+
+        program.statements.iter().for_each(|x| {
+            assert_prefix_expression!(
+                x,
+                ExpressionStatement,
+                PrefixExpression,
+                "-",
+                Literal<i64>,
+                5
+            );
+        })
+    }
+
+    #[test]
+    fn bang_expression_should_work() {
+        let input = "!true;";
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parse_error(&parser);
+
+        assert_eq!(1, program.statements.len());
+
+        program.statements.iter().for_each(|x| {
+            assert_prefix_expression!(
+                x,
+                ExpressionStatement,
+                PrefixExpression,
+                "!",
+                Literal<bool>,
+                true
+            );
         })
     }
 }

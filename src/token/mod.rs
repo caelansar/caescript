@@ -33,6 +33,8 @@ pub(crate) enum TokenType {
     Gt,
     #[strum(serialize = "<")]
     Lt,
+    #[strum(serialize = "!")]
+    Bang,
     #[strum(serialize = "==")]
     Eq,
     #[strum(serialize = "!=")]
