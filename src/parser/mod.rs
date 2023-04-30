@@ -202,7 +202,7 @@ mod test {
     use super::Parser;
 
     macro_rules! assert_expression {
-        ($stmt:ident,$typ:ident,$val_typ:ty,$val:expr) => {
+        ($stmt:ident,$typ:ty,$exp_typ:ty,$val:literal) => {
             let stmt = $stmt.as_any().downcast_ref::<$typ>();
             assert!(
                 stmt.is_some(),
@@ -216,7 +216,7 @@ mod test {
                 .as_ref()
                 .and_then(|exp| {
                     exp.as_any()
-                        .downcast_ref::<$val_typ>()
+                        .downcast_ref::<$exp_typ>()
                         .and_then(|exp| Some(exp))
                 })
                 .unwrap();
