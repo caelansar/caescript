@@ -86,10 +86,12 @@ impl Lexer {
                         )
                     }
                 }
-                ',' | ';' | '(' | ')' | '{' | '}' | '+' | '-' | '*' | '/' => Token::new(
-                    TokenType::from_str(token.to_string().as_str()).unwrap(),
-                    token.to_string(),
-                ),
+                ',' | ';' | '(' | ')' | '{' | '}' | '+' | '-' | '*' | '/' | '>' | '<' => {
+                    Token::new(
+                        TokenType::from_str(token.to_string().as_str()).unwrap(),
+                        token.to_string(),
+                    )
+                }
                 _ => {
                     if token.is_alphabetic() {
                         let literal = self.read_identifier();

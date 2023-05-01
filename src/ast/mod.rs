@@ -18,6 +18,25 @@ pub(crate) struct Program {
     pub(crate) statements: Vec<Box<dyn Statement>>,
 }
 
+macro_rules! impl_statement {
+    ($($t:ty),*) => {
+        $(
+            impl Statement for $t {}
+        )*
+    };
+}
+
+macro_rules! impl_expression {
+    ($($t:ty),*) => {
+        $(
+            impl Expression for $t {}
+        )*
+    };
+}
+
+impl_statement!(LetStatement, ReturnStatement, ExpressionStatement);
+impl_expression!(Identifier, PrefixExpression, InfixExpression);
+
 impl<T: 'static> AsAny for T {
     fn as_any(&self) -> &dyn Any {
         self
@@ -86,8 +105,6 @@ impl Node for LetStatement {
     }
 }
 
-impl Statement for LetStatement {}
-
 #[derive(Clone, Debug)]
 pub(crate) struct Identifier {
     pub(crate) token: token::Token,
@@ -112,8 +129,6 @@ impl Node for Identifier {
     }
 }
 
-impl Expression for Identifier {}
-
 pub(crate) struct ReturnStatement {
     token: token::Token,
     value: Option<Box<dyn Expression>>,
@@ -136,8 +151,6 @@ impl Node for ReturnStatement {
         self.token.literal.clone()
     }
 }
-
-impl Statement for ReturnStatement {}
 
 impl ReturnStatement {
     pub(crate) fn new(token: token::Token) -> Self {
@@ -174,8 +187,6 @@ impl Node for ExpressionStatement {
         self.token.literal.clone()
     }
 }
-
-impl Statement for ExpressionStatement {}
 
 pub struct Literal<T> {
     pub(crate) token: token::Token,
@@ -237,7 +248,50 @@ impl Node for PrefixExpression {
     }
 }
 
-impl Expression for PrefixExpression {}
+pub struct InfixExpression {
+    pub(crate) token: token::Token,
+    pub(crate) lhs: Box<dyn Expression>,
+    pub(crate) operator: String,
+    pub(crate) rhs: Box<dyn Expression>,
+}
+
+impl InfixExpression {
+    pub(crate) fn new(
+        token: token::Token,
+        lhs: Box<dyn Expression>,
+        operator: String,
+        rhs: Box<dyn Expression>,
+    ) -> Self {
+        Self {
+            token,
+            lhs,
+            operator,
+            rhs,
+        }
+    }
+}
+
+impl Display for InfixExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut out = String::new();
+
+        out.push_str("(");
+        out.push_str(&self.lhs.to_string());
+        out.push_str(" ");
+        out.push_str(&self.operator);
+        out.push_str(" ");
+        out.push_str(&self.rhs.to_string());
+        out.push_str(")");
+
+        f.write_str(&out)
+    }
+}
+
+impl Node for InfixExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
 
 #[cfg(test)]
 mod test {
