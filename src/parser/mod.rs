@@ -58,6 +58,7 @@ impl Parser {
         parser.register_prefix_parse_fn(token::TokenType::False, Parser::parse_boolean_literal);
         parser.register_prefix_parse_fn(token::TokenType::Minus, Parser::parse_prefix_expression);
         parser.register_prefix_parse_fn(token::TokenType::Bang, Parser::parse_prefix_expression);
+        parser.register_prefix_parse_fn(token::TokenType::Lparen, Parser::parse_grouped_expression);
 
         parser.register_infix_parse_fn(token::TokenType::Plus, Parser::parse_infix_expression);
         parser.register_infix_parse_fn(token::TokenType::Minus, Parser::parse_infix_expression);
@@ -134,6 +135,18 @@ impl Parser {
             operator,
             rhs.unwrap(),
         ))
+    }
+
+    fn parse_grouped_expression(&mut self) -> Box<dyn ast::Expression> {
+        self.next_token();
+
+        let exp = self.parse_expression(Precedence::Lowest);
+
+        if !self.expect_peek(&token::TokenType::Rparen) {
+            println!("paren not match")
+        }
+
+        exp.unwrap()
     }
 
     fn parse_prefix_expression(&mut self) -> Box<dyn ast::Expression> {
@@ -604,6 +617,7 @@ mod test {
             ("5 > 4", "(5 > 4)"),
             ("5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))"),
             ("5 != 4", "(5 != 4)"),
+            ("(a + b) * c", "((a + b) * c)"),
         ];
 
         testdata.iter().for_each(|testcase| {
