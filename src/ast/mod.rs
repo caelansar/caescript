@@ -35,7 +35,13 @@ macro_rules! impl_expression {
 }
 
 impl_statement!(LetStatement, ReturnStatement, ExpressionStatement);
-impl_expression!(Identifier, PrefixExpression, InfixExpression);
+impl_expression!(
+    Identifier,
+    PrefixExpression,
+    InfixExpression,
+    Literal<i64>,
+    Literal<bool>
+);
 
 impl<T: 'static> AsAny for T {
     fn as_any(&self) -> &dyn Any {
@@ -204,8 +210,6 @@ impl<T> Node for Literal<T> {
         self.token.literal.clone()
     }
 }
-
-impl<T: 'static> Expression for Literal<T> {}
 
 impl<T> Literal<T> {
     pub(crate) fn new(token: token::Token, value: T) -> Self {
