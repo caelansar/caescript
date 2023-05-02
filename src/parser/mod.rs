@@ -333,9 +333,27 @@ mod test {
 
     use super::{Parser, Precedence};
 
+    macro_rules! assert_exp {
+        ($exp:ident,$val:literal) => {
+            assert_eq!(
+                $val, $exp.value,
+                "exp.value should be {}, got {}",
+                $val, $exp.value
+            );
+
+            assert_eq!(
+                $exp.token_literal(),
+                $val.to_string(),
+                "token_literal should be {}, got {}",
+                $val,
+                $exp.token_literal()
+            );
+        };
+    }
+
     macro_rules! assert_expression {
-        ($stmt:ident,$typ:ty,$exp_typ:ty,$val:literal) => {
-            let stmt = $stmt.as_any().downcast_ref::<$typ>();
+        ($stmt:ident,$exp_typ:ty,$val:literal) => {
+            let stmt = $stmt.as_any().downcast_ref::<ExpressionStatement>();
             assert!(
                 stmt.is_some(),
                 "stmt ({}) should be ExpressionStatement",
@@ -353,19 +371,7 @@ mod test {
                 })
                 .unwrap();
 
-            assert_eq!(
-                $val, exp.value,
-                "exp.value should be {}, got {}",
-                $val, exp.value
-            );
-
-            assert_eq!(
-                $stmt.token_literal(),
-                $val.to_string(),
-                "token_literal should be {}, got {}",
-                $val,
-                $stmt.token_literal()
-            );
+            assert_exp!(exp, $val);
         };
     }
 
@@ -398,19 +404,7 @@ mod test {
                 .downcast_ref::<$rhs_typ>()
                 .unwrap();
 
-            assert_eq!(
-                rhs.value, $rhs_val,
-                "rhs.value should be {}, got {}",
-                $rhs_val, rhs.value
-            );
-
-            assert_eq!(
-                rhs.token_literal(),
-                $rhs_val.to_string(),
-                "token_literal should be {}, got {}",
-                $rhs_val,
-                rhs.token_literal()
-            );
+            assert_exp!(rhs, $rhs_val);
         };
     }
 
@@ -429,25 +423,11 @@ mod test {
 
         assert_eq!(3, program.statements.len());
 
-        #[derive(Debug)]
-        struct Testcase {
-            expected_identifier: String,
-        }
+        let tests = vec!["a".to_string(), "b".to_string(), "c".to_string()];
 
-        let tests = vec![
-            Testcase {
-                expected_identifier: "a".to_string(),
-            },
-            Testcase {
-                expected_identifier: "b".to_string(),
-            },
-            Testcase {
-                expected_identifier: "c".to_string(),
-            },
-        ];
         tests.into_iter().enumerate().for_each(|(idx, test)| {
             let stmt = &program.statements[idx];
-            assert_let_statement(stmt, test.expected_identifier);
+            assert_let_statement(stmt, test);
         })
     }
 
@@ -525,7 +505,7 @@ mod test {
         assert_eq!(1, program.statements.len());
 
         program.statements.iter().for_each(|x| {
-            assert_expression!(x, ExpressionStatement, Identifier, "cae");
+            assert_expression!(x, Identifier, "cae");
         })
     }
 
@@ -541,7 +521,7 @@ mod test {
         assert_eq!(1, program.statements.len());
 
         program.statements.iter().for_each(|x| {
-            assert_expression!(x, ExpressionStatement, Literal<i64>, 4);
+            assert_expression!(x, Literal<i64>, 4);
         })
     }
 
@@ -557,7 +537,7 @@ mod test {
         assert_eq!(1, program.statements.len());
 
         program.statements.iter().for_each(|x| {
-            assert_expression!(x, ExpressionStatement, Literal<bool>, false);
+            assert_expression!(x, Literal<bool>, false);
         })
     }
 
