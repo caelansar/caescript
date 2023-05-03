@@ -34,13 +34,19 @@ macro_rules! impl_expression {
     };
 }
 
-impl_statement!(LetStatement, ReturnStatement, ExpressionStatement);
+impl_statement!(
+    LetStatement,
+    ReturnStatement,
+    ExpressionStatement,
+    BlockStatement
+);
 impl_expression!(
     Identifier,
     PrefixExpression,
     InfixExpression,
     Literal<i64>,
-    Literal<bool>
+    Literal<bool>,
+    IfExpression
 );
 
 impl<T: 'static> AsAny for T {
@@ -292,6 +298,82 @@ impl Display for InfixExpression {
 }
 
 impl Node for InfixExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
+
+pub struct IfExpression {
+    pub(crate) token: token::Token,
+    pub(crate) condition: Box<dyn Expression>,
+    pub(crate) consequence: BlockStatement,
+    pub(crate) alternative: Option<BlockStatement>,
+}
+
+impl IfExpression {
+    pub(crate) fn new(
+        token: token::Token,
+        condition: Box<dyn Expression>,
+        consequence: BlockStatement,
+        alternative: Option<BlockStatement>,
+    ) -> Self {
+        Self {
+            token,
+            condition,
+            consequence,
+            alternative,
+        }
+    }
+}
+
+impl Display for IfExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut out = String::new();
+
+        out.push_str("if ");
+        out.push_str(&self.condition.to_string());
+        out.push_str(" ");
+        out.push_str(&self.consequence.to_string());
+        out.push_str(" ");
+        if let Some(ref alternative) = self.alternative {
+            out.push_str("else ");
+            out.push_str(&alternative.to_string());
+        }
+
+        f.write_str(&out)
+    }
+}
+
+impl Node for IfExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
+
+pub struct BlockStatement {
+    pub(crate) token: token::Token,
+    pub(crate) statements: Vec<Box<dyn Statement>>,
+}
+
+impl BlockStatement {
+    pub(crate) fn new(token: token::Token, statements: Vec<Box<dyn Statement>>) -> Self {
+        Self { token, statements }
+    }
+}
+
+impl Display for BlockStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut out = String::new();
+
+        self.statements.iter().for_each(|stmt| {
+            out.push_str(&stmt.to_string());
+        });
+
+        f.write_str(&out)
+    }
+}
+
+impl Node for BlockStatement {
     fn token_literal(&self) -> String {
         self.token.literal.clone()
     }

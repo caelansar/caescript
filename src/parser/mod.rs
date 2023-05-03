@@ -2,8 +2,8 @@ use std::collections::hash_map::HashMap;
 
 use crate::{ast, lexer, token};
 
-type PrefixParseFn = fn(&mut Parser) -> Box<dyn ast::Expression>;
-type InfixParseFn = fn(&mut Parser, Box<dyn ast::Expression>) -> Box<dyn ast::Expression>;
+type PrefixParseFn = fn(&mut Parser) -> Option<Box<dyn ast::Expression>>;
+type InfixParseFn = fn(&mut Parser, Box<dyn ast::Expression>) -> Option<Box<dyn ast::Expression>>;
 
 #[derive(PartialEq, PartialOrd)]
 pub(crate) enum Precedence {
@@ -59,6 +59,7 @@ impl Parser {
         parser.register_prefix_parse_fn(token::TokenType::Minus, Parser::parse_prefix_expression);
         parser.register_prefix_parse_fn(token::TokenType::Bang, Parser::parse_prefix_expression);
         parser.register_prefix_parse_fn(token::TokenType::Lparen, Parser::parse_grouped_expression);
+        parser.register_prefix_parse_fn(token::TokenType::If, Parser::parse_if_expression);
 
         parser.register_infix_parse_fn(token::TokenType::Plus, Parser::parse_infix_expression);
         parser.register_infix_parse_fn(token::TokenType::Minus, Parser::parse_infix_expression);
@@ -117,10 +118,67 @@ impl Parser {
         self.infix_parse_fn.insert(token, parse_fn);
     }
 
+    fn parse_block_statemnt(&mut self) -> ast::BlockStatement {
+        let current_token = self.current_token.clone().unwrap();
+        let mut statements = Vec::new();
+
+        self.next_token();
+
+        while !self.current_token_is(token::TokenType::Rbrace) {
+            if self.current_token_is(token::TokenType::EOF) {
+                panic!("unterminated block statement");
+            }
+            let stmt = self.parse_statement();
+            if let Some(stmt) = stmt {
+                statements.push(stmt)
+            }
+            self.next_token();
+        }
+
+        ast::BlockStatement::new(current_token, statements)
+    }
+
+    fn parse_if_expression(&mut self) -> Option<Box<dyn ast::Expression>> {
+        let current_token = self.current_token.clone().unwrap();
+
+        if !self.expect_peek(&token::TokenType::Lparen) {
+            return None;
+        }
+
+        self.next_token();
+
+        let condition = self.parse_expression(Precedence::Lowest);
+
+        if !self.expect_peek(&token::TokenType::Rparen) {
+            return None;
+        }
+        if !self.expect_peek(&token::TokenType::Lbrace) {
+            return None;
+        }
+
+        let consequence = self.parse_block_statemnt();
+
+        let mut alternative = None;
+
+        if self.peek_token_is(&token::TokenType::Else) {
+            self.next_token();
+            if self.expect_peek(&token::TokenType::Lbrace) {
+                alternative = Some(self.parse_block_statemnt());
+            }
+        }
+
+        Some(Box::new(ast::IfExpression::new(
+            current_token,
+            condition.unwrap(),
+            consequence,
+            alternative,
+        )))
+    }
+
     fn parse_infix_expression(
         &mut self,
         lhs: Box<dyn ast::Expression>,
-    ) -> Box<dyn ast::Expression> {
+    ) -> Option<Box<dyn ast::Expression>> {
         let precedence = self.current_precedence();
         let current_token = self.current_token.clone().unwrap();
         let operator = current_token.literal.clone();
@@ -129,27 +187,27 @@ impl Parser {
 
         let rhs = self.parse_expression(precedence);
 
-        Box::new(ast::InfixExpression::new(
+        Some(Box::new(ast::InfixExpression::new(
             current_token,
             lhs,
             operator,
             rhs.unwrap(),
-        ))
+        )))
     }
 
-    fn parse_grouped_expression(&mut self) -> Box<dyn ast::Expression> {
+    fn parse_grouped_expression(&mut self) -> Option<Box<dyn ast::Expression>> {
         self.next_token();
 
         let exp = self.parse_expression(Precedence::Lowest);
 
         if !self.expect_peek(&token::TokenType::Rparen) {
-            println!("paren not match")
+            return None;
         }
 
-        exp.unwrap()
+        Some(exp.unwrap())
     }
 
-    fn parse_prefix_expression(&mut self) -> Box<dyn ast::Expression> {
+    fn parse_prefix_expression(&mut self) -> Option<Box<dyn ast::Expression>> {
         let current_token = self.current_token.clone().unwrap();
         let operator = current_token.literal.clone();
 
@@ -157,20 +215,20 @@ impl Parser {
 
         let rhs = self.parse_expression(Precedence::Prefix);
 
-        Box::new(ast::PrefixExpression::new(
+        Some(Box::new(ast::PrefixExpression::new(
             current_token,
             operator,
             rhs.unwrap(),
-        ))
+        )))
     }
 
-    fn parse_identifier(&mut self) -> Box<dyn ast::Expression> {
+    fn parse_identifier(&mut self) -> Option<Box<dyn ast::Expression>> {
         let tok = self.current_token.clone().unwrap();
         let literal = tok.clone().literal;
-        Box::new(ast::Identifier::new(tok, literal))
+        Some(Box::new(ast::Identifier::new(tok, literal)))
     }
 
-    fn parse_integer_literal(&mut self) -> Box<dyn ast::Expression> {
+    fn parse_integer_literal(&mut self) -> Option<Box<dyn ast::Expression>> {
         let value: i64 = self
             .current_token
             .as_ref()
@@ -180,19 +238,19 @@ impl Parser {
             .parse()
             .expect("not number");
 
-        Box::new(ast::Literal::new(
+        Some(Box::new(ast::Literal::new(
             self.current_token.clone().unwrap(),
             value,
-        ))
+        )))
     }
 
-    fn parse_boolean_literal(&mut self) -> Box<dyn ast::Expression> {
+    fn parse_boolean_literal(&mut self) -> Option<Box<dyn ast::Expression>> {
         let value = self.current_token_is(token::TokenType::True);
 
-        Box::new(ast::Literal::new(
+        Some(Box::new(ast::Literal::new(
             self.current_token.clone().unwrap(),
             value,
-        ))
+        )))
     }
 
     fn parse_program(&mut self) -> ast::Program {
@@ -203,8 +261,8 @@ impl Parser {
             .is_some_and(|x| x.typ != token::TokenType::EOF)
         {
             let stmt = self.parse_statement();
-            if stmt.is_some() {
-                stmts.push(stmt.unwrap());
+            if let Some(stmt) = stmt {
+                stmts.push(stmt);
             }
             self.next_token();
         }
@@ -261,9 +319,8 @@ impl Parser {
         let expression = self.parse_expression(Precedence::Lowest);
         let stmt = ast::ExpressionStatement::new(self.current_token.clone().unwrap(), expression);
 
-        while !self.current_token_is(token::TokenType::SemiColon)
-            && !self.current_token_is(token::TokenType::EOF)
-        {
+        // eat SemiColon
+        while self.peek_token_is(&token::TokenType::SemiColon) {
             self.next_token();
         }
         stmt
@@ -291,15 +348,15 @@ impl Parser {
                         Some(f) => {
                             self.next_token();
 
-                            lhs = f(self, lhs);
+                            lhs = f(self, lhs.unwrap());
                         }
                         None => {
-                            return Some(lhs);
+                            return lhs;
                         }
                     }
                 }
 
-                Some(lhs)
+                lhs
             }
             None => {
                 self.no_prefix_parse_fn_error(&self.current_token.clone().unwrap().typ);
@@ -327,7 +384,10 @@ impl Parser {
 mod test {
     use crate::{
         ast,
-        ast::{ExpressionStatement, Identifier, Literal, Node, PrefixExpression},
+        ast::{
+            ExpressionStatement, Identifier, IfExpression, InfixExpression, Literal, Node,
+            PrefixExpression,
+        },
         lexer,
     };
 
@@ -352,7 +412,7 @@ mod test {
     }
 
     macro_rules! assert_expression {
-        ($stmt:ident,$exp_typ:ty,$val:literal) => {
+        ($stmt:expr,$exp_typ:ty,$val:literal) => {
             let stmt = $stmt.as_any().downcast_ref::<ExpressionStatement>();
             assert!(
                 stmt.is_some(),
@@ -376,8 +436,8 @@ mod test {
     }
 
     macro_rules! assert_prefix_expression {
-        ($stmt:ident,$typ:ty,$exp_typ:ty,$operator:literal,$rhs_typ:ty,$rhs_val:literal) => {
-            let stmt = $stmt.as_any().downcast_ref::<$typ>();
+        ($stmt:ident,$operator:literal,$rhs_typ:ty,$rhs_val:literal) => {
+            let stmt = $stmt.as_any().downcast_ref::<ExpressionStatement>();
             assert!(
                 stmt.is_some(),
                 "stmt ({}) should be ExpressionStatement",
@@ -390,12 +450,42 @@ mod test {
                 .as_ref()
                 .and_then(|exp| {
                     exp.as_any()
-                        .downcast_ref::<$exp_typ>()
+                        .downcast_ref::<PrefixExpression>()
                         .and_then(|exp| Some(exp))
                 })
                 .unwrap();
 
             assert_eq!($operator, exp.operator);
+
+            let rhs = exp
+                .rhs
+                .as_ref()
+                .as_any()
+                .downcast_ref::<$rhs_typ>()
+                .unwrap();
+
+            assert_exp!(rhs, $rhs_val);
+        };
+    }
+
+    macro_rules! assert_infix_expression {
+        ($exp:expr,$lhs_typ:ty,$lhs_val:literal,$operator:literal,$rhs_typ:ty,$rhs_val:literal) => {
+            let exp = $exp
+                .as_any()
+                .downcast_ref::<InfixExpression>()
+                .and_then(|exp| Some(exp))
+                .unwrap();
+
+            assert_eq!($operator, exp.operator);
+
+            let lhs = exp
+                .lhs
+                .as_ref()
+                .as_any()
+                .downcast_ref::<$lhs_typ>()
+                .unwrap();
+
+            assert_exp!(lhs, $lhs_val);
 
             let rhs = exp
                 .rhs
@@ -553,14 +643,7 @@ mod test {
         assert_eq!(1, program.statements.len());
 
         program.statements.iter().for_each(|x| {
-            assert_prefix_expression!(
-                x,
-                ExpressionStatement,
-                PrefixExpression,
-                "-",
-                Literal<i64>,
-                5
-            );
+            assert_prefix_expression!(x, "-", Literal<i64>, 5);
         })
     }
 
@@ -576,14 +659,7 @@ mod test {
         assert_eq!(1, program.statements.len());
 
         program.statements.iter().for_each(|x| {
-            assert_prefix_expression!(
-                x,
-                ExpressionStatement,
-                PrefixExpression,
-                "!",
-                Literal<bool>,
-                true
-            );
+            assert_prefix_expression!(x, "!", Literal<bool>, true);
         })
     }
 
@@ -617,5 +693,47 @@ mod test {
         assert!(Precedence::Equals < Precedence::LessGreater);
         assert!(Precedence::LessGreater < Precedence::Sum);
         assert!(Precedence::Product < Precedence::Call);
+    }
+
+    #[test]
+    fn if_expression_should_work() {
+        let input = "if (x < y) {x} else {y}";
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parse_error(&parser);
+
+        assert_eq!(1, program.statements.len());
+
+        let stmt = &program.statements[0];
+
+        let stmt = stmt.as_any().downcast_ref::<ExpressionStatement>();
+        assert!(stmt.is_some(), "stmt should be ExpressionStatement",);
+
+        let exp = stmt
+            .unwrap()
+            .expression
+            .as_ref()
+            .and_then(|exp| {
+                exp.as_any()
+                    .downcast_ref::<IfExpression>()
+                    .and_then(|exp| Some(exp))
+            })
+            .unwrap();
+
+        println!("{}", exp.to_string());
+
+        assert_infix_expression!(exp.condition, Identifier, "x", "<", Identifier, "y");
+
+        assert_eq!(1, exp.consequence.statements.len());
+
+        assert_expression!(&exp.consequence.statements[0], Identifier, "x");
+
+        assert!(exp.alternative.is_some());
+
+        exp.alternative.as_ref().inspect(|x| {
+            assert_expression!(x.statements[0], Identifier, "y");
+        });
     }
 }

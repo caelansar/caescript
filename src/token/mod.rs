@@ -93,5 +93,6 @@ mod test {
         assert_eq!(TokenType::Let, Token::lookup_ident("let"));
         assert_eq!(TokenType::Function, Token::lookup_ident("fn"));
         assert_eq!(TokenType::Ident, Token::lookup_ident("func"));
+        assert_eq!(TokenType::Else, Token::lookup_ident("else"));
     }
 }
