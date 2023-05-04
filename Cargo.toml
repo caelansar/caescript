@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 strum_macros = "0.24"
 strum = { version = "0.24", features = ["derive"] }
+
+[features]
+trace = []

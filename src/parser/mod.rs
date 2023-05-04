@@ -1,6 +1,9 @@
+mod trace;
+
 use std::collections::hash_map::HashMap;
 
-use crate::{ast, lexer, token};
+use crate::{ast, defer, lexer, token};
+use trace::{trace, untrace, ScopeCall};
 
 type PrefixParseFn = fn(&mut Parser) -> Option<Box<dyn ast::Expression>>;
 type InfixParseFn = fn(&mut Parser, Box<dyn ast::Expression>) -> Option<Box<dyn ast::Expression>>;
@@ -139,6 +142,8 @@ impl Parser {
     }
 
     fn parse_if_expression(&mut self) -> Option<Box<dyn ast::Expression>> {
+        #[cfg(feature = "trace")]
+        defer!(untrace, trace("parse_if_expression"));
         let current_token = self.current_token.clone().unwrap();
 
         if !self.expect_peek(&token::TokenType::Lparen) {
@@ -179,6 +184,8 @@ impl Parser {
         &mut self,
         lhs: Box<dyn ast::Expression>,
     ) -> Option<Box<dyn ast::Expression>> {
+        #[cfg(feature = "trace")]
+        defer!(untrace, trace("parse_infix_expression"));
         let precedence = self.current_precedence();
         let current_token = self.current_token.clone().unwrap();
         let operator = current_token.literal.clone();
@@ -196,6 +203,8 @@ impl Parser {
     }
 
     fn parse_grouped_expression(&mut self) -> Option<Box<dyn ast::Expression>> {
+        #[cfg(feature = "trace")]
+        defer!(untrace, trace("parse_grouped_expression"));
         self.next_token();
 
         let exp = self.parse_expression(Precedence::Lowest);
@@ -208,6 +217,8 @@ impl Parser {
     }
 
     fn parse_prefix_expression(&mut self) -> Option<Box<dyn ast::Expression>> {
+        #[cfg(feature = "trace")]
+        defer!(untrace, trace("parse_prefix_expression"));
         let current_token = self.current_token.clone().unwrap();
         let operator = current_token.literal.clone();
 
@@ -223,12 +234,16 @@ impl Parser {
     }
 
     fn parse_identifier(&mut self) -> Option<Box<dyn ast::Expression>> {
+        #[cfg(feature = "trace")]
+        defer!(untrace, trace("parse_identifier"));
         let tok = self.current_token.clone().unwrap();
         let literal = tok.clone().literal;
         Some(Box::new(ast::Identifier::new(tok, literal)))
     }
 
     fn parse_integer_literal(&mut self) -> Option<Box<dyn ast::Expression>> {
+        #[cfg(feature = "trace")]
+        defer!(untrace, trace("parse_integer_literal"));
         let value: i64 = self
             .current_token
             .as_ref()
@@ -245,6 +260,8 @@ impl Parser {
     }
 
     fn parse_boolean_literal(&mut self) -> Option<Box<dyn ast::Expression>> {
+        #[cfg(feature = "trace")]
+        defer!(untrace, trace("parse_boolean_literal"));
         let value = self.current_token_is(token::TokenType::True);
 
         Some(Box::new(ast::Literal::new(
@@ -316,6 +333,8 @@ impl Parser {
     }
 
     fn parse_expression_statement(&mut self) -> impl ast::Statement {
+        #[cfg(feature = "trace")]
+        defer!(untrace, trace("parse_expression_statement"));
         let expression = self.parse_expression(Precedence::Lowest);
         let stmt = ast::ExpressionStatement::new(self.current_token.clone().unwrap(), expression);
 
@@ -332,6 +351,8 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Option<Box<dyn ast::Expression>> {
+        #[cfg(feature = "trace")]
+        defer!(untrace, trace("parse_expression"));
         let prefix_parse_fn = self
             .prefix_parse_fn
             .get(&self.current_token.clone().unwrap().typ);
