@@ -7,6 +7,7 @@ pub(crate) enum TokenType {
     EOF,
     Ident,
     Int,
+    String,
     #[strum(serialize = "=")]
     Assign,
     #[strum(serialize = "+")]

@@ -2,7 +2,10 @@ mod trace;
 
 use std::collections::hash_map::HashMap;
 
-use crate::{ast, defer, lexer, token};
+#[cfg(feature = "trace")]
+use crate::defer;
+use crate::{ast, lexer, token};
+#[cfg(feature = "trace")]
 use trace::{trace, untrace, ScopeCall};
 
 type PrefixParseFn = fn(&mut Parser) -> Option<Box<dyn ast::Expression>>;
@@ -63,6 +66,7 @@ impl Parser {
         parser.register_prefix_parse_fn(token::TokenType::Bang, Parser::parse_prefix_expression);
         parser.register_prefix_parse_fn(token::TokenType::Lparen, Parser::parse_grouped_expression);
         parser.register_prefix_parse_fn(token::TokenType::If, Parser::parse_if_expression);
+        parser.register_prefix_parse_fn(token::TokenType::String, Parser::parse_string_literal);
 
         parser.register_infix_parse_fn(token::TokenType::Plus, Parser::parse_infix_expression);
         parser.register_infix_parse_fn(token::TokenType::Minus, Parser::parse_infix_expression);
@@ -238,6 +242,14 @@ impl Parser {
         let tok = self.current_token.clone();
         let literal = tok.clone().literal;
         Some(Box::new(ast::Identifier::new(tok, literal)))
+    }
+
+    fn parse_string_literal(&mut self) -> Option<Box<dyn ast::Expression>> {
+        #[cfg(feature = "trace")]
+        defer!(untrace, trace("parse_string_literal"));
+        let tok = self.current_token.clone();
+        let literal = tok.clone().literal;
+        Some(Box::new(ast::Literal::new(tok, literal)))
     }
 
     fn parse_integer_literal(&mut self) -> Option<Box<dyn ast::Expression>> {
@@ -613,6 +625,22 @@ mod test {
 
         program.statements.iter().for_each(|x| {
             assert_expression!(x, Literal<i64>, 4);
+        })
+    }
+
+    #[test]
+    fn string_expression_should_work() {
+        let input = r#""abc""#;
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parse_error(&parser);
+
+        assert_eq!(1, program.statements.len());
+
+        program.statements.iter().for_each(|x| {
+            assert_expression!(x, Literal<String>, "abc");
         })
     }
 

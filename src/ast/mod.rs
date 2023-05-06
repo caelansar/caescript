@@ -46,6 +46,7 @@ impl_expression!(
     InfixExpression,
     Literal<i64>,
     Literal<bool>,
+    Literal<String>,
     IfExpression
 );
 

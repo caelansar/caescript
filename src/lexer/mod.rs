@@ -53,6 +53,17 @@ impl Lexer {
         return self.input[pos..self.pos].to_string();
     }
 
+    fn read_string(&mut self) -> String {
+        let pos = self.pos + 1;
+        loop {
+            self.read_char();
+            if self.ch.is_none() || self.ch.is_some_and(|x| x == '"') {
+                break;
+            }
+        }
+        return self.input[pos..self.pos].to_string();
+    }
+
     fn eat_whitespace(&mut self) {
         while let Some(true) = self.ch.map(|c| c.is_whitespace()) {
             self.read_char()
@@ -86,6 +97,7 @@ impl Lexer {
                         )
                     }
                 }
+                '"' => Token::new(TokenType::String, self.read_string()),
                 ',' | ';' | '(' | ')' | '{' | '}' | '+' | '-' | '*' | '/' | '>' | '<' => {
                     Token::new(
                         TokenType::from_str(token.to_string().as_str()).unwrap(),
@@ -101,7 +113,7 @@ impl Lexer {
                         let literal = self.read_number();
                         return Token::new(TokenType::Int, literal);
                     } else {
-                        Token::new(TokenType::Illegal, token.to_string())
+                        return Token::new(TokenType::Illegal, token.to_string());
                     }
                 }
             }
@@ -138,6 +150,7 @@ mod test {
         } else {
             return false;
         }
+        let cc = "string";
         "#;
         let mut lexer = Lexer::new(input);
 
@@ -353,6 +366,26 @@ mod test {
             Testcase {
                 expected_type: TokenType::Rbrace,
                 expected_literal: "}".to_string(),
+            },
+            Testcase {
+                expected_type: TokenType::Let,
+                expected_literal: "let".to_string(),
+            },
+            Testcase {
+                expected_type: TokenType::Ident,
+                expected_literal: "cc".to_string(),
+            },
+            Testcase {
+                expected_type: TokenType::Assign,
+                expected_literal: "=".to_string(),
+            },
+            Testcase {
+                expected_type: TokenType::String,
+                expected_literal: "string".to_string(),
+            },
+            Testcase {
+                expected_type: TokenType::SemiColon,
+                expected_literal: ";".to_string(),
             },
             Testcase {
                 expected_type: TokenType::EOF,
