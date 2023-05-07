@@ -1,4 +1,4 @@
-use crate::token::{Token, TokenType};
+use crate::token::{lookup_ident, Token};
 use std::str::FromStr;
 
 #[derive(Default)]
@@ -78,47 +78,39 @@ impl Lexer {
                 '=' => {
                     if let Some('=') = self.peek_char() {
                         self.read_char();
-                        Token::new(TokenType::Eq, "==".to_string())
+                        Token::Eq
                     } else {
-                        Token::new(
-                            TokenType::from_str(token.to_string().as_str()).unwrap(),
-                            token.to_string(),
-                        )
+                        Token::from_str(token.to_string().as_str()).unwrap()
                     }
                 }
                 '!' => {
                     if let Some('=') = self.peek_char() {
                         self.read_char();
-                        Token::new(TokenType::Ne, "!=".to_string())
+                        Token::Ne
                     } else {
-                        Token::new(
-                            TokenType::from_str(token.to_string().as_str()).unwrap(),
-                            token.to_string(),
-                        )
+                        Token::from_str(token.to_string().as_str()).unwrap()
                     }
                 }
-                '"' => Token::new(TokenType::String, self.read_string()),
+                '"' => Token::String(self.read_string()),
                 ',' | ';' | '(' | ')' | '{' | '}' | '+' | '-' | '*' | '/' | '>' | '<' => {
-                    Token::new(
-                        TokenType::from_str(token.to_string().as_str()).unwrap(),
-                        token.to_string(),
-                    )
+                    Token::from_str(token.to_string().as_str()).unwrap()
                 }
                 _ => {
                     if token.is_alphabetic() {
                         let literal = self.read_identifier();
-                        let typ = Token::lookup_ident(literal.clone());
-                        return Token::new(typ, literal);
+                        let typ = lookup_ident(literal.clone());
+                        return typ;
                     } else if token.is_numeric() {
                         let literal = self.read_number();
-                        return Token::new(TokenType::Int, literal);
+                        let value: i64 = literal.as_str().parse().expect("not number");
+                        return Token::Int(value);
                     } else {
-                        return Token::new(TokenType::Illegal, token.to_string());
+                        return Token::Illegal;
                     }
                 }
             }
         } else {
-            Token::new(TokenType::EOF, "".to_string())
+            Token::EOF
         };
         self.read_char();
         tok
@@ -127,15 +119,9 @@ impl Lexer {
 
 #[cfg(test)]
 mod test {
-    use crate::token::TokenType;
+    use crate::token::Token;
 
     use super::Lexer;
-
-    #[derive(Debug)]
-    struct Testcase {
-        expected_type: TokenType,
-        expected_literal: String,
-    }
 
     #[test]
     fn next_token_should_work() {
@@ -155,248 +141,71 @@ mod test {
         let mut lexer = Lexer::new(input);
 
         let tests = vec![
-            Testcase {
-                expected_type: TokenType::Let,
-                expected_literal: "let".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Ident,
-                expected_literal: "aa".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Assign,
-                expected_literal: "=".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Int,
-                expected_literal: "10".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::SemiColon,
-                expected_literal: ";".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Let,
-                expected_literal: "let".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Ident,
-                expected_literal: "bb".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Assign,
-                expected_literal: "=".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Int,
-                expected_literal: "20".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::SemiColon,
-                expected_literal: ";".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Let,
-                expected_literal: "let".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Ident,
-                expected_literal: "add".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Assign,
-                expected_literal: "=".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Function,
-                expected_literal: "fn".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Lparen,
-                expected_literal: "(".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Ident,
-                expected_literal: "x".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Comma,
-                expected_literal: ",".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Ident,
-                expected_literal: "y".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Rparen,
-                expected_literal: ")".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Lbrace,
-                expected_literal: "{".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Ident,
-                expected_literal: "x".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Plus,
-                expected_literal: "+".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Ident,
-                expected_literal: "y".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::SemiColon,
-                expected_literal: ";".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Rbrace,
-                expected_literal: "}".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::SemiColon,
-                expected_literal: ";".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Let,
-                expected_literal: "let".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Ident,
-                expected_literal: "r".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Assign,
-                expected_literal: "=".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Ident,
-                expected_literal: "add".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Lparen,
-                expected_literal: "(".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Ident,
-                expected_literal: "aa".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Comma,
-                expected_literal: ",".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Ident,
-                expected_literal: "bb".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Rparen,
-                expected_literal: ")".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::SemiColon,
-                expected_literal: ";".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::If,
-                expected_literal: "if".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Lparen,
-                expected_literal: "(".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Ident,
-                expected_literal: "aa".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Eq,
-                expected_literal: "==".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Ident,
-                expected_literal: "bb".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Rparen,
-                expected_literal: ")".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Lbrace,
-                expected_literal: "{".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Return,
-                expected_literal: "return".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::True,
-                expected_literal: "true".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::SemiColon,
-                expected_literal: ";".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Rbrace,
-                expected_literal: "}".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Else,
-                expected_literal: "else".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Lbrace,
-                expected_literal: "{".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Return,
-                expected_literal: "return".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::False,
-                expected_literal: "false".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::SemiColon,
-                expected_literal: ";".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Rbrace,
-                expected_literal: "}".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Let,
-                expected_literal: "let".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Ident,
-                expected_literal: "cc".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::Assign,
-                expected_literal: "=".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::String,
-                expected_literal: "string".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::SemiColon,
-                expected_literal: ";".to_string(),
-            },
-            Testcase {
-                expected_type: TokenType::EOF,
-                expected_literal: "".to_string(),
-            },
+            Token::Let,
+            Token::Ident("aa".to_string()),
+            Token::Assign,
+            Token::Int(10),
+            Token::SemiColon,
+            Token::Let,
+            Token::Ident("bb".to_string()),
+            Token::Assign,
+            Token::Int(20),
+            Token::SemiColon,
+            Token::Let,
+            Token::Ident("add".to_string()),
+            Token::Assign,
+            Token::Function,
+            Token::Lparen,
+            Token::Ident("x".to_string()),
+            Token::Comma,
+            Token::Ident("y".to_string()),
+            Token::Rparen,
+            Token::Lbrace,
+            Token::Ident("x".to_string()),
+            Token::Plus,
+            Token::Ident("y".to_string()),
+            Token::SemiColon,
+            Token::Rbrace,
+            Token::SemiColon,
+            Token::Let,
+            Token::Ident("r".to_string()),
+            Token::Assign,
+            Token::Ident("add".to_string()),
+            Token::Lparen,
+            Token::Ident("aa".to_string()),
+            Token::Comma,
+            Token::Ident("bb".to_string()),
+            Token::Rparen,
+            Token::SemiColon,
+            Token::If,
+            Token::Lparen,
+            Token::Ident("aa".to_string()),
+            Token::Eq,
+            Token::Ident("bb".to_string()),
+            Token::Rparen,
+            Token::Lbrace,
+            Token::Return,
+            Token::Bool(true),
+            Token::SemiColon,
+            Token::Rbrace,
+            Token::Else,
+            Token::Lbrace,
+            Token::Return,
+            Token::Bool(false),
+            Token::SemiColon,
+            Token::Rbrace,
+            Token::Let,
+            Token::Ident("cc".to_string()),
+            Token::Assign,
+            Token::String("string".to_string()),
+            Token::SemiColon,
+            Token::EOF,
         ];
         tests.into_iter().for_each(|test| {
             let tok = lexer.next_token();
             println!("check token {:?}, expect {:?}", tok, test);
-            assert_eq!(test.expected_type, tok.typ);
-            assert_eq!(test.expected_literal, tok.literal);
+            assert_eq!(test, tok);
+            // assert_eq!(test.expected_literal, tok.literal);
         })
     }
 

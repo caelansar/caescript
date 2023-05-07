@@ -1,84 +1,111 @@
-use strum_macros::Display;
-use strum_macros::EnumString;
+use std::{fmt, str::FromStr};
 
-#[derive(EnumString, Display, Debug, PartialEq, Clone, Copy, Hash, Eq)]
-pub(crate) enum TokenType {
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
+pub(crate) enum Token {
     Illegal,
     EOF,
-    Ident,
-    Int,
-    String,
-    #[strum(serialize = "=")]
+
+    Ident(String),
+    Int(i64),
+    String(String),
+    Bool(bool),
+
     Assign,
-    #[strum(serialize = "+")]
     Plus,
-    #[strum(serialize = "-")]
     Minus,
-    #[strum(serialize = "*")]
     Asterisk,
-    #[strum(serialize = "/")]
     Slash,
-    #[strum(serialize = ",")]
     Comma,
-    #[strum(serialize = ";")]
     SemiColon,
-    #[strum(serialize = "(")]
     Lparen,
-    #[strum(serialize = ")")]
     Rparen,
-    #[strum(serialize = "{")]
     Lbrace,
-    #[strum(serialize = "}")]
     Rbrace,
-    #[strum(serialize = ">")]
     Gt,
-    #[strum(serialize = "<")]
     Lt,
-    #[strum(serialize = "!")]
     Bang,
-    #[strum(serialize = "==")]
     Eq,
-    #[strum(serialize = "!=")]
     Ne,
     Function,
     Let,
-    True,
-    False,
     If,
     Else,
     Return,
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct Token {
-    pub(crate) typ: TokenType,
-    pub(crate) literal: String,
+impl FromStr for Token {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "let" => Ok(Token::Let),
+            "true" => Ok(Token::Bool(true)),
+            "false" => Ok(Token::Bool(false)),
+            "fn" => Ok(Token::Function),
+            "if" => Ok(Token::If),
+            "else" => Ok(Token::Else),
+            "return" => Ok(Token::Return),
+            "=" => Ok(Token::Assign),
+            "+" => Ok(Token::Plus),
+            "-" => Ok(Token::Minus),
+            "!" => Ok(Token::Bang),
+            "*" => Ok(Token::Asterisk),
+            "/" => Ok(Token::Slash),
+            "<" => Ok(Token::Lt),
+            ">" => Ok(Token::Gt),
+            "==" => Ok(Token::Eq),
+            "!=" => Ok(Token::Ne),
+            "," => Ok(Token::Comma),
+            ";" => Ok(Token::SemiColon),
+            "(" => Ok(Token::Lparen),
+            ")" => Ok(Token::Rparen),
+            "{" => Ok(Token::Lbrace),
+            "}" => Ok(Token::Rbrace),
+            _ => Err("unknow token str"),
+        }
+    }
 }
 
-impl Token {
-    pub(crate) fn new(typ: TokenType, literal: String) -> Self {
-        Self { typ, literal }
-    }
-
-    pub(crate) fn lookup_ident(key: impl AsRef<str>) -> TokenType {
-        KEY_WORDS
-            .binary_search_by(|(k, _)| k.cmp(&key.as_ref()))
-            .map(|x| KEY_WORDS[x].1)
-            .ok()
-            .or(Some(TokenType::Ident))
-            .unwrap()
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Token::Ident(name) => write!(f, "{}", name),
+            Token::Int(i) => write!(f, "{}", i),
+            Token::String(s) => write!(f, "{}", s),
+            Token::Bool(b) => write!(f, "{}", b),
+            Token::Assign => write!(f, "="),
+            Token::Plus => write!(f, "+"),
+            Token::Minus => write!(f, "-"),
+            Token::Bang => write!(f, "!"),
+            Token::Asterisk => write!(f, "*"),
+            Token::Slash => write!(f, "/"),
+            Token::Lt => write!(f, "<"),
+            Token::Gt => write!(f, ">"),
+            Token::Eq => write!(f, "=="),
+            Token::Ne => write!(f, "!="),
+            Token::Comma => write!(f, ","),
+            Token::SemiColon => write!(f, ";"),
+            Token::Lparen => write!(f, "("),
+            Token::Rparen => write!(f, ")"),
+            Token::Lbrace => write!(f, "{{"),
+            Token::Rbrace => write!(f, "}}"),
+            Token::Function => write!(f, "fn"),
+            Token::Let => write!(f, "let"),
+            Token::If => write!(f, "if"),
+            Token::Else => write!(f, "else"),
+            Token::Return => write!(f, "return"),
+            Token::Illegal => write!(f, "ILLEGAL"),
+            Token::EOF => write!(f, "EOF"),
+        }
     }
 }
 
-static KEY_WORDS: &[(&'static str, TokenType)] = &[
-    ("else", TokenType::Else),
-    ("false", TokenType::False),
-    ("fn", TokenType::Function),
-    ("if", TokenType::If),
-    ("let", TokenType::Let),
-    ("return", TokenType::Return),
-    ("true", TokenType::True),
-];
+pub(crate) fn lookup_ident(key: impl AsRef<str>) -> Token {
+    match key.as_ref().parse() {
+        Ok(tok) => tok,
+        Err(_) => Token::Ident(key.as_ref().to_string()),
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -87,13 +114,13 @@ mod test {
 
     #[test]
     fn token_should_work() {
-        assert_eq!(String::from("="), TokenType::Assign.to_string());
-        assert_eq!(String::from(","), TokenType::Comma.to_string());
-        assert_eq!(String::from("Function"), TokenType::Function.to_string());
-        assert_eq!(TokenType::Rbrace, TokenType::from_str("}").unwrap());
-        assert_eq!(TokenType::Let, Token::lookup_ident("let"));
-        assert_eq!(TokenType::Function, Token::lookup_ident("fn"));
-        assert_eq!(TokenType::Ident, Token::lookup_ident("func"));
-        assert_eq!(TokenType::Else, Token::lookup_ident("else"));
+        assert_eq!(String::from("="), Token::Assign.to_string());
+        assert_eq!(String::from(","), Token::Comma.to_string());
+        assert_eq!(String::from("fn"), Token::Function.to_string());
+        assert_eq!(Token::Rbrace, Token::from_str("}").unwrap());
+        assert_eq!(Token::Let, lookup_ident("let"));
+        assert_eq!(Token::Function, lookup_ident("fn"));
+        assert_eq!(Token::Ident("func".to_string()), lookup_ident("func"));
+        assert_eq!(Token::Else, lookup_ident("else"));
     }
 }

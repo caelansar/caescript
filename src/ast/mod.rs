@@ -100,7 +100,7 @@ impl LetStatement {
 
 impl Display for LetStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut out = self.token_literal();
+        let mut out = "let".to_string();
         out.push_str(" ");
         out.push_str(&self.name.to_string());
         out.push_str(" = ");
@@ -114,7 +114,7 @@ impl Display for LetStatement {
 
 impl Node for LetStatement {
     fn token_literal(&self) -> String {
-        self.token.literal.clone()
+        self.token.to_string()
     }
 }
 
@@ -138,7 +138,7 @@ impl Display for Identifier {
 
 impl Node for Identifier {
     fn token_literal(&self) -> String {
-        self.token.literal.clone()
+        self.token.to_string()
     }
 }
 
@@ -149,7 +149,7 @@ pub(crate) struct ReturnStatement {
 
 impl Display for ReturnStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut out = self.token_literal();
+        let mut out = "return".to_string();
         out.push_str(" ");
 
         self.value.as_ref().map(|x| out.push_str(&x.to_string()));
@@ -161,7 +161,7 @@ impl Display for ReturnStatement {
 
 impl Node for ReturnStatement {
     fn token_literal(&self) -> String {
-        self.token.literal.clone()
+        self.token.to_string()
     }
 }
 
@@ -197,7 +197,7 @@ impl Display for ExpressionStatement {
 
 impl Node for ExpressionStatement {
     fn token_literal(&self) -> String {
-        self.token.literal.clone()
+        self.token.to_string()
     }
 }
 
@@ -208,13 +208,13 @@ pub struct Literal<T> {
 
 impl<T> Display for Literal<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.token.literal)
+        f.write_str(&self.token.to_string())
     }
 }
 
 impl<T> Node for Literal<T> {
     fn token_literal(&self) -> String {
-        self.token.literal.clone()
+        self.token.to_string()
     }
 }
 
@@ -255,7 +255,7 @@ impl Display for PrefixExpression {
 
 impl Node for PrefixExpression {
     fn token_literal(&self) -> String {
-        self.token.literal.clone()
+        self.token.to_string()
     }
 }
 
@@ -300,7 +300,7 @@ impl Display for InfixExpression {
 
 impl Node for InfixExpression {
     fn token_literal(&self) -> String {
-        self.token.literal.clone()
+        self.token.to_string()
     }
 }
 
@@ -347,7 +347,7 @@ impl Display for IfExpression {
 
 impl Node for IfExpression {
     fn token_literal(&self) -> String {
-        self.token.literal.clone()
+        self.token.to_string()
     }
 }
 
@@ -376,13 +376,13 @@ impl Display for BlockStatement {
 
 impl Node for BlockStatement {
     fn token_literal(&self) -> String {
-        self.token.literal.clone()
+        self.token.to_string()
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::token::{Token, TokenType};
+    use crate::token::Token;
 
     use super::{Identifier, LetStatement, Program};
 
@@ -390,13 +390,13 @@ mod test {
     fn node_display_should_work() {
         let program = Program {
             statements: vec![Box::new(LetStatement {
-                token: Token::new(TokenType::Let, "let".to_string()),
+                token: Token::Let,
                 name: Identifier {
-                    token: Token::new(TokenType::Let, "a".to_string()),
+                    token: Token::Ident("a".to_string()),
                     value: "a".to_string(),
                 },
                 value: Some(Box::new(Identifier {
-                    token: Token::new(TokenType::Let, "b".to_string()),
+                    token: Token::Ident("b".to_string()),
                     value: "b".to_string(),
                 })),
             })],
