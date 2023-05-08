@@ -6,7 +6,7 @@ use crate::{ast, lexer, token};
 #[cfg(feature = "trace")]
 use trace::{trace, untrace, ScopeCall};
 
-#[derive(PartialEq, PartialOrd)]
+#[derive(PartialEq, PartialOrd, Debug)]
 pub(crate) enum Precedence {
     Lowest = 1,
     Equals = 2,
@@ -33,15 +33,15 @@ impl From<token::Token> for Precedence {
     }
 }
 
-struct Parser {
-    lexer: lexer::Lexer,
+struct Parser<'a> {
+    lexer: lexer::Lexer<'a>,
     current_token: token::Token,
     next_token: token::Token,
     errors: Vec<String>,
 }
 
-impl Parser {
-    fn new(lexer: lexer::Lexer) -> Self {
+impl<'a> Parser<'a> {
+    fn new(lexer: lexer::Lexer<'a>) -> Self {
         let mut parser = Self {
             lexer,
             current_token: token::Token::EOF,
@@ -105,10 +105,10 @@ impl Parser {
             self.next_token();
         }
 
-        ast::BlockStatement::new(current_token, statements)
+        ast::BlockStatement(statements)
     }
 
-    fn parse_if_expression(&mut self) -> Option<Box<dyn ast::Expression>> {
+    fn parse_if_expression(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_if_expression"));
         let current_token = self.current_token.clone();
@@ -139,41 +139,39 @@ impl Parser {
             }
         }
 
-        Some(Box::new(ast::IfExpression::new(
-            current_token,
-            condition.unwrap(),
+        Some(ast::Expression::If {
+            condition: Box::new(condition.unwrap()),
             consequence,
             alternative,
-        )))
+        })
     }
 
-    fn parse_infix_expression(
-        &mut self,
-        lhs: Option<Box<dyn ast::Expression>>,
-    ) -> Option<Box<dyn ast::Expression>> {
+    fn parse_infix_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_infix_expression"));
+        let infix: ast::Infix = match self.current_token.clone().try_into() {
+            Ok(infix) => infix,
+            Err(_) => return None,
+        };
+
         if lhs.is_none() {
             return None;
         }
 
         let precedence = self.current_precedence();
-        let current_token = self.current_token.clone();
-        let operator = current_token.to_string();
 
         self.next_token();
 
         let rhs = self.parse_expression(precedence);
 
-        Some(Box::new(ast::InfixExpression::new(
-            current_token,
-            lhs.unwrap(),
-            operator,
-            rhs.unwrap(),
-        )))
+        Some(ast::Expression::Infix(
+            infix,
+            Box::new(lhs.unwrap()),
+            Box::new(rhs.unwrap()),
+        ))
     }
 
-    fn parse_grouped_expression(&mut self) -> Option<Box<dyn ast::Expression>> {
+    fn parse_grouped_expression(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_grouped_expression"));
         self.next_token();
@@ -187,64 +185,56 @@ impl Parser {
         Some(exp.unwrap())
     }
 
-    fn parse_prefix_expression(&mut self) -> Option<Box<dyn ast::Expression>> {
+    fn parse_prefix_expression(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_prefix_expression"));
-        let current_token = self.current_token.clone();
-        let operator = current_token.to_string();
+        let prefix = match self.current_token.clone().try_into() {
+            Ok(infix) => infix,
+            Err(_) => return None,
+        };
 
         self.next_token();
 
         let rhs = self.parse_expression(Precedence::Prefix);
 
-        Some(Box::new(ast::PrefixExpression::new(
-            current_token,
-            operator,
-            rhs.unwrap(),
-        )))
+        Some(ast::Expression::Prefix(prefix, Box::new(rhs.unwrap())))
     }
 
-    fn parse_identifier(&mut self) -> Option<Box<dyn ast::Expression>> {
+    fn parse_identifier(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_identifier"));
         if let token::Token::Ident(ref ident) = self.current_token {
-            Some(Box::new(ast::Identifier::new(
-                self.current_token.clone(),
-                ident.clone(),
-            )))
+            Some(ast::Expression::Ident(ast::Ident(ident.clone())))
         } else {
             None
         }
     }
 
-    fn parse_string_literal(&mut self) -> Option<Box<dyn ast::Expression>> {
+    fn parse_string_literal(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_string_literal"));
         if let token::Token::String(ref s) = self.current_token {
-            Some(Box::new(ast::Literal::new(
-                self.current_token.clone(),
-                s.clone(),
-            )))
+            Some(ast::Expression::Literal(ast::Literal::String(s.clone())))
         } else {
             None
         }
     }
 
-    fn parse_integer_literal(&mut self) -> Option<Box<dyn ast::Expression>> {
+    fn parse_integer_literal(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_integer_literal"));
         if let token::Token::Int(int) = self.current_token {
-            Some(Box::new(ast::Literal::new(self.current_token.clone(), int)))
+            Some(ast::Expression::Literal(ast::Literal::Int(int)))
         } else {
             None
         }
     }
 
-    fn parse_boolean_literal(&mut self) -> Option<Box<dyn ast::Expression>> {
+    fn parse_boolean_literal(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_boolean_literal"));
         if let token::Token::Bool(b) = self.current_token {
-            Some(Box::new(ast::Literal::new(self.current_token.clone(), b)))
+            Some(ast::Expression::Literal(ast::Literal::Bool(b)))
         } else {
             None
         }
@@ -259,31 +249,29 @@ impl Parser {
             }
             self.next_token();
         }
-        ast::Program::new(stmts)
+        ast::BlockStatement(stmts)
     }
 
-    fn parse_statement(&mut self) -> Option<Box<dyn ast::Statement>> {
+    fn parse_statement(&mut self) -> Option<ast::Statement> {
         match self.current_token {
-            token::Token::Let => self
-                .parse_let_statement()
-                .and_then(|x| Some(Box::new(x) as Box<dyn ast::Statement>)),
-            token::Token::Return => Some(Box::new(self.parse_return_statement())),
-            _ => Some(Box::new(self.parse_expression_statement())),
+            token::Token::Let => self.parse_let_statement(),
+            token::Token::Return => self.parse_return_statement(),
+            _ => self.parse_expression_statement(),
         }
     }
 
-    fn parse_return_statement(&mut self) -> impl ast::Statement {
-        let stmt = ast::ReturnStatement::new(self.current_token.clone());
+    fn parse_return_statement(&mut self) -> Option<ast::Statement> {
+        let stmt = ast::Statement::Return(ast::Expression::Literal(ast::Literal::Int(0)));
 
         self.next_token();
 
         while !self.current_token_is(&token::Token::SemiColon) {
             self.next_token();
         }
-        stmt
+        Some(stmt)
     }
 
-    fn parse_let_statement(&mut self) -> Option<ast::LetStatement> {
+    fn parse_let_statement(&mut self) -> Option<ast::Statement> {
         let tok = self.current_token.clone();
 
         match self.next_token {
@@ -292,13 +280,11 @@ impl Parser {
         };
 
         let identifier = match self.current_token {
-            token::Token::Ident(ref ident) => {
-                ast::Identifier::new(self.current_token.clone(), ident.clone())
-            }
+            token::Token::Ident(ref ident) => ast::Ident(ident.clone()),
             _ => return None,
         };
 
-        let stmt = ast::LetStatement::new(tok, identifier);
+        let stmt = ast::Statement::Let(identifier, ast::Expression::Literal(ast::Literal::Int(0)));
 
         if !self.expect_next(&token::Token::Assign) {
             return None;
@@ -311,17 +297,17 @@ impl Parser {
         Some(stmt)
     }
 
-    fn parse_expression_statement(&mut self) -> impl ast::Statement {
+    fn parse_expression_statement(&mut self) -> Option<ast::Statement> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_expression_statement"));
         let expression = self.parse_expression(Precedence::Lowest);
-        let stmt = ast::ExpressionStatement::new(self.current_token.clone(), expression);
+        let stmt = ast::Statement::Expression(expression.unwrap());
 
         // eat SemiColon
         while self.next_token_is(&token::Token::SemiColon) {
             self.next_token();
         }
-        stmt
+        Some(stmt)
     }
 
     fn no_prefix_parse_fn_error(&mut self, token: &token::Token) {
@@ -329,7 +315,7 @@ impl Parser {
             .push(format!("no prefix parse fn found for {}", token))
     }
 
-    fn parse_expression(&mut self, precedence: Precedence) -> Option<Box<dyn ast::Expression>> {
+    fn parse_expression(&mut self, precedence: Precedence) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_expression"));
 
@@ -379,112 +365,18 @@ impl Parser {
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        ast,
-        ast::{
-            ExpressionStatement, Identifier, IfExpression, InfixExpression, Literal, Node,
-            PrefixExpression,
-        },
-        lexer,
-    };
+    use crate::{ast, lexer};
 
     use super::{Parser, Precedence};
 
-    macro_rules! assert_exp {
-        ($exp:ident,$val:literal) => {
-            assert_eq!(
-                $val, $exp.value,
-                "exp.value should be {}, got {}",
-                $val, $exp.value
-            );
-        };
-    }
+    fn check_parse_error(parser: &Parser) {
+        let errs = parser.errors();
 
-    macro_rules! assert_expression {
-        ($stmt:expr,$exp_typ:ty,$val:literal) => {
-            let stmt = $stmt.as_any().downcast_ref::<ExpressionStatement>();
-            assert!(
-                stmt.is_some(),
-                "stmt ({}) should be ExpressionStatement",
-                &$stmt
-            );
+        for err in errs.iter() {
+            eprintln!("parse error: {}", err)
+        }
 
-            let exp = stmt
-                .unwrap()
-                .expression
-                .as_ref()
-                .and_then(|exp| {
-                    exp.as_any()
-                        .downcast_ref::<$exp_typ>()
-                        .and_then(|exp| Some(exp))
-                })
-                .unwrap();
-
-            assert_exp!(exp, $val);
-        };
-    }
-
-    macro_rules! assert_prefix_expression {
-        ($stmt:ident,$operator:literal,$rhs_typ:ty,$rhs_val:literal) => {
-            let stmt = $stmt.as_any().downcast_ref::<ExpressionStatement>();
-            assert!(
-                stmt.is_some(),
-                "stmt ({}) should be ExpressionStatement",
-                &$stmt
-            );
-
-            let exp = stmt
-                .unwrap()
-                .expression
-                .as_ref()
-                .and_then(|exp| {
-                    exp.as_any()
-                        .downcast_ref::<PrefixExpression>()
-                        .and_then(|exp| Some(exp))
-                })
-                .unwrap();
-
-            assert_eq!($operator, exp.operator);
-
-            let rhs = exp
-                .rhs
-                .as_ref()
-                .as_any()
-                .downcast_ref::<$rhs_typ>()
-                .unwrap();
-
-            assert_exp!(rhs, $rhs_val);
-        };
-    }
-
-    macro_rules! assert_infix_expression {
-        ($exp:expr,$lhs_typ:ty,$lhs_val:literal,$operator:literal,$rhs_typ:ty,$rhs_val:literal) => {
-            let exp = $exp
-                .as_any()
-                .downcast_ref::<InfixExpression>()
-                .and_then(|exp| Some(exp))
-                .unwrap();
-
-            assert_eq!($operator, exp.operator);
-
-            let lhs = exp
-                .lhs
-                .as_ref()
-                .as_any()
-                .downcast_ref::<$lhs_typ>()
-                .unwrap();
-
-            assert_exp!(lhs, $lhs_val);
-
-            let rhs = exp
-                .rhs
-                .as_ref()
-                .as_any()
-                .downcast_ref::<$rhs_typ>()
-                .unwrap();
-
-            assert_exp!(rhs, $rhs_val);
-        };
+        assert!(errs.len() == 0)
     }
 
     #[test]
@@ -500,35 +392,22 @@ mod test {
         let program = parser.parse_program();
         check_parse_error(&parser);
 
-        assert_eq!(3, program.statements.len());
-
-        let tests = vec!["a".to_string(), "b".to_string(), "c".to_string()];
-
-        tests.into_iter().enumerate().for_each(|(idx, test)| {
-            let stmt = &program.statements[idx];
-            assert_let_statement(stmt, test);
-        })
-    }
-
-    fn check_parse_error(parser: &Parser) {
-        let errs = parser.errors();
-
-        for err in errs.iter() {
-            eprintln!("parse error: {}", err)
-        }
-
-        assert!(errs.len() == 0)
-    }
-
-    fn assert_let_statement(stmt: &Box<dyn ast::Statement>, name: String) {
-        let let_stmt = stmt.as_any().downcast_ref::<ast::LetStatement>();
-        assert!(let_stmt.is_some(), "stmt should be LetStatement");
-
-        assert!(
-            let_stmt.unwrap().name.value == name,
-            "name.value expect to be {}, got {} instead",
-            name,
-            let_stmt.unwrap().name.value,
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![
+                ast::Statement::Let(
+                    ast::Ident("a".to_string()),
+                    ast::Expression::Literal(ast::Literal::Int(0)),
+                ),
+                ast::Statement::Let(
+                    ast::Ident("b".to_string()),
+                    ast::Expression::Literal(ast::Literal::Int(0)),
+                ),
+                ast::Statement::Let(
+                    ast::Ident("c".to_string()),
+                    ast::Expression::Literal(ast::Literal::Int(0)),
+                ),
+            ])
         );
     }
 
@@ -545,12 +424,14 @@ mod test {
         let program = parser.parse_program();
         check_parse_error(&parser);
 
-        assert_eq!(3, program.statements.len());
-
-        program.statements.iter().for_each(|x| {
-            let let_stmt = x.as_any().downcast_ref::<ast::ReturnStatement>();
-            assert!(let_stmt.is_some(), "stmt should be ReturnStatement");
-        })
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![
+                ast::Statement::Return(ast::Expression::Literal(ast::Literal::Int(0)),),
+                ast::Statement::Return(ast::Expression::Literal(ast::Literal::Int(0)),),
+                ast::Statement::Return(ast::Expression::Literal(ast::Literal::Int(0)),),
+            ])
+        );
     }
 
     #[test]
@@ -562,11 +443,12 @@ mod test {
         let program = parser.parse_program();
         check_parse_error(&parser);
 
-        assert_eq!(1, program.statements.len());
-
-        program.statements.iter().for_each(|x| {
-            assert_expression!(x, Identifier, "cae");
-        })
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![ast::Statement::Expression(ast::Expression::Ident(
+                ast::Ident("cae".to_string())
+            ))])
+        );
     }
 
     #[test]
@@ -578,11 +460,12 @@ mod test {
         let program = parser.parse_program();
         check_parse_error(&parser);
 
-        assert_eq!(1, program.statements.len());
-
-        program.statements.iter().for_each(|x| {
-            assert_expression!(x, Literal<i64>, 4);
-        })
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![ast::Statement::Expression(ast::Expression::Literal(
+                ast::Literal::Int(4)
+            ))])
+        );
     }
 
     #[test]
@@ -594,11 +477,12 @@ mod test {
         let program = parser.parse_program();
         check_parse_error(&parser);
 
-        assert_eq!(1, program.statements.len());
-
-        program.statements.iter().for_each(|x| {
-            assert_expression!(x, Literal<String>, "abc");
-        })
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![ast::Statement::Expression(ast::Expression::Literal(
+                ast::Literal::String("abc".to_string())
+            ))])
+        );
     }
 
     #[test]
@@ -610,11 +494,12 @@ mod test {
         let program = parser.parse_program();
         check_parse_error(&parser);
 
-        assert_eq!(1, program.statements.len());
-
-        program.statements.iter().for_each(|x| {
-            assert_expression!(x, Literal<bool>, false);
-        })
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![ast::Statement::Expression(ast::Expression::Literal(
+                ast::Literal::Bool(false)
+            ))])
+        );
     }
 
     #[test]
@@ -626,11 +511,13 @@ mod test {
         let program = parser.parse_program();
         check_parse_error(&parser);
 
-        assert_eq!(1, program.statements.len());
-
-        program.statements.iter().for_each(|x| {
-            assert_prefix_expression!(x, "-", Literal<i64>, 5);
-        })
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![ast::Statement::Expression(ast::Expression::Prefix(
+                ast::Prefix::Minus,
+                Box::new(ast::Expression::Literal(ast::Literal::Int(5)))
+            ))])
+        );
     }
 
     #[test]
@@ -642,11 +529,13 @@ mod test {
         let program = parser.parse_program();
         check_parse_error(&parser);
 
-        assert_eq!(1, program.statements.len());
-
-        program.statements.iter().for_each(|x| {
-            assert_prefix_expression!(x, "!", Literal<bool>, true);
-        })
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![ast::Statement::Expression(ast::Expression::Prefix(
+                ast::Prefix::Not,
+                Box::new(ast::Expression::Literal(ast::Literal::Bool(true)))
+            ))])
+        );
     }
 
     #[test]
@@ -690,36 +579,21 @@ mod test {
         let program = parser.parse_program();
         check_parse_error(&parser);
 
-        assert_eq!(1, program.statements.len());
-
-        let stmt = &program.statements[0];
-
-        let stmt = stmt.as_any().downcast_ref::<ExpressionStatement>();
-        assert!(stmt.is_some(), "stmt should be ExpressionStatement",);
-
-        let exp = stmt
-            .unwrap()
-            .expression
-            .as_ref()
-            .and_then(|exp| {
-                exp.as_any()
-                    .downcast_ref::<IfExpression>()
-                    .and_then(|exp| Some(exp))
-            })
-            .unwrap();
-
-        println!("{}", exp.to_string());
-
-        assert_infix_expression!(exp.condition, Identifier, "x", "<", Identifier, "y");
-
-        assert_eq!(1, exp.consequence.statements.len());
-
-        assert_expression!(&exp.consequence.statements[0], Identifier, "x");
-
-        assert!(exp.alternative.is_some());
-
-        exp.alternative.as_ref().inspect(|x| {
-            assert_expression!(x.statements[0], Identifier, "y");
-        });
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![ast::Statement::Expression(ast::Expression::If {
+                condition: Box::new(ast::Expression::Infix(
+                    ast::Infix::Lt,
+                    Box::new(ast::Expression::Ident(ast::Ident("x".to_string()))),
+                    Box::new(ast::Expression::Ident(ast::Ident("y".to_string()))),
+                )),
+                consequence: ast::BlockStatement(vec![ast::Statement::Expression(
+                    ast::Expression::Ident(ast::Ident("x".to_string()))
+                )]),
+                alternative: Some(ast::BlockStatement(vec![ast::Statement::Expression(
+                    ast::Expression::Ident(ast::Ident("y".to_string()))
+                )])),
+            })])
+        )
     }
 }
