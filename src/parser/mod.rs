@@ -261,19 +261,22 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_return_statement(&mut self) -> Option<ast::Statement> {
-        let stmt = ast::Statement::Return(ast::Expression::Literal(ast::Literal::Int(0)));
+        self.next_token();
+
+        let expr = match self.parse_expression(Precedence::Lowest) {
+            Some(expr) => expr,
+            None => return None,
+        };
 
         self.next_token();
 
         while !self.current_token_is(&token::Token::SemiColon) {
             self.next_token();
         }
-        Some(stmt)
+        Some(ast::Statement::Return(expr))
     }
 
     fn parse_let_statement(&mut self) -> Option<ast::Statement> {
-        let tok = self.current_token.clone();
-
         match self.next_token {
             token::Token::Ident(_) => self.next_token(),
             _ => return None,
@@ -284,17 +287,22 @@ impl<'a> Parser<'a> {
             _ => return None,
         };
 
-        let stmt = ast::Statement::Let(identifier, ast::Expression::Literal(ast::Literal::Int(0)));
-
         if !self.expect_next(&token::Token::Assign) {
             return None;
         }
+
+        self.next_token();
+
+        let expr = match self.parse_expression(Precedence::Lowest) {
+            Some(expr) => expr,
+            None => return None,
+        };
 
         while !self.current_token_is(&token::Token::SemiColon) {
             self.next_token();
         }
 
-        Some(stmt)
+        Some(ast::Statement::Let(identifier, expr))
     }
 
     fn parse_expression_statement(&mut self) -> Option<ast::Statement> {
@@ -397,15 +405,15 @@ mod test {
             ast::BlockStatement(vec![
                 ast::Statement::Let(
                     ast::Ident("a".to_string()),
-                    ast::Expression::Literal(ast::Literal::Int(0)),
+                    ast::Expression::Literal(ast::Literal::Int(1)),
                 ),
                 ast::Statement::Let(
                     ast::Ident("b".to_string()),
-                    ast::Expression::Literal(ast::Literal::Int(0)),
+                    ast::Expression::Literal(ast::Literal::Int(2)),
                 ),
                 ast::Statement::Let(
                     ast::Ident("c".to_string()),
-                    ast::Expression::Literal(ast::Literal::Int(0)),
+                    ast::Expression::Literal(ast::Literal::Int(3)),
                 ),
             ])
         );
@@ -415,8 +423,9 @@ mod test {
     fn return_statement_should_work() {
         let input = r#"
             return 1;
-            return 2;
-            return 3;
+            return "2";
+            return true;
+            return a;
             "#;
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
@@ -427,9 +436,12 @@ mod test {
         assert_eq!(
             program,
             ast::BlockStatement(vec![
-                ast::Statement::Return(ast::Expression::Literal(ast::Literal::Int(0)),),
-                ast::Statement::Return(ast::Expression::Literal(ast::Literal::Int(0)),),
-                ast::Statement::Return(ast::Expression::Literal(ast::Literal::Int(0)),),
+                ast::Statement::Return(ast::Expression::Literal(ast::Literal::Int(1))),
+                ast::Statement::Return(ast::Expression::Literal(ast::Literal::String(
+                    "2".to_string()
+                ))),
+                ast::Statement::Return(ast::Expression::Literal(ast::Literal::Bool(true))),
+                ast::Statement::Return(ast::Expression::Ident(ast::Ident("a".to_string()))),
             ])
         );
     }
