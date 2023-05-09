@@ -22,10 +22,10 @@ impl fmt::Display for Prefix {
     }
 }
 
-impl TryFrom<token::Token> for Prefix {
+impl TryFrom<&token::Token> for Prefix {
     type Error = &'static str;
 
-    fn try_from(value: token::Token) -> Result<Self, Self::Error> {
+    fn try_from(value: &token::Token) -> Result<Self, Self::Error> {
         match value {
             token::Token::Bang => Ok(Prefix::Not),
             token::Token::Minus => Ok(Prefix::Minus),
@@ -47,10 +47,10 @@ pub enum Infix {
     Lt,
 }
 
-impl TryFrom<token::Token> for Infix {
+impl TryFrom<&token::Token> for Infix {
     type Error = &'static str;
 
-    fn try_from(value: token::Token) -> Result<Self, Self::Error> {
+    fn try_from(value: &token::Token) -> Result<Self, Self::Error> {
         match value {
             token::Token::Plus => Ok(Infix::Plus),
             token::Token::Minus => Ok(Infix::Minus),
@@ -90,6 +90,14 @@ pub enum Expression {
         condition: Box<Expression>,
         consequence: BlockStatement,
         alternative: Option<BlockStatement>,
+    },
+    Func {
+        params: Option<Vec<Ident>>,
+        body: BlockStatement,
+    },
+    Call {
+        func: Box<Expression>,
+        args: Option<Vec<Expression>>,
     },
 }
 
@@ -137,6 +145,47 @@ impl Display for Expression {
                     out.push_str("else ");
                     out.push_str(&alternative.to_string());
                 }
+
+                f.write_str(&out)
+            }
+            Expression::Func { params, body } => {
+                let mut out = String::new();
+
+                out.push_str("fn ");
+                out.push_str("(");
+                params.as_ref().inspect(|params| {
+                    out.push_str(
+                        params
+                            .iter()
+                            .map(|ident| ident.0.clone())
+                            .collect::<Vec<String>>()
+                            .join(",")
+                            .as_str(),
+                    )
+                });
+                out.push_str(")");
+
+                out.push_str("{");
+                out.push_str(&body.to_string());
+                out.push_str("}");
+
+                f.write_str(&out)
+            }
+            Expression::Call { func, args } => {
+                let mut out = String::new();
+
+                out.push_str(&func.to_string());
+                out.push_str("(");
+                args.as_ref().inspect(|args| {
+                    out.push_str(
+                        args.iter()
+                            .map(|arg| arg.to_string())
+                            .collect::<Vec<String>>()
+                            .join(",")
+                            .as_str(),
+                    )
+                });
+                out.push_str(")");
 
                 f.write_str(&out)
             }

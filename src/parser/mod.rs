@@ -17,8 +17,8 @@ pub(crate) enum Precedence {
     Call = 7,
 }
 
-impl From<token::Token> for Precedence {
-    fn from(value: token::Token) -> Self {
+impl From<&token::Token> for Precedence {
+    fn from(value: &token::Token) -> Self {
         match value {
             token::Token::Eq => Precedence::Equals,
             token::Token::Ne => Precedence::Equals,
@@ -28,6 +28,7 @@ impl From<token::Token> for Precedence {
             token::Token::Minus => Precedence::Sum,
             token::Token::Slash => Precedence::Product,
             token::Token::Asterisk => Precedence::Product,
+            token::Token::Lparen => Precedence::Call,
             _ => Precedence::Lowest,
         }
     }
@@ -76,11 +77,11 @@ impl<'a> Parser<'a> {
     }
 
     fn current_precedence(&self) -> Precedence {
-        self.current_token.clone().into()
+        (&self.current_token).into()
     }
 
     fn next_precedence(&self) -> Precedence {
-        self.next_token.clone().into()
+        (&self.next_token).into()
     }
 
     fn next_token(&mut self) {
@@ -149,7 +150,7 @@ impl<'a> Parser<'a> {
     fn parse_infix_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_infix_expression"));
-        let infix: ast::Infix = match self.current_token.clone().try_into() {
+        let infix: ast::Infix = match (&self.current_token).try_into() {
             Ok(infix) => infix,
             Err(_) => return None,
         };
@@ -188,7 +189,7 @@ impl<'a> Parser<'a> {
     fn parse_prefix_expression(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_prefix_expression"));
-        let prefix = match self.current_token.clone().try_into() {
+        let prefix = match (&self.current_token).try_into() {
             Ok(infix) => infix,
             Err(_) => return None,
         };
@@ -238,6 +239,93 @@ impl<'a> Parser<'a> {
         } else {
             None
         }
+    }
+
+    fn parse_function_literal(&mut self) -> Option<ast::Expression> {
+        if !self.expect_next(&token::Token::Lparen) {
+            return None;
+        }
+
+        let params = self.parse_function_params();
+
+        if !self.expect_next(&token::Token::Lbrace) {
+            return None;
+        }
+
+        let body = self.parse_block_statemnt();
+
+        Some(ast::Expression::Func { params, body })
+    }
+
+    fn parse_function_params(&mut self) -> Option<Vec<ast::Ident>> {
+        let mut idents = vec![];
+
+        if self.next_token_is(&token::Token::Rparen) {
+            self.next_token();
+            return None;
+        }
+
+        self.next_token();
+
+        match self.parse_identifier() {
+            Some(ast::Expression::Ident(ident)) => idents.push(ident),
+            _ => return None,
+        };
+
+        while self.next_token_is(&token::Token::Comma) {
+            self.next_token();
+            self.next_token();
+
+            match self.parse_identifier() {
+                Some(ast::Expression::Ident(ident)) => idents.push(ident),
+                _ => return None,
+            };
+        }
+
+        if !self.expect_next(&token::Token::Rparen) {
+            return None;
+        }
+
+        Some(idents)
+    }
+
+    fn parse_call_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
+        if lhs.is_none() {
+            return None;
+        }
+
+        let args = self.parse_call_args();
+
+        Some(ast::Expression::Call {
+            func: Box::new(lhs.unwrap()),
+            args,
+        })
+    }
+
+    fn parse_call_args(&mut self) -> Option<Vec<ast::Expression>> {
+        let mut args = vec![];
+
+        if self.next_token_is(&token::Token::Rparen) {
+            self.next_token();
+            return None;
+        }
+
+        self.next_token();
+
+        args.push(self.parse_expression(Precedence::Lowest).unwrap());
+
+        while self.next_token_is(&token::Token::Comma) {
+            self.next_token();
+            self.next_token();
+
+            args.push(self.parse_expression(Precedence::Lowest).unwrap());
+        }
+
+        if !self.expect_next(&token::Token::Rparen) {
+            return None;
+        }
+
+        Some(args)
     }
 
     fn parse_program(&mut self) -> ast::Program {
@@ -336,6 +424,7 @@ impl<'a> Parser<'a> {
             token::Token::Lparen => self.parse_grouped_expression(),
             token::Token::If => self.parse_if_expression(),
             token::Token::String(_) => self.parse_string_literal(),
+            token::Token::Function => self.parse_function_literal(),
             _ => {
                 self.no_prefix_parse_fn_error(&self.current_token.clone());
                 return None;
@@ -354,6 +443,10 @@ impl<'a> Parser<'a> {
                 | token::Token::Asterisk => {
                     self.next_token();
                     lhs = self.parse_infix_expression(lhs)
+                }
+                token::Token::Lparen => {
+                    self.next_token();
+                    lhs = self.parse_call_expression(lhs)
                 }
                 _ => return lhs,
             }
@@ -548,6 +641,97 @@ mod test {
                 Box::new(ast::Expression::Literal(ast::Literal::Bool(true)))
             ))])
         );
+    }
+
+    #[test]
+    fn function_should_work() {
+        let input = r#"
+        fn() {1};
+        fn(x) {x};
+        fn(x,y) {x+y};
+        "#;
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parse_error(&parser);
+
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![
+                ast::Statement::Expression(ast::Expression::Func {
+                    params: None,
+                    body: ast::BlockStatement(vec![ast::Statement::Expression(
+                        ast::Expression::Literal(ast::Literal::Int(1))
+                    )]),
+                }),
+                ast::Statement::Expression(ast::Expression::Func {
+                    params: Some(vec![ast::Ident("x".to_string())]),
+                    body: ast::BlockStatement(vec![ast::Statement::Expression(
+                        ast::Expression::Ident(ast::Ident("x".to_string()))
+                    )]),
+                }),
+                ast::Statement::Expression(ast::Expression::Func {
+                    params: Some(vec![
+                        ast::Ident("x".to_string()),
+                        ast::Ident("y".to_string())
+                    ]),
+                    body: ast::BlockStatement(vec![ast::Statement::Expression(
+                        ast::Expression::Infix(
+                            ast::Infix::Plus,
+                            Box::new(ast::Expression::Ident(ast::Ident("x".to_string()))),
+                            Box::new(ast::Expression::Ident(ast::Ident("y".to_string()))),
+                        )
+                    )]),
+                }),
+            ])
+        )
+    }
+
+    #[test]
+    fn call_should_work() {
+        let input = r#"
+        add();
+        add(1,2);
+        add(1+2, 3+4);
+        "#;
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parse_error(&parser);
+
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![
+                ast::Statement::Expression(ast::Expression::Call {
+                    func: Box::new(ast::Expression::Ident(ast::Ident("add".to_string()))),
+                    args: None,
+                }),
+                ast::Statement::Expression(ast::Expression::Call {
+                    func: Box::new(ast::Expression::Ident(ast::Ident("add".to_string()))),
+                    args: Some(vec![
+                        ast::Expression::Literal(ast::Literal::Int(1)),
+                        ast::Expression::Literal(ast::Literal::Int(2))
+                    ]),
+                }),
+                ast::Statement::Expression(ast::Expression::Call {
+                    func: Box::new(ast::Expression::Ident(ast::Ident("add".to_string()))),
+                    args: Some(vec![
+                        ast::Expression::Infix(
+                            ast::Infix::Plus,
+                            Box::new(ast::Expression::Literal(ast::Literal::Int(1))),
+                            Box::new(ast::Expression::Literal(ast::Literal::Int(2)))
+                        ),
+                        ast::Expression::Infix(
+                            ast::Infix::Plus,
+                            Box::new(ast::Expression::Literal(ast::Literal::Int(3))),
+                            Box::new(ast::Expression::Literal(ast::Literal::Int(4)))
+                        )
+                    ]),
+                }),
+            ])
+        )
     }
 
     #[test]
