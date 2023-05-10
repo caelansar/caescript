@@ -34,7 +34,7 @@ impl From<&token::Token> for Precedence {
     }
 }
 
-struct Parser<'a> {
+pub(crate) struct Parser<'a> {
     lexer: lexer::Lexer<'a>,
     current_token: token::Token,
     next_token: token::Token,
@@ -42,7 +42,7 @@ struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    fn new(lexer: lexer::Lexer<'a>) -> Self {
+    pub(crate) fn new(lexer: lexer::Lexer<'a>) -> Self {
         let mut parser = Self {
             lexer,
             current_token: token::Token::EOF,
@@ -328,7 +328,7 @@ impl<'a> Parser<'a> {
         Some(args)
     }
 
-    fn parse_program(&mut self) -> ast::Program {
+    pub(crate) fn parse_program(&mut self) -> ast::Program {
         let mut stmts = Vec::new();
         while self.current_token != token::Token::EOF {
             let stmt = self.parse_statement();
@@ -483,7 +483,7 @@ mod test {
     #[test]
     fn let_statement_should_work() {
         let input = r#"
-            let a = 1;
+            let a = b;
             let b = 2;
             let c = 3;
             "#;
@@ -498,7 +498,7 @@ mod test {
             ast::BlockStatement(vec![
                 ast::Statement::Let(
                     ast::Ident("a".to_string()),
-                    ast::Expression::Literal(ast::Literal::Int(1)),
+                    ast::Expression::Ident(ast::Ident("b".to_string())),
                 ),
                 ast::Statement::Let(
                     ast::Ident("b".to_string()),
