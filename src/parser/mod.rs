@@ -358,7 +358,9 @@ impl<'a> Parser<'a> {
 
         self.next_token();
 
-        while !self.current_token_is(&token::Token::SemiColon) {
+        while !self.current_token_is(&token::Token::SemiColon)
+            && !self.current_token_is(&token::Token::EOF)
+        {
             self.next_token();
         }
         Some(ast::Statement::Return(expr))
@@ -386,7 +388,9 @@ impl<'a> Parser<'a> {
             None => return None,
         };
 
-        while !self.current_token_is(&token::Token::SemiColon) {
+        while !self.current_token_is(&token::Token::SemiColon)
+            && !self.current_token_is(&token::Token::EOF)
+        {
             self.next_token();
         }
 
@@ -483,9 +487,10 @@ mod test {
     #[test]
     fn let_statement_should_work() {
         let input = r#"
-            let a = b;
+            let a = 1;
             let b = 2;
             let c = 3;
+            let d = e
             "#;
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
@@ -498,7 +503,7 @@ mod test {
             ast::BlockStatement(vec![
                 ast::Statement::Let(
                     ast::Ident("a".to_string()),
-                    ast::Expression::Ident(ast::Ident("b".to_string())),
+                    ast::Expression::Literal(ast::Literal::Int(1)),
                 ),
                 ast::Statement::Let(
                     ast::Ident("b".to_string()),
@@ -507,6 +512,10 @@ mod test {
                 ast::Statement::Let(
                     ast::Ident("c".to_string()),
                     ast::Expression::Literal(ast::Literal::Int(3)),
+                ),
+                ast::Statement::Let(
+                    ast::Ident("d".to_string()),
+                    ast::Expression::Ident(ast::Ident("e".to_string())),
                 ),
             ])
         );
@@ -518,7 +527,7 @@ mod test {
             return 1;
             return "2";
             return true;
-            return a;
+            return a
             "#;
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
