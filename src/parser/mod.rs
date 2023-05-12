@@ -55,7 +55,7 @@ impl<'a> Parser<'a> {
         parser
     }
 
-    fn errors(&self) -> Vec<String> {
+    pub(crate) fn errors(&self) -> Vec<String> {
         self.errors.clone()
     }
 

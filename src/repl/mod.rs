@@ -13,6 +13,12 @@ pub fn repl() -> io::Result<()> {
         let mut parser = parser::Parser::new(lexer);
         let program = parser.parse_program();
 
+        if parser.errors().len() != 0 {
+            print!("syntax error: ");
+            parser.errors().iter().for_each(|e| println!("{}", e));
+            continue;
+        }
+
         if size == 1 {
             break;
         }
