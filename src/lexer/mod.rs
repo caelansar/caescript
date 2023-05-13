@@ -64,6 +64,7 @@ impl<'a> Lexer<'a> {
         return self.input[pos..self.pos].to_string();
     }
 
+    #[inline(always)]
     fn eat_whitespace(&mut self) {
         while let Some(true) = self.ch.map(|c| c.is_whitespace()) {
             self.read_char()

@@ -55,10 +55,12 @@ impl<'a> Parser<'a> {
         parser
     }
 
+    #[inline(always)]
     pub(crate) fn errors(&self) -> Vec<String> {
         self.errors.clone()
     }
 
+    #[inline(always)]
     fn next_error(&mut self, token: &token::Token) {
         self.errors.push(format!(
             "expect next_token to be {}, got {} instead",
@@ -66,6 +68,7 @@ impl<'a> Parser<'a> {
         ))
     }
 
+    #[inline]
     fn expect_next(&mut self, token: &token::Token) -> bool {
         if self.next_token_is(token) {
             self.next_token();
@@ -76,14 +79,17 @@ impl<'a> Parser<'a> {
         }
     }
 
+    #[inline(always)]
     fn current_precedence(&self) -> Precedence {
         (&self.current_token).into()
     }
 
+    #[inline(always)]
     fn next_precedence(&self) -> Precedence {
         (&self.next_token).into()
     }
 
+    #[inline(always)]
     fn next_token(&mut self) {
         self.current_token = self.next_token.clone();
         self.next_token = self.lexer.next_token();
@@ -410,6 +416,7 @@ impl<'a> Parser<'a> {
         Some(stmt)
     }
 
+    #[inline(always)]
     fn no_prefix_parse_fn_error(&mut self, token: &token::Token) {
         self.errors
             .push(format!("no prefix parse fn found for {}", token))
@@ -459,10 +466,12 @@ impl<'a> Parser<'a> {
         lhs
     }
 
+    #[inline(always)]
     fn current_token_is(&self, tok: &token::Token) -> bool {
         self.current_token == *tok
     }
 
+    #[inline(always)]
     fn next_token_is(&self, tok: &token::Token) -> bool {
         self.next_token == *tok
     }
