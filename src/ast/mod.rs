@@ -1,4 +1,7 @@
-use std::fmt::{self, Display};
+use std::{
+    fmt::{self, Display},
+    ops::Deref,
+};
 
 use crate::token;
 
@@ -249,6 +252,14 @@ impl Display for Statement {
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct BlockStatement(pub Vec<Statement>);
+
+impl Deref for BlockStatement {
+    type Target = Vec<Statement>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl Display for BlockStatement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
