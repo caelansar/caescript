@@ -1,5 +1,8 @@
 use std::fmt::Display;
 
+pub const BOOL_OBJ_TRUE: Object = Object::Bool(true);
+pub const BOOL_OBJ_FALSE: Object = Object::Bool(false);
+
 #[derive(Debug, PartialEq)]
 pub enum Object {
     Int(i64),
