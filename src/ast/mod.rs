@@ -10,7 +10,6 @@ pub struct Ident(pub String);
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum Prefix {
-    Plus,
     Minus,
     Not,
 }
@@ -18,7 +17,6 @@ pub enum Prefix {
 impl fmt::Display for Prefix {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Prefix::Plus => write!(f, "+"),
             Prefix::Minus => write!(f, "-"),
             Prefix::Not => write!(f, "!"),
         }
@@ -32,7 +30,6 @@ impl TryFrom<&token::Token> for Prefix {
         match value {
             token::Token::Bang => Ok(Prefix::Not),
             token::Token::Minus => Ok(Prefix::Minus),
-            token::Token::Plus => Ok(Prefix::Plus),
             _ => Err("invalid token"),
         }
     }
