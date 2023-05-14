@@ -1,6 +1,6 @@
 use crate::ast;
 
-use self::object::Object;
+use self::object::*;
 
 mod object;
 
@@ -19,14 +19,14 @@ pub fn eval(program: &ast::Program) -> Option<Object> {
 fn eval_statement(stmt: &ast::Statement) -> Option<Object> {
     match stmt {
         ast::Statement::Expression(expr) => eval_expression(expr),
-        _ => todo!(),
+        _ => Some(Object::Null),
     }
 }
 
 fn eval_expression(expr: &ast::Expression) -> Option<Object> {
     match expr {
         ast::Expression::Literal(lit) => eval_literal(lit),
-        _ => todo!(),
+        _ => Some(Object::Null),
     }
 }
 
@@ -34,7 +34,7 @@ fn eval_literal(literal: &ast::Literal) -> Option<Object> {
     match literal {
         ast::Literal::Int(i) => Some(Object::Int(i.clone())),
         ast::Literal::Bool(b) => Some(b.clone().into()),
-        _ => todo!(),
+        _ => Some(Object::Null),
     }
 }
 

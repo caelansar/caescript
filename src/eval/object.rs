@@ -16,6 +16,7 @@ impl From<bool> for Object {
 pub enum Object {
     Int(i64),
     Bool(bool),
+    Null,
 }
 
 impl Display for Object {
@@ -23,6 +24,7 @@ impl Display for Object {
         match self {
             Object::Int(i) => write!(f, "{}", i),
             Object::Bool(b) => write!(f, "{}", b),
+            Object::Null => write!(f, "null"),
         }
     }
 }
@@ -32,4 +34,5 @@ fn object_display_should_work() {
     assert_eq!("123", Object::Int(123).to_string());
     assert_eq!("true", Object::Bool(true).to_string());
     assert_eq!("false", Object::Bool(false).to_string());
+    assert_eq!("null", Object::Null.to_string());
 }
