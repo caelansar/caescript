@@ -1,6 +1,6 @@
 use crate::ast;
 
-use self::object::{Object, BOOL_OBJ_FALSE, BOOL_OBJ_TRUE};
+use self::object::Object;
 
 mod object;
 
@@ -33,10 +33,7 @@ fn eval_expression(expr: &ast::Expression) -> Option<Object> {
 fn eval_literal(literal: &ast::Literal) -> Option<Object> {
     match literal {
         ast::Literal::Int(i) => Some(Object::Int(i.clone())),
-        ast::Literal::Bool(b) => match b {
-            true => Some(BOOL_OBJ_TRUE),
-            false => Some(BOOL_OBJ_FALSE),
-        },
+        ast::Literal::Bool(b) => Some(b.clone().into()),
         _ => todo!(),
     }
 }

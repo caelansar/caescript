@@ -3,6 +3,15 @@ use std::fmt::Display;
 pub const BOOL_OBJ_TRUE: Object = Object::Bool(true);
 pub const BOOL_OBJ_FALSE: Object = Object::Bool(false);
 
+impl From<bool> for Object {
+    fn from(value: bool) -> Self {
+        match value {
+            true => BOOL_OBJ_TRUE,
+            false => BOOL_OBJ_FALSE,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum Object {
     Int(i64),
