@@ -33,6 +33,14 @@ fn eval_expression(expr: &ast::Expression) -> Option<Object> {
                 None
             }
         }
+        ast::Expression::Infix(infix, lhs, rhs) => {
+            let lhs = eval_expression(lhs);
+            let rhs = eval_expression(rhs);
+            if lhs.is_none() || rhs.is_none() {
+                return None;
+            }
+            eval_infix_expression(infix, lhs.unwrap(), rhs.unwrap())
+        }
         _ => Some(Object::Null),
     }
 }
@@ -49,6 +57,39 @@ fn eval_not_prefix(obj: Object) -> Option<Object> {
         Object::Bool(b) => Some((!b).into()),
         Object::Null => Some(BOOL_OBJ_TRUE),
         _ => Some(BOOL_OBJ_FALSE),
+    }
+}
+
+fn eval_infix_expression(infix: &ast::Infix, lhs: Object, rhs: Object) -> Option<Object> {
+    match lhs {
+        Object::Int(l) => {
+            if let Object::Int(r) = rhs {
+                match infix {
+                    ast::Infix::Plus => Some(Object::Int(l + r)),
+                    ast::Infix::Minus => Some(Object::Int(l - r)),
+                    ast::Infix::Divide => Some(Object::Int(l / r)),
+                    ast::Infix::Multiply => Some(Object::Int(l * r)),
+                    ast::Infix::Eq => Some(Object::Bool(l == r)),
+                    ast::Infix::Ne => Some(Object::Bool(l != r)),
+                    ast::Infix::Gt => Some(Object::Bool(l > r)),
+                    ast::Infix::Lt => Some(Object::Bool(l < r)),
+                }
+            } else {
+                None
+            }
+        }
+        Object::Bool(l) => {
+            if let Object::Bool(r) = rhs {
+                match infix {
+                    ast::Infix::Eq => Some(Object::Bool(l == r)),
+                    ast::Infix::Ne => Some(Object::Bool(l != r)),
+                    _ => None,
+                }
+            } else {
+                None
+            }
+        }
+        _ => None,
     }
 }
 
@@ -108,7 +149,7 @@ mod test {
     }
 
     #[test]
-    fn eval_prefix_expr_should_work() {
+    fn eval_expr_should_work() {
         let tests = vec![
             ("!true", Some(Object::Bool(false))),
             ("!false", Some(Object::Bool(true))),
@@ -117,6 +158,15 @@ mod test {
             ("-1", Some(Object::Int(-1))),
             ("!-1", Some(Object::Bool(false))),
             ("!!-1", Some(Object::Bool(true))),
+            ("true == true", Some(Object::Bool(true))),
+            ("false == false", Some(Object::Bool(true))),
+            ("1 == 1", Some(Object::Bool(true))),
+            ("1 < 2", Some(Object::Bool(true))),
+            ("1 > 0", Some(Object::Bool(true))),
+            ("1 - 1", Some(Object::Int(0))),
+            ("1 + 1", Some(Object::Int(2))),
+            ("1 * 1", Some(Object::Int(1))),
+            ("1 / 1", Some(Object::Int(1))),
         ];
 
         tests.iter().for_each(|test| {
