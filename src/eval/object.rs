@@ -16,6 +16,7 @@ impl From<bool> for Object {
 pub enum Object {
     Int(i64),
     Bool(bool),
+    String(String),
     Null,
 }
 
@@ -24,6 +25,7 @@ impl Display for Object {
         match self {
             Object::Int(i) => write!(f, "{}", i),
             Object::Bool(b) => write!(f, "{}", b),
+            Object::String(s) => write!(f, "{}", s),
             Object::Null => write!(f, "null"),
         }
     }

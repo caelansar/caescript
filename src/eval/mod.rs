@@ -89,6 +89,16 @@ fn eval_infix_expression(infix: &ast::Infix, lhs: Object, rhs: Object) -> Option
                 None
             }
         }
+        Object::String(l) => {
+            if let Object::String(r) = rhs {
+                match infix {
+                    ast::Infix::Plus => Some(Object::String(format!("{}{}", l, r))),
+                    _ => None,
+                }
+            } else {
+                None
+            }
+        }
         _ => None,
     }
 }
@@ -105,7 +115,7 @@ fn eval_literal(literal: &ast::Literal) -> Option<Object> {
     match literal {
         ast::Literal::Int(i) => Some(Object::Int(i.clone())),
         ast::Literal::Bool(b) => Some(b.clone().into()),
-        _ => Some(Object::Null),
+        ast::Literal::String(s) => Some(Object::String(s.clone())),
     }
 }
 
@@ -167,6 +177,11 @@ mod test {
             ("1 + 1", Some(Object::Int(2))),
             ("1 * 1", Some(Object::Int(1))),
             ("1 / 1", Some(Object::Int(1))),
+            ("1 + 4 == 5", Some(Object::Bool(true))),
+            (
+                r#""hello "+"world""#,
+                Some(Object::String("hello world".to_string())),
+            ),
         ];
 
         tests.iter().for_each(|test| {
