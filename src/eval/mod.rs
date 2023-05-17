@@ -72,7 +72,9 @@ fn eval_infix_expression(infix: &ast::Infix, lhs: Object, rhs: Object) -> Option
                     ast::Infix::Eq => Some(Object::Bool(l == r)),
                     ast::Infix::Ne => Some(Object::Bool(l != r)),
                     ast::Infix::Gt => Some(Object::Bool(l > r)),
+                    ast::Infix::GtEq => Some(Object::Bool(l >= r)),
                     ast::Infix::Lt => Some(Object::Bool(l < r)),
+                    ast::Infix::LtEq => Some(Object::Bool(l <= r)),
                 }
             } else {
                 None
@@ -93,6 +95,12 @@ fn eval_infix_expression(infix: &ast::Infix, lhs: Object, rhs: Object) -> Option
             if let Object::String(r) = rhs {
                 match infix {
                     ast::Infix::Plus => Some(Object::String(format!("{}{}", l, r))),
+                    ast::Infix::Eq => Some(Object::Bool(l == r)),
+                    ast::Infix::Ne => Some(Object::Bool(l != r)),
+                    ast::Infix::Gt => Some(Object::Bool(l > r)),
+                    ast::Infix::GtEq => Some(Object::Bool(l >= r)),
+                    ast::Infix::Lt => Some(Object::Bool(l < r)),
+                    ast::Infix::LtEq => Some(Object::Bool(l <= r)),
                     _ => None,
                 }
             } else {
@@ -173,6 +181,8 @@ mod test {
             ("1 == 1", Some(Object::Bool(true))),
             ("1 < 2", Some(Object::Bool(true))),
             ("1 > 0", Some(Object::Bool(true))),
+            ("1 >= 1", Some(Object::Bool(true))),
+            ("1 <= 1", Some(Object::Bool(true))),
             ("1 - 1", Some(Object::Int(0))),
             ("1 + 1", Some(Object::Int(2))),
             ("1 * 1", Some(Object::Int(1))),
@@ -182,6 +192,12 @@ mod test {
                 r#""hello "+"world""#,
                 Some(Object::String("hello world".to_string())),
             ),
+            (r#""hello" == "hello""#, Some(Object::Bool(true))),
+            (r#""hello" != "hello""#, Some(Object::Bool(false))),
+            (r#""a" < "b""#, Some(Object::Bool(true))),
+            (r#""a" > "b""#, Some(Object::Bool(false))),
+            (r#""a" >= "a""#, Some(Object::Bool(true))),
+            (r#""a" <= "a""#, Some(Object::Bool(true))),
         ];
 
         tests.iter().for_each(|test| {

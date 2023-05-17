@@ -24,6 +24,8 @@ impl From<&token::Token> for Precedence {
             token::Token::Ne => Precedence::Equals,
             token::Token::Lt => Precedence::LessGreater,
             token::Token::Gt => Precedence::LessGreater,
+            token::Token::LtEq => Precedence::LessGreater,
+            token::Token::GtEq => Precedence::LessGreater,
             token::Token::Plus => Precedence::Sum,
             token::Token::Minus => Precedence::Sum,
             token::Token::Slash => Precedence::Product,
@@ -449,7 +451,9 @@ impl<'a> Parser<'a> {
                 | token::Token::Eq
                 | token::Token::Ne
                 | token::Token::Gt
+                | token::Token::GtEq
                 | token::Token::Lt
+                | token::Token::LtEq
                 | token::Token::Slash
                 | token::Token::Asterisk => {
                     self.next_token();

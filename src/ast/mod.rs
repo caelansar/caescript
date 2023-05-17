@@ -45,6 +45,8 @@ pub enum Infix {
     Ne,
     Gt,
     Lt,
+    GtEq,
+    LtEq,
 }
 
 impl TryFrom<&token::Token> for Infix {
@@ -60,6 +62,8 @@ impl TryFrom<&token::Token> for Infix {
             token::Token::Ne => Ok(Infix::Ne),
             token::Token::Lt => Ok(Infix::Lt),
             token::Token::Gt => Ok(Infix::Gt),
+            token::Token::GtEq => Ok(Infix::GtEq),
+            token::Token::LtEq => Ok(Infix::LtEq),
             _ => Err("invalid token"),
         }
     }
@@ -75,7 +79,9 @@ impl fmt::Display for Infix {
             Infix::Eq => write!(f, "=="),
             Infix::Ne => write!(f, "!="),
             Infix::Gt => write!(f, ">"),
+            Infix::GtEq => write!(f, ">="),
             Infix::Lt => write!(f, "<"),
+            Infix::LtEq => write!(f, "<="),
         }
     }
 }

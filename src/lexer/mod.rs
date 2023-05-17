@@ -92,8 +92,24 @@ impl<'a> Lexer<'a> {
                         Token::from_str(token.to_string().as_str()).unwrap()
                     }
                 }
+                '>' => {
+                    if let Some('=') = self.peek_char() {
+                        self.read_char();
+                        Token::GtEq
+                    } else {
+                        Token::Gt
+                    }
+                }
+                '<' => {
+                    if let Some('=') = self.peek_char() {
+                        self.read_char();
+                        Token::LtEq
+                    } else {
+                        Token::Lt
+                    }
+                }
                 '"' => Token::String(self.read_string()),
-                ',' | ';' | '(' | ')' | '{' | '}' | '+' | '-' | '*' | '/' | '>' | '<' => {
+                ',' | ';' | '(' | ')' | '{' | '}' | '+' | '-' | '*' | '/' => {
                     Token::from_str(token.to_string().as_str()).unwrap()
                 }
                 _ => {
