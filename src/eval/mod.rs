@@ -19,6 +19,7 @@ pub fn eval(program: &ast::Program) -> Option<Object> {
 fn eval_statement(stmt: &ast::Statement) -> Option<Object> {
     match stmt {
         ast::Statement::Expression(expr) => eval_expression(expr),
+        ast::Statement::Return(ret) => eval_expression(&ret),
         _ => Some(Object::Null),
     }
 }
@@ -210,6 +211,32 @@ mod test {
                 test.1,
                 obj,
                 "want expr {} eval to be {:?}, got {:?}",
+                test.0,
+                test.1,
+                eval(&program)
+            );
+        })
+    }
+
+    #[test]
+    fn eval_return_should_work() {
+        let tests = vec![
+            ("return true", Some(Object::Bool(true))),
+            ("return false", Some(Object::Bool(false))),
+            ("return 1+2", Some(Object::Int(3))),
+            (r#"return "1""#, Some(Object::String("1".to_string()))),
+        ];
+
+        tests.iter().for_each(|test| {
+            let lexer = lexer::Lexer::new(test.0);
+            let mut parser = Parser::new(lexer);
+
+            let program = parser.parse_program();
+            let obj = eval(&program);
+            assert_eq!(
+                test.1,
+                obj,
+                "want return stmt {} eval to be {:?}, got {:?}",
                 test.0,
                 test.1,
                 eval(&program)
