@@ -17,6 +17,7 @@ pub enum Object {
     Int(i64),
     Bool(bool),
     String(String),
+    Return(Box<Object>),
     Null,
 }
 
@@ -26,6 +27,7 @@ impl Display for Object {
             Object::Int(i) => write!(f, "{}", i),
             Object::Bool(b) => write!(f, "{}", b),
             Object::String(s) => write!(f, "{}", s),
+            Object::Return(r) => write!(f, "{}", r.to_string()),
             Object::Null => write!(f, "null"),
         }
     }

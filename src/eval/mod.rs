@@ -9,6 +9,20 @@ pub fn eval(program: &ast::Program) -> Option<Object> {
 
     for stmt in program.iter() {
         match eval_statement(stmt) {
+            Some(Object::Return(r)) => return Some(*r),
+            obj => rv = obj,
+        }
+    }
+
+    rv
+}
+
+pub fn eval_block_statements(program: &ast::BlockStatement) -> Option<Object> {
+    let mut rv = None;
+
+    for stmt in program.iter() {
+        match eval_statement(stmt) {
+            Some(Object::Return(r)) => return Some(Object::Return(r)),
             obj => rv = obj,
         }
     }
@@ -19,7 +33,7 @@ pub fn eval(program: &ast::Program) -> Option<Object> {
 fn eval_statement(stmt: &ast::Statement) -> Option<Object> {
     match stmt {
         ast::Statement::Expression(expr) => eval_expression(expr),
-        ast::Statement::Return(ret) => eval_expression(&ret),
+        ast::Statement::Return(ret) => eval_expression(&ret).map(|x| Object::Return(Box::new(x))),
         _ => Some(Object::Null),
     }
 }
@@ -42,8 +56,45 @@ fn eval_expression(expr: &ast::Expression) -> Option<Object> {
             }
             eval_infix_expression(infix, lhs.unwrap(), rhs.unwrap())
         }
+        ast::Expression::If {
+            condition,
+            consequence,
+            alternative,
+        } => {
+            if let Some(cond) = eval_expression(&condition) {
+                eval_if_expression(cond, consequence, alternative)
+            } else {
+                None
+            }
+        }
         _ => Some(Object::Null),
     }
+}
+
+fn is_true(cond: Object) -> bool {
+    match cond {
+        Object::Bool(b) => b,
+        Object::Null => false,
+        _ => true,
+    }
+}
+
+fn eval_if_expression(
+    cond: Object,
+    consequence: &ast::BlockStatement,
+    alternative: &Option<ast::BlockStatement>,
+) -> Option<Object> {
+    let mut rv = Some(Object::Null);
+
+    if is_true(cond) {
+        rv = eval_block_statements(consequence)
+    } else {
+        alternative
+            .as_ref()
+            .inspect(|alternative| rv = eval_block_statements(alternative));
+    }
+
+    rv
 }
 
 fn eval_prefix_expression(prefix: &ast::Prefix, obj: Object) -> Option<Object> {
@@ -237,6 +288,49 @@ mod test {
                 test.1,
                 obj,
                 "want return stmt {} eval to be {:?}, got {:?}",
+                test.0,
+                test.1,
+                eval(&program)
+            );
+        })
+    }
+
+    #[test]
+    fn eval_if_should_work() {
+        let tests = vec![
+            ("if (1>2) {1} else {2}", Some(Object::Int(2))),
+            ("if (1>2) {1}", Some(Object::Null)),
+            ("if (1<2) {1}", Some(Object::Int(1))),
+            (
+                r#"if (0<2) {
+                       if (0<1) {
+                         1
+                       }
+                       2;
+                       }"#,
+                Some(Object::Int(2)),
+            ),
+            (
+                r#"if (0<2) {
+                       if (0<1) {
+                        return 1;
+                       }
+                       return 2;
+                       }"#,
+                Some(Object::Int(1)),
+            ),
+        ];
+
+        tests.iter().for_each(|test| {
+            let lexer = lexer::Lexer::new(test.0);
+            let mut parser = Parser::new(lexer);
+
+            let program = parser.parse_program();
+            let obj = eval(&program);
+            assert_eq!(
+                test.1,
+                obj,
+                "expect return stmt {} eval to be {:?}, got {:?}",
                 test.0,
                 test.1,
                 eval(&program)
