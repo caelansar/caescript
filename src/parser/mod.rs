@@ -8,13 +8,13 @@ use trace::{trace, untrace, ScopeCall};
 
 #[derive(PartialEq, PartialOrd, Debug)]
 pub(crate) enum Precedence {
-    Lowest = 1,
-    Equals = 2,
-    LessGreater = 3,
-    Sum = 4,
-    Product = 5,
-    Prefix = 6,
-    Call = 7,
+    Lowest,
+    Equals,
+    LessGreater,
+    Sum,
+    Product,
+    Prefix,
+    Call,
 }
 
 impl From<&token::Token> for Precedence {
