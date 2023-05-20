@@ -119,8 +119,16 @@ impl<'a> Lexer<'a> {
                         return typ;
                     } else if token.is_numeric() {
                         let literal = self.read_number();
-                        let value: i64 = literal.as_str().parse().expect("not number");
-                        return Token::Int(value);
+                        if let Some('.') = self.ch {
+                            self.read_char();
+                            let next = self.read_number();
+                            let value: f64 =
+                                format!("{}.{}", literal, next).parse().expect("not float");
+                            return Token::Float(value);
+                        } else {
+                            let value: i64 = literal.parse().expect("not number");
+                            return Token::Int(value);
+                        }
                     } else {
                         return Token::Illegal;
                     }
@@ -154,6 +162,7 @@ mod test {
             return false;
         }
         let cc = "string";
+        let dd = 1.1;
         "#;
         let mut lexer = Lexer::new(input);
 
@@ -215,6 +224,11 @@ mod test {
             Token::Ident("cc".to_string()),
             Token::Assign,
             Token::String("string".to_string()),
+            Token::SemiColon,
+            Token::Let,
+            Token::Ident("dd".to_string()),
+            Token::Assign,
+            Token::Float(1.1),
             Token::SemiColon,
             Token::EOF,
         ];

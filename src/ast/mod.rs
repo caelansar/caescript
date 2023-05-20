@@ -202,6 +202,7 @@ impl Display for Expression {
 #[derive(PartialEq, Clone, Debug)]
 pub enum Literal {
     Int(i64),
+    Float(f64),
     String(String),
     Bool(bool),
 }
@@ -211,6 +212,7 @@ impl Display for Literal {
         let mut out = String::new();
         match self {
             Literal::Int(int) => out.push_str(&int.to_string()),
+            Literal::Float(float) => out.push_str(&float.to_string()),
             Literal::String(string) => out.push_str(&string),
             Literal::Bool(b) => out.push_str(&b.to_string()),
         }

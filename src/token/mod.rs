@@ -1,12 +1,13 @@
 use std::{fmt, str::FromStr};
 
-#[derive(Debug, PartialEq, Clone, Hash, Eq)]
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) enum Token {
     Illegal,
     EOF,
 
     Ident(String),
     Int(i64),
+    Float(f64),
     String(String),
     Bool(bool),
 
@@ -75,6 +76,7 @@ impl fmt::Display for Token {
         match self {
             Token::Ident(name) => write!(f, "{}", name),
             Token::Int(i) => write!(f, "{}", i),
+            Token::Float(i) => write!(f, "{}", i),
             Token::String(s) => write!(f, "{}", s),
             Token::Bool(b) => write!(f, "{}", b),
             Token::Assign => write!(f, "="),

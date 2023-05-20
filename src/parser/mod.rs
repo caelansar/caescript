@@ -97,6 +97,7 @@ impl<'a> Parser<'a> {
         self.next_token = self.lexer.next_token();
     }
 
+    #[inline(always)]
     fn parse_block_statemnt(&mut self) -> ast::BlockStatement {
         let current_token = self.current_token.clone();
         let mut statements = Vec::new();
@@ -117,6 +118,7 @@ impl<'a> Parser<'a> {
         ast::BlockStatement(statements)
     }
 
+    #[inline]
     fn parse_if_expression(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_if_expression"));
@@ -155,6 +157,7 @@ impl<'a> Parser<'a> {
         })
     }
 
+    #[inline(always)]
     fn parse_infix_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_infix_expression"));
@@ -180,6 +183,7 @@ impl<'a> Parser<'a> {
         ))
     }
 
+    #[inline(always)]
     fn parse_grouped_expression(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_grouped_expression"));
@@ -194,6 +198,7 @@ impl<'a> Parser<'a> {
         Some(exp.unwrap())
     }
 
+    #[inline(always)]
     fn parse_prefix_expression(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_prefix_expression"));
@@ -209,6 +214,7 @@ impl<'a> Parser<'a> {
         Some(ast::Expression::Prefix(prefix, Box::new(rhs.unwrap())))
     }
 
+    #[inline(always)]
     fn parse_identifier(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_identifier"));
@@ -219,6 +225,7 @@ impl<'a> Parser<'a> {
         }
     }
 
+    #[inline(always)]
     fn parse_string_literal(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_string_literal"));
@@ -229,6 +236,7 @@ impl<'a> Parser<'a> {
         }
     }
 
+    #[inline(always)]
     fn parse_integer_literal(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_integer_literal"));
@@ -239,6 +247,18 @@ impl<'a> Parser<'a> {
         }
     }
 
+    #[inline(always)]
+    fn parse_float_literal(&mut self) -> Option<ast::Expression> {
+        #[cfg(feature = "trace")]
+        defer!(untrace, trace("parse_integer_literal"));
+        if let token::Token::Float(float) = self.current_token {
+            Some(ast::Expression::Literal(ast::Literal::Float(float)))
+        } else {
+            None
+        }
+    }
+
+    #[inline(always)]
     fn parse_boolean_literal(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_boolean_literal"));
@@ -249,6 +269,7 @@ impl<'a> Parser<'a> {
         }
     }
 
+    #[inline(always)]
     fn parse_function_literal(&mut self) -> Option<ast::Expression> {
         if !self.expect_next(&token::Token::Lparen) {
             return None;
@@ -297,6 +318,7 @@ impl<'a> Parser<'a> {
         Some(idents)
     }
 
+    #[inline(always)]
     fn parse_call_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
         if lhs.is_none() {
             return None;
@@ -409,7 +431,11 @@ impl<'a> Parser<'a> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_expression_statement"));
         let expression = self.parse_expression(Precedence::Lowest);
-        let stmt = ast::Statement::Expression(expression.unwrap());
+        let expression = match expression {
+            Some(expression) => expression,
+            None => return None,
+        };
+        let stmt = ast::Statement::Expression(expression);
 
         // eat SemiColon
         while self.next_token_is(&token::Token::SemiColon) {
@@ -431,6 +457,7 @@ impl<'a> Parser<'a> {
         let mut lhs = match self.current_token {
             token::Token::Ident(_) => self.parse_identifier(),
             token::Token::Int(_) => self.parse_integer_literal(),
+            token::Token::Float(_) => self.parse_float_literal(),
             token::Token::Bool(_) => self.parse_boolean_literal(),
             token::Token::Minus => self.parse_prefix_expression(),
             token::Token::Bang => self.parse_prefix_expression(),

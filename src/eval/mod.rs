@@ -174,6 +174,7 @@ fn eval_minus_prefix(obj: Object) -> Option<Object> {
 fn eval_literal(literal: &ast::Literal) -> Option<Object> {
     match literal {
         ast::Literal::Int(i) => Some(Object::Int(i.clone())),
+        ast::Literal::Float(f) => Some(Object::Float(f.clone())),
         ast::Literal::Bool(b) => Some(b.clone().into()),
         ast::Literal::String(s) => Some(Object::String(s.clone())),
     }
@@ -186,36 +187,29 @@ mod test {
     use super::*;
 
     #[test]
-    fn eval_int_should_work() {
-        let input = "1";
+    fn eval_literal_should_work() {
+        let tests = vec![
+            ("1", Some(Object::Int(1))),
+            ("1.1", Some(Object::Float(1.1))),
+            ("true", Some(Object::Bool(true))),
+            ("false", Some(Object::Bool(false))),
+        ];
 
-        let lexer = lexer::Lexer::new(input);
-        let mut parser = Parser::new(lexer);
+        tests.iter().for_each(|test| {
+            let lexer = lexer::Lexer::new(test.0);
+            let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
-
-        assert_eq!(Some(Object::Int(1)), eval(&program));
-    }
-
-    #[test]
-    fn eval_bool_should_work() {
-        let input = "false";
-
-        let lexer = lexer::Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-
-        let program = parser.parse_program();
-
-        assert_eq!(Some(Object::Bool(false)), eval(&program));
-
-        let input = "true";
-
-        let lexer = lexer::Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-
-        let program = parser.parse_program();
-
-        assert_eq!(Some(Object::Bool(true)), eval(&program));
+            let program = parser.parse_program();
+            let obj = eval(&program);
+            assert_eq!(
+                test.1,
+                obj,
+                "want literal {} eval to be {:?}, got {:?}",
+                test.0,
+                test.1,
+                eval(&program)
+            );
+        })
     }
 
     #[test]
