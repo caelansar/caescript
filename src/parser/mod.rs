@@ -99,7 +99,6 @@ impl<'a> Parser<'a> {
 
     #[inline(always)]
     fn parse_block_statemnt(&mut self) -> ast::BlockStatement {
-        let current_token = self.current_token.clone();
         let mut statements = Vec::new();
 
         self.next_token();
@@ -122,7 +121,6 @@ impl<'a> Parser<'a> {
     fn parse_if_expression(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_if_expression"));
-        let current_token = self.current_token.clone();
 
         if !self.expect_next(&token::Token::Lparen) {
             return None;
