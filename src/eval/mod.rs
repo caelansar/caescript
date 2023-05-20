@@ -1,182 +1,216 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::ast;
 
-use self::object::*;
+use self::{env::Environment, object::*};
 
+mod env;
 mod object;
 
-pub fn eval(program: &ast::Program) -> Option<Object> {
-    let mut rv = None;
+pub struct Evaluator {
+    env: Rc<RefCell<Environment>>,
+}
 
-    for stmt in program.iter() {
-        match eval_statement(stmt) {
-            Some(Object::Return(r)) => return Some(*r),
-            obj => rv = obj,
+impl Evaluator {
+    fn new(env: Rc<RefCell<Environment>>) -> Self {
+        Self { env }
+    }
+
+    pub fn eval(&self, program: &ast::Program) -> Option<Object> {
+        let mut rv = None;
+
+        for stmt in program.iter() {
+            match self.eval_statement(stmt) {
+                Some(Object::Return(r)) => return Some(*r),
+                obj => rv = obj,
+            }
+        }
+
+        rv
+    }
+
+    pub fn eval_block_statements(&self, program: &ast::BlockStatement) -> Option<Object> {
+        let mut rv = None;
+
+        for stmt in program.iter() {
+            match self.eval_statement(stmt) {
+                Some(Object::Return(r)) => return Some(Object::Return(r)),
+                obj => rv = obj,
+            }
+        }
+
+        rv
+    }
+
+    fn is_true(&self, cond: Object) -> bool {
+        match cond {
+            Object::Bool(b) => b,
+            Object::Null => false,
+            _ => true,
         }
     }
 
-    rv
-}
-
-pub fn eval_block_statements(program: &ast::BlockStatement) -> Option<Object> {
-    let mut rv = None;
-
-    for stmt in program.iter() {
-        match eval_statement(stmt) {
-            Some(Object::Return(r)) => return Some(Object::Return(r)),
-            obj => rv = obj,
-        }
-    }
-
-    rv
-}
-
-fn eval_statement(stmt: &ast::Statement) -> Option<Object> {
-    match stmt {
-        ast::Statement::Expression(expr) => eval_expression(expr),
-        ast::Statement::Return(ret) => eval_expression(&ret).map(|x| Object::Return(Box::new(x))),
-        _ => Some(Object::Null),
-    }
-}
-
-fn eval_expression(expr: &ast::Expression) -> Option<Object> {
-    match expr {
-        ast::Expression::Literal(lit) => eval_literal(lit),
-        ast::Expression::Prefix(prefix, rhs) => {
-            if let Some(obj) = eval_expression(rhs) {
-                eval_prefix_expression(prefix, obj)
-            } else {
+    fn eval_statement(&self, stmt: &ast::Statement) -> Option<Object> {
+        match stmt {
+            ast::Statement::Let(ident, expr) => {
+                let val = match self.eval_expression(expr) {
+                    Some(val) => val,
+                    None => return None,
+                };
+                let ast::Ident(ident) = ident;
+                self.env.borrow_mut().set(ident.clone(), val);
                 None
             }
+            ast::Statement::Expression(expr) => self.eval_expression(expr),
+            ast::Statement::Return(ret) => self
+                .eval_expression(&ret)
+                .map(|x| Object::Return(Box::new(x))),
         }
-        ast::Expression::Infix(infix, lhs, rhs) => {
-            let lhs = eval_expression(lhs);
-            let rhs = eval_expression(rhs);
-            if lhs.is_none() || rhs.is_none() {
-                return None;
-            }
-            eval_infix_expression(infix, lhs.unwrap(), rhs.unwrap())
-        }
-        ast::Expression::If {
-            condition,
-            consequence,
-            alternative,
-        } => {
-            if let Some(cond) = eval_expression(&condition) {
-                eval_if_expression(cond, consequence, alternative)
-            } else {
-                None
-            }
-        }
-        _ => Some(Object::Null),
-    }
-}
-
-fn is_true(cond: Object) -> bool {
-    match cond {
-        Object::Bool(b) => b,
-        Object::Null => false,
-        _ => true,
-    }
-}
-
-fn eval_if_expression(
-    cond: Object,
-    consequence: &ast::BlockStatement,
-    alternative: &Option<ast::BlockStatement>,
-) -> Option<Object> {
-    let mut rv = Some(Object::Null);
-
-    if is_true(cond) {
-        rv = eval_block_statements(consequence)
-    } else {
-        alternative
-            .as_ref()
-            .inspect(|alternative| rv = eval_block_statements(alternative));
     }
 
-    rv
-}
-
-fn eval_prefix_expression(prefix: &ast::Prefix, obj: Object) -> Option<Object> {
-    match prefix {
-        ast::Prefix::Minus => eval_minus_prefix(obj),
-        ast::Prefix::Not => eval_not_prefix(obj),
-    }
-}
-
-fn eval_not_prefix(obj: Object) -> Option<Object> {
-    match obj {
-        Object::Bool(b) => Some((!b).into()),
-        Object::Null => Some(BOOL_OBJ_TRUE),
-        _ => Some(BOOL_OBJ_FALSE),
-    }
-}
-
-fn eval_infix_expression(infix: &ast::Infix, lhs: Object, rhs: Object) -> Option<Object> {
-    match lhs {
-        Object::Int(l) => {
-            if let Object::Int(r) = rhs {
-                match infix {
-                    ast::Infix::Plus => Some(Object::Int(l + r)),
-                    ast::Infix::Minus => Some(Object::Int(l - r)),
-                    ast::Infix::Divide => Some(Object::Int(l / r)),
-                    ast::Infix::Multiply => Some(Object::Int(l * r)),
-                    ast::Infix::Eq => Some(Object::Bool(l == r)),
-                    ast::Infix::Ne => Some(Object::Bool(l != r)),
-                    ast::Infix::Gt => Some(Object::Bool(l > r)),
-                    ast::Infix::GtEq => Some(Object::Bool(l >= r)),
-                    ast::Infix::Lt => Some(Object::Bool(l < r)),
-                    ast::Infix::LtEq => Some(Object::Bool(l <= r)),
+    fn eval_expression(&self, expr: &ast::Expression) -> Option<Object> {
+        match expr {
+            ast::Expression::Literal(lit) => self.eval_literal(lit),
+            ast::Expression::Prefix(prefix, rhs) => {
+                if let Some(obj) = self.eval_expression(rhs) {
+                    self.eval_prefix_expression(prefix, obj)
+                } else {
+                    None
                 }
-            } else {
-                None
             }
-        }
-        Object::Bool(l) => {
-            if let Object::Bool(r) = rhs {
-                match infix {
-                    ast::Infix::Eq => Some(Object::Bool(l == r)),
-                    ast::Infix::Ne => Some(Object::Bool(l != r)),
-                    _ => None,
+            ast::Expression::Infix(infix, lhs, rhs) => {
+                let lhs = self.eval_expression(lhs);
+                let rhs = self.eval_expression(rhs);
+                if lhs.is_none() || rhs.is_none() {
+                    return None;
                 }
-            } else {
-                None
+                self.eval_infix_expression(infix, lhs.unwrap(), rhs.unwrap())
             }
-        }
-        Object::String(l) => {
-            if let Object::String(r) = rhs {
-                match infix {
-                    ast::Infix::Plus => Some(Object::String(format!("{}{}", l, r))),
-                    ast::Infix::Eq => Some(Object::Bool(l == r)),
-                    ast::Infix::Ne => Some(Object::Bool(l != r)),
-                    ast::Infix::Gt => Some(Object::Bool(l > r)),
-                    ast::Infix::GtEq => Some(Object::Bool(l >= r)),
-                    ast::Infix::Lt => Some(Object::Bool(l < r)),
-                    ast::Infix::LtEq => Some(Object::Bool(l <= r)),
-                    _ => None,
+            ast::Expression::If {
+                condition,
+                consequence,
+                alternative,
+            } => {
+                if let Some(cond) = self.eval_expression(&condition) {
+                    self.eval_if_expression(cond, consequence, alternative)
+                } else {
+                    None
                 }
-            } else {
-                None
             }
+            ast::Expression::Ident(ast::Ident(ident)) => self.eval_identifier(ident),
+            _ => Some(Object::Null),
         }
-        _ => None,
     }
-}
 
-fn eval_minus_prefix(obj: Object) -> Option<Object> {
-    if let Object::Int(int) = obj {
-        Some(Object::Int(-int))
-    } else {
-        None
+    fn eval_identifier(&self, ident: &String) -> Option<Object> {
+        self.env.borrow().get(ident.clone())
     }
-}
 
-fn eval_literal(literal: &ast::Literal) -> Option<Object> {
-    match literal {
-        ast::Literal::Int(i) => Some(Object::Int(i.clone())),
-        ast::Literal::Float(f) => Some(Object::Float(f.clone())),
-        ast::Literal::Bool(b) => Some(b.clone().into()),
-        ast::Literal::String(s) => Some(Object::String(s.clone())),
+    fn eval_if_expression(
+        &self,
+        cond: Object,
+        consequence: &ast::BlockStatement,
+        alternative: &Option<ast::BlockStatement>,
+    ) -> Option<Object> {
+        let mut rv = Some(Object::Null);
+
+        if self.is_true(cond) {
+            rv = self.eval_block_statements(consequence)
+        } else {
+            alternative
+                .as_ref()
+                .inspect(|alternative| rv = self.eval_block_statements(alternative));
+        }
+
+        rv
+    }
+
+    fn eval_prefix_expression(&self, prefix: &ast::Prefix, obj: Object) -> Option<Object> {
+        match prefix {
+            ast::Prefix::Minus => self.eval_minus_prefix(obj),
+            ast::Prefix::Not => self.eval_not_prefix(obj),
+        }
+    }
+
+    fn eval_not_prefix(&self, obj: Object) -> Option<Object> {
+        match obj {
+            Object::Bool(b) => Some((!b).into()),
+            Object::Null => Some(BOOL_OBJ_TRUE),
+            _ => Some(BOOL_OBJ_FALSE),
+        }
+    }
+
+    fn eval_infix_expression(
+        &self,
+        infix: &ast::Infix,
+        lhs: Object,
+        rhs: Object,
+    ) -> Option<Object> {
+        match lhs {
+            Object::Int(l) => {
+                if let Object::Int(r) = rhs {
+                    match infix {
+                        ast::Infix::Plus => Some(Object::Int(l + r)),
+                        ast::Infix::Minus => Some(Object::Int(l - r)),
+                        ast::Infix::Divide => Some(Object::Int(l / r)),
+                        ast::Infix::Multiply => Some(Object::Int(l * r)),
+                        ast::Infix::Eq => Some(Object::Bool(l == r)),
+                        ast::Infix::Ne => Some(Object::Bool(l != r)),
+                        ast::Infix::Gt => Some(Object::Bool(l > r)),
+                        ast::Infix::GtEq => Some(Object::Bool(l >= r)),
+                        ast::Infix::Lt => Some(Object::Bool(l < r)),
+                        ast::Infix::LtEq => Some(Object::Bool(l <= r)),
+                    }
+                } else {
+                    None
+                }
+            }
+            Object::Bool(l) => {
+                if let Object::Bool(r) = rhs {
+                    match infix {
+                        ast::Infix::Eq => Some(Object::Bool(l == r)),
+                        ast::Infix::Ne => Some(Object::Bool(l != r)),
+                        _ => None,
+                    }
+                } else {
+                    None
+                }
+            }
+            Object::String(l) => {
+                if let Object::String(r) = rhs {
+                    match infix {
+                        ast::Infix::Plus => Some(Object::String(format!("{}{}", l, r))),
+                        ast::Infix::Eq => Some(Object::Bool(l == r)),
+                        ast::Infix::Ne => Some(Object::Bool(l != r)),
+                        ast::Infix::Gt => Some(Object::Bool(l > r)),
+                        ast::Infix::GtEq => Some(Object::Bool(l >= r)),
+                        ast::Infix::Lt => Some(Object::Bool(l < r)),
+                        ast::Infix::LtEq => Some(Object::Bool(l <= r)),
+                        _ => None,
+                    }
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+
+    fn eval_minus_prefix(&self, obj: Object) -> Option<Object> {
+        if let Object::Int(int) = obj {
+            Some(Object::Int(-int))
+        } else {
+            None
+        }
+    }
+
+    fn eval_literal(&self, literal: &ast::Literal) -> Option<Object> {
+        match literal {
+            ast::Literal::Int(i) => Some(Object::Int(i.clone())),
+            ast::Literal::Float(f) => Some(Object::Float(f.clone())),
+            ast::Literal::Bool(b) => Some(b.clone().into()),
+            ast::Literal::String(s) => Some(Object::String(s.clone())),
+        }
     }
 }
 
@@ -200,14 +234,12 @@ mod test {
             let mut parser = Parser::new(lexer);
 
             let program = parser.parse_program();
-            let obj = eval(&program);
+            let evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let obj = evaluator.eval(&program);
             assert_eq!(
-                test.1,
-                obj,
+                test.1, obj,
                 "want literal {} eval to be {:?}, got {:?}",
-                test.0,
-                test.1,
-                eval(&program)
+                test.0, test.1, obj
             );
         })
     }
@@ -251,14 +283,12 @@ mod test {
             let mut parser = Parser::new(lexer);
 
             let program = parser.parse_program();
-            let obj = eval(&program);
+            let evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let obj = evaluator.eval(&program);
             assert_eq!(
-                test.1,
-                obj,
+                test.1, obj,
                 "want expr {} eval to be {:?}, got {:?}",
-                test.0,
-                test.1,
-                eval(&program)
+                test.0, test.1, obj
             );
         })
     }
@@ -277,14 +307,12 @@ mod test {
             let mut parser = Parser::new(lexer);
 
             let program = parser.parse_program();
-            let obj = eval(&program);
+            let evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let obj = evaluator.eval(&program);
             assert_eq!(
-                test.1,
-                obj,
+                test.1, obj,
                 "want return stmt {} eval to be {:?}, got {:?}",
-                test.0,
-                test.1,
-                eval(&program)
+                test.0, test.1, obj
             );
         })
     }
@@ -320,14 +348,40 @@ mod test {
             let mut parser = Parser::new(lexer);
 
             let program = parser.parse_program();
-            let obj = eval(&program);
+            let evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let obj = evaluator.eval(&program);
             assert_eq!(
-                test.1,
-                obj,
+                test.1, obj,
                 "expect return stmt {} eval to be {:?}, got {:?}",
-                test.0,
-                test.1,
-                eval(&program)
+                test.0, test.1, obj
+            );
+        })
+    }
+
+    #[test]
+    fn eval_let_should_work() {
+        let tests = vec![
+            ("let a = 12;", None),
+            ("let a = 12; a", Some(Object::Int(12))),
+            ("let a = 1 + 2; a", Some(Object::Int(3))),
+            ("let a = 1 * 2; a", Some(Object::Int(2))),
+            (
+                "let a = 2; let b = a; let c = b * a; c",
+                Some(Object::Int(4)),
+            ),
+        ];
+
+        tests.iter().for_each(|test| {
+            let lexer = lexer::Lexer::new(test.0);
+            let mut parser = Parser::new(lexer);
+
+            let program = parser.parse_program();
+            let evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let obj = evaluator.eval(&program);
+            assert_eq!(
+                test.1, obj,
+                "expect let stmt {} eval to be {:?}, got {:?}",
+                test.0, test.1, obj
             );
         })
     }

@@ -12,7 +12,7 @@ impl From<bool> for Object {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Object {
     Int(i64),
     Float(f64),
