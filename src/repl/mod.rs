@@ -1,10 +1,10 @@
-use std::io::{self, BufRead, Write};
+use std::io::{self, Write};
 
 use crate::{lexer, parser};
 
 pub fn repl() -> io::Result<()> {
     loop {
-        print!("> ");
+        print!(">>> ");
         let mut input = String::new();
         let _ = io::stdout().flush();
         let size = io::stdin().read_line(&mut input)?;

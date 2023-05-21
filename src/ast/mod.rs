@@ -98,12 +98,12 @@ pub enum Expression {
         alternative: Option<BlockStatement>,
     },
     Func {
-        params: Option<Vec<Ident>>,
+        params: Vec<Ident>,
         body: BlockStatement,
     },
     Call {
         func: Box<Expression>,
-        args: Option<Vec<Expression>>,
+        args: Vec<Expression>,
     },
 }
 
@@ -159,16 +159,14 @@ impl Display for Expression {
 
                 out.push_str("fn ");
                 out.push_str("(");
-                params.as_ref().inspect(|params| {
-                    out.push_str(
-                        params
-                            .iter()
-                            .map(|ident| ident.0.clone())
-                            .collect::<Vec<String>>()
-                            .join(",")
-                            .as_str(),
-                    )
-                });
+                out.push_str(
+                    params
+                        .iter()
+                        .map(|ident| ident.0.clone())
+                        .collect::<Vec<String>>()
+                        .join(",")
+                        .as_str(),
+                );
                 out.push_str(")");
 
                 out.push_str("{");
@@ -182,15 +180,13 @@ impl Display for Expression {
 
                 out.push_str(&func.to_string());
                 out.push_str("(");
-                args.as_ref().inspect(|args| {
-                    out.push_str(
-                        args.iter()
-                            .map(|arg| arg.to_string())
-                            .collect::<Vec<String>>()
-                            .join(",")
-                            .as_str(),
-                    )
-                });
+                out.push_str(
+                    args.iter()
+                        .map(|arg| arg.to_string())
+                        .collect::<Vec<String>>()
+                        .join(",")
+                        .as_str(),
+                );
                 out.push_str(")");
 
                 f.write_str(&out)

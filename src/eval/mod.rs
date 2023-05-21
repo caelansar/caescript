@@ -12,11 +12,11 @@ pub struct Evaluator {
 }
 
 impl Evaluator {
-    fn new(env: Rc<RefCell<Environment>>) -> Self {
+    pub fn new(env: Rc<RefCell<Environment>>) -> Self {
         Self { env }
     }
 
-    pub fn eval(&self, program: &ast::Program) -> Option<Object> {
+    pub fn eval(&mut self, program: &ast::Program) -> Option<Object> {
         let mut rv = None;
 
         for stmt in program.iter() {
@@ -29,7 +29,7 @@ impl Evaluator {
         rv
     }
 
-    pub fn eval_block_statements(&self, program: &ast::BlockStatement) -> Option<Object> {
+    pub fn eval_block_statements(&mut self, program: &ast::BlockStatement) -> Option<Object> {
         let mut rv = None;
 
         for stmt in program.iter() {
@@ -50,7 +50,7 @@ impl Evaluator {
         }
     }
 
-    fn eval_statement(&self, stmt: &ast::Statement) -> Option<Object> {
+    fn eval_statement(&mut self, stmt: &ast::Statement) -> Option<Object> {
         match stmt {
             ast::Statement::Let(ident, expr) => {
                 let val = match self.eval_expression(expr) {
@@ -68,7 +68,7 @@ impl Evaluator {
         }
     }
 
-    fn eval_expression(&self, expr: &ast::Expression) -> Option<Object> {
+    fn eval_expression(&mut self, expr: &ast::Expression) -> Option<Object> {
         match expr {
             ast::Expression::Literal(lit) => self.eval_literal(lit),
             ast::Expression::Prefix(prefix, rhs) => {
@@ -98,7 +98,18 @@ impl Evaluator {
                 }
             }
             ast::Expression::Ident(ast::Ident(ident)) => self.eval_identifier(ident),
-            _ => Some(Object::Null),
+            ast::Expression::Func { params, body } => Some(Object::Function(
+                params.clone(),
+                body.clone(),
+                self.env.clone(),
+            )),
+            ast::Expression::Call { func, args } => {
+                if let Some(obj) = self.eval_expression(func) {
+                    self.eval_function_call(obj, args)
+                } else {
+                    None
+                }
+            }
         }
     }
 
@@ -106,8 +117,44 @@ impl Evaluator {
         self.env.borrow().get(ident.clone())
     }
 
+    fn eval_function_call(&mut self, func: Object, args: &Vec<ast::Expression>) -> Option<Object> {
+        let args: Vec<_> = args
+            .iter()
+            .map(|arg| self.eval_expression(arg).unwrap_or(Object::Null))
+            .collect();
+        let (params, ref body, env) = match func {
+            Object::Function(params, body, env) => (params, body, env),
+            _ => {
+                println!("{}", func);
+                todo!()
+            }
+        };
+
+        if params.len() != args.len() {
+            todo!()
+        }
+
+        let current_env = self.env.clone();
+
+        // set function env as outer scope
+        let mut call_env = Environment::outer(env.clone());
+
+        // set our args
+        params
+            .iter()
+            .zip(args)
+            .for_each(|(ast::Ident(param), arg)| call_env.set(param.clone(), arg));
+
+        self.env = Rc::new(RefCell::new(call_env));
+        let rv = self.eval_block_statements(body);
+
+        self.env = current_env;
+
+        rv
+    }
+
     fn eval_if_expression(
-        &self,
+        &mut self,
         cond: Object,
         consequence: &ast::BlockStatement,
         alternative: &Option<ast::BlockStatement>,
@@ -234,7 +281,7 @@ mod test {
             let mut parser = Parser::new(lexer);
 
             let program = parser.parse_program();
-            let evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
             let obj = evaluator.eval(&program);
             assert_eq!(
                 test.1, obj,
@@ -283,7 +330,7 @@ mod test {
             let mut parser = Parser::new(lexer);
 
             let program = parser.parse_program();
-            let evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
             let obj = evaluator.eval(&program);
             assert_eq!(
                 test.1, obj,
@@ -307,7 +354,7 @@ mod test {
             let mut parser = Parser::new(lexer);
 
             let program = parser.parse_program();
-            let evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
             let obj = evaluator.eval(&program);
             assert_eq!(
                 test.1, obj,
@@ -348,7 +395,7 @@ mod test {
             let mut parser = Parser::new(lexer);
 
             let program = parser.parse_program();
-            let evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
             let obj = evaluator.eval(&program);
             assert_eq!(
                 test.1, obj,
@@ -376,11 +423,40 @@ mod test {
             let mut parser = Parser::new(lexer);
 
             let program = parser.parse_program();
-            let evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
             let obj = evaluator.eval(&program);
             assert_eq!(
                 test.1, obj,
                 "expect let stmt {} eval to be {:?}, got {:?}",
+                test.0, test.1, obj
+            );
+        })
+    }
+
+    #[test]
+    fn eval_function_should_work() {
+        let tests = vec![
+            ("let f = fn(x){x}; f(1)", Some(Object::Int(1))),
+            ("fn(x){x}(1);", Some(Object::Int(1))),
+            ("let x = 1; fn(x){x}(100)", Some(Object::Int(100))),
+            ("let x = 1; fn(x){x}(100); x", Some(Object::Int(1))),
+            (
+                "let f1 = fn(x,y){x+y}; let f2 = fn(x,y,func) {func(x,y)}; f2(1,2,f1)",
+                Some(Object::Int(3)),
+            ),
+        ];
+
+        tests.iter().for_each(|test| {
+            let lexer = lexer::Lexer::new(test.0);
+            let mut parser = Parser::new(lexer);
+
+            let program = parser.parse_program();
+            println!("{}", program);
+            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let obj = evaluator.eval(&program);
+            assert_eq!(
+                test.1, obj,
+                "expect function call {} eval to be {:?}, got {:?}",
                 test.0, test.1, obj
             );
         })

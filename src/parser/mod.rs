@@ -273,7 +273,10 @@ impl<'a> Parser<'a> {
             return None;
         }
 
-        let params = self.parse_function_params();
+        let params = match self.parse_function_params() {
+            Some(params) => params,
+            None => return None,
+        };
 
         if !self.expect_next(&token::Token::Lbrace) {
             return None;
@@ -289,7 +292,7 @@ impl<'a> Parser<'a> {
 
         if self.next_token_is(&token::Token::Rparen) {
             self.next_token();
-            return None;
+            return Some(idents);
         }
 
         self.next_token();
@@ -322,7 +325,10 @@ impl<'a> Parser<'a> {
             return None;
         }
 
-        let args = self.parse_call_args();
+        let args = match self.parse_call_args() {
+            Some(args) => args,
+            None => return None,
+        };
 
         Some(ast::Expression::Call {
             func: Box::new(lhs.unwrap()),
@@ -335,7 +341,7 @@ impl<'a> Parser<'a> {
 
         if self.next_token_is(&token::Token::Rparen) {
             self.next_token();
-            return None;
+            return Some(args);
         }
 
         self.next_token();
@@ -707,22 +713,19 @@ mod test {
             program,
             ast::BlockStatement(vec![
                 ast::Statement::Expression(ast::Expression::Func {
-                    params: None,
+                    params: Vec::new(),
                     body: ast::BlockStatement(vec![ast::Statement::Expression(
                         ast::Expression::Literal(ast::Literal::Int(1))
                     )]),
                 }),
                 ast::Statement::Expression(ast::Expression::Func {
-                    params: Some(vec![ast::Ident("x".to_string())]),
+                    params: vec![ast::Ident("x".to_string())],
                     body: ast::BlockStatement(vec![ast::Statement::Expression(
                         ast::Expression::Ident(ast::Ident("x".to_string()))
                     )]),
                 }),
                 ast::Statement::Expression(ast::Expression::Func {
-                    params: Some(vec![
-                        ast::Ident("x".to_string()),
-                        ast::Ident("y".to_string())
-                    ]),
+                    params: vec![ast::Ident("x".to_string()), ast::Ident("y".to_string())],
                     body: ast::BlockStatement(vec![ast::Statement::Expression(
                         ast::Expression::Infix(
                             ast::Infix::Plus,
@@ -753,18 +756,18 @@ mod test {
             ast::BlockStatement(vec![
                 ast::Statement::Expression(ast::Expression::Call {
                     func: Box::new(ast::Expression::Ident(ast::Ident("add".to_string()))),
-                    args: None,
+                    args: Vec::new(),
                 }),
                 ast::Statement::Expression(ast::Expression::Call {
                     func: Box::new(ast::Expression::Ident(ast::Ident("add".to_string()))),
-                    args: Some(vec![
+                    args: vec![
                         ast::Expression::Literal(ast::Literal::Int(1)),
                         ast::Expression::Literal(ast::Literal::Int(2))
-                    ]),
+                    ],
                 }),
                 ast::Statement::Expression(ast::Expression::Call {
                     func: Box::new(ast::Expression::Ident(ast::Ident("add".to_string()))),
-                    args: Some(vec![
+                    args: vec![
                         ast::Expression::Infix(
                             ast::Infix::Plus,
                             Box::new(ast::Expression::Literal(ast::Literal::Int(1))),
@@ -775,7 +778,7 @@ mod test {
                             Box::new(ast::Expression::Literal(ast::Literal::Int(3))),
                             Box::new(ast::Expression::Literal(ast::Literal::Int(4)))
                         )
-                    ]),
+                    ],
                 }),
             ])
         )

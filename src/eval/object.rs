@@ -1,4 +1,8 @@
-use std::fmt::Display;
+use std::{cell::RefCell, fmt::Display, rc::Rc};
+
+use crate::ast;
+
+use super::env::Environment;
 
 pub const BOOL_OBJ_TRUE: Object = Object::Bool(true);
 pub const BOOL_OBJ_FALSE: Object = Object::Bool(false);
@@ -19,6 +23,11 @@ pub enum Object {
     Bool(bool),
     String(String),
     Return(Box<Object>),
+    Function(
+        Vec<ast::Ident>,
+        ast::BlockStatement,
+        Rc<RefCell<Environment>>,
+    ),
     Null,
 }
 
@@ -31,6 +40,7 @@ impl Display for Object {
             Object::String(s) => write!(f, "{}", s),
             Object::Return(r) => write!(f, "{}", r.to_string()),
             Object::Null => write!(f, "null"),
+            _ => unreachable!(),
         }
     }
 }
