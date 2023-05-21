@@ -39,7 +39,7 @@ impl<'a> Lexer<'a> {
 
     fn read_identifier(&mut self) -> String {
         let pos = self.pos;
-        while let Some(true) = self.ch.map(|c| c.is_alphabetic()) {
+        while let Some(true) = self.ch.map(|c| c.is_alphanumeric()) {
             self.read_char();
         }
         return self.input[pos..self.pos].to_string();
@@ -152,6 +152,9 @@ mod test {
     fn next_token_should_work() {
         let input = r#"let aa = 10;
         let bb = 20;
+        let f1 = fn(x) {
+            x;
+        };
         let add = fn(x, y) {
             x + y;
         };
@@ -176,6 +179,18 @@ mod test {
             Token::Ident("bb".to_string()),
             Token::Assign,
             Token::Int(20),
+            Token::SemiColon,
+            Token::Let,
+            Token::Ident("f1".to_string()),
+            Token::Assign,
+            Token::Function,
+            Token::Lparen,
+            Token::Ident("x".to_string()),
+            Token::Rparen,
+            Token::Lbrace,
+            Token::Ident("x".to_string()),
+            Token::SemiColon,
+            Token::Rbrace,
             Token::SemiColon,
             Token::Let,
             Token::Ident("add".to_string()),
