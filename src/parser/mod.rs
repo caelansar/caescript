@@ -9,6 +9,7 @@ use trace::{trace, untrace, ScopeCall};
 #[derive(PartialEq, PartialOrd, Debug)]
 pub(crate) enum Precedence {
     Lowest,
+    Assign,
     Equals,
     LessGreater,
     Sum,
@@ -21,6 +22,7 @@ impl From<&token::Token> for Precedence {
     fn from(value: &token::Token) -> Self {
         match value {
             token::Token::Eq => Precedence::Equals,
+            token::Token::Assign => Precedence::Assign,
             token::Token::Ne => Precedence::Equals,
             token::Token::Lt => Precedence::LessGreater,
             token::Token::Gt => Precedence::LessGreater,
@@ -319,6 +321,28 @@ impl<'a> Parser<'a> {
         Some(idents)
     }
 
+    fn parse_assign_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
+        if let Some(ast::Expression::Ident(ident)) = lhs {
+            if !self.expect_next(&token::Token::Assign) {
+                return None;
+            };
+            self.next_token();
+
+            let expr = match self.parse_expression(Precedence::Lowest) {
+                Some(expr) => expr,
+                None => return None,
+            };
+            while !self.current_token_is(&token::Token::SemiColon)
+                && !self.current_token_is(&token::Token::EOF)
+            {
+                self.next_token();
+            }
+            Some(ast::Expression::Assign(ident, Box::new(expr)))
+        } else {
+            None
+        }
+    }
+
     #[inline(always)]
     fn parse_call_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
         if lhs.is_none() {
@@ -494,6 +518,7 @@ impl<'a> Parser<'a> {
                     self.next_token();
                     lhs = self.parse_call_expression(lhs)
                 }
+                token::Token::Assign => lhs = self.parse_assign_expression(lhs),
                 _ => return lhs,
             }
         }
@@ -526,6 +551,37 @@ mod test {
         }
 
         assert!(errs.len() == 0)
+    }
+
+    #[test]
+    fn assign_statement_should_work() {
+        let input = r#"
+            a = 1;
+            b = 1 + 2
+            "#;
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parse_error(&parser);
+
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![
+                ast::Statement::Expression(ast::Expression::Assign(
+                    ast::Ident("a".to_string()),
+                    Box::new(ast::Expression::Literal(ast::Literal::Int(1))),
+                )),
+                ast::Statement::Expression(ast::Expression::Assign(
+                    ast::Ident("b".to_string()),
+                    Box::new(ast::Expression::Infix(
+                        ast::Infix::Plus,
+                        Box::new(ast::Expression::Literal(ast::Literal::Int(1))),
+                        Box::new(ast::Expression::Literal(ast::Literal::Int(2))),
+                    )),
+                )),
+            ])
+        );
     }
 
     #[test]

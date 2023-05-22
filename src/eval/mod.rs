@@ -4,7 +4,7 @@ use crate::ast;
 
 use self::{env::Environment, object::*};
 
-mod env;
+pub mod env;
 mod object;
 
 pub struct Evaluator {
@@ -52,20 +52,42 @@ impl Evaluator {
 
     fn eval_statement(&mut self, stmt: &ast::Statement) -> Option<Object> {
         match stmt {
-            ast::Statement::Let(ident, expr) => {
-                let val = match self.eval_expression(expr) {
-                    Some(val) => val,
-                    None => return None,
-                };
-                let ast::Ident(ident) = ident;
-                self.env.borrow_mut().set(ident.clone(), val);
-                None
-            }
+            ast::Statement::Let(ident, expr) => self.eval_let(ident, expr),
             ast::Statement::Expression(expr) => self.eval_expression(expr),
             ast::Statement::Return(ret) => self
                 .eval_expression(&ret)
                 .map(|x| Object::Return(Box::new(x))),
         }
+    }
+
+    fn eval_let(&mut self, ident: &ast::Ident, expr: &ast::Expression) -> Option<Object> {
+        let val = match self.eval_expression(expr) {
+            Some(val) => val,
+            None => return None,
+        };
+        let ast::Ident(ident) = ident;
+        self.env.borrow_mut().set(ident.clone(), val);
+        None
+    }
+
+    fn eval_assign(&mut self, ident: &ast::Ident, expr: &ast::Expression) -> Option<Object> {
+        println!("eval assign");
+        let val = match self.eval_expression(expr) {
+            Some(val) => val,
+            None => return None,
+        };
+        let ast::Ident(ident) = ident;
+
+        match self.env.borrow().get(ident.as_str()) {
+            Some(_) => (),
+            None => {
+                println!("vairable is not declared");
+                todo!()
+            }
+        }
+
+        self.env.borrow_mut().set(ident.clone(), val);
+        None
     }
 
     fn eval_expression(&mut self, expr: &ast::Expression) -> Option<Object> {
@@ -110,6 +132,7 @@ impl Evaluator {
                     None
                 }
             }
+            ast::Expression::Assign(ident, expr) => self.eval_assign(ident, expr),
         }
     }
 
@@ -207,6 +230,7 @@ impl Evaluator {
                         ast::Infix::GtEq => Some(Object::Bool(l >= r)),
                         ast::Infix::Lt => Some(Object::Bool(l < r)),
                         ast::Infix::LtEq => Some(Object::Bool(l <= r)),
+                        _ => None,
                     }
                 } else {
                     None
@@ -428,6 +452,25 @@ mod test {
             assert_eq!(
                 test.1, obj,
                 "expect let stmt {} eval to be {:?}, got {:?}",
+                test.0, test.1, obj
+            );
+        })
+    }
+
+    #[test]
+    fn eval_assign_should_work() {
+        let tests = vec![("let a = 12; a=a+100; a", Some(Object::Int(112)))];
+
+        tests.iter().for_each(|test| {
+            let lexer = lexer::Lexer::new(test.0);
+            let mut parser = Parser::new(lexer);
+
+            let program = parser.parse_program();
+            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let obj = evaluator.eval(&program);
+            assert_eq!(
+                test.1, obj,
+                "expect assign stmt {} eval to be {:?}, got {:?}",
                 test.0, test.1, obj
             );
         })

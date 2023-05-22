@@ -105,6 +105,7 @@ pub enum Expression {
         func: Box<Expression>,
         args: Vec<Expression>,
     },
+    Assign(Ident, Box<Expression>),
 }
 
 impl Display for Expression {
@@ -188,6 +189,16 @@ impl Display for Expression {
                         .as_str(),
                 );
                 out.push_str(")");
+
+                f.write_str(&out)
+            }
+            Expression::Assign(Ident(ident), expr) => {
+                let mut out = "".to_string();
+                out.push_str(&ident.to_string());
+                out.push_str(" = ");
+
+                out.push_str(&expr.to_string());
+                out.push_str(";");
 
                 f.write_str(&out)
             }
