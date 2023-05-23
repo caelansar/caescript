@@ -1,8 +1,18 @@
-use std::io::{self, Write};
+use std::{
+    cell::RefCell,
+    io::{self, Write},
+    rc::Rc,
+};
 
-use crate::{lexer, parser};
+use crate::{
+    eval::{env::Environment, Evaluator},
+    lexer, parser,
+};
 
 pub fn repl() -> io::Result<()> {
+    let env = Environment::new();
+    let mut evaluator = Evaluator::new(Rc::new(RefCell::new(env)));
+
     loop {
         print!(">>> ");
         let mut input = String::new();
@@ -19,10 +29,14 @@ pub fn repl() -> io::Result<()> {
             continue;
         }
 
+        let obj = evaluator.eval(&program);
+
         if size == 1 {
             break;
         }
-        println!("< {}", program);
+        if let Some(obj) = obj {
+            println!("< {}", obj);
+        }
     }
     println!("exit");
     Ok(())

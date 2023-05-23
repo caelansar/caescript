@@ -87,6 +87,42 @@ impl fmt::Display for Infix {
 }
 
 #[derive(PartialEq, Clone, Debug)]
+pub enum Assign {
+    Assign,
+    PlusEq,
+    MinusEq,
+    DivideEq,
+    MultiplyEq,
+}
+
+impl TryFrom<&token::Token> for Assign {
+    type Error = &'static str;
+
+    fn try_from(value: &token::Token) -> Result<Self, Self::Error> {
+        match value {
+            token::Token::Assign => Ok(Assign::Assign),
+            token::Token::PlusEq => Ok(Assign::PlusEq),
+            token::Token::MinusEq => Ok(Assign::MinusEq),
+            token::Token::SlashEq => Ok(Assign::DivideEq),
+            token::Token::AsteriskEq => Ok(Assign::MultiplyEq),
+            _ => Err("invalid token"),
+        }
+    }
+}
+
+impl fmt::Display for Assign {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Assign::Assign => write!(f, "="),
+            Assign::PlusEq => write!(f, "+"),
+            Assign::MinusEq => write!(f, "-"),
+            Assign::DivideEq => write!(f, "/"),
+            Assign::MultiplyEq => write!(f, "*"),
+        }
+    }
+}
+
+#[derive(PartialEq, Clone, Debug)]
 pub enum Expression {
     Ident(Ident),
     Literal(Literal),
@@ -105,7 +141,7 @@ pub enum Expression {
         func: Box<Expression>,
         args: Vec<Expression>,
     },
-    Assign(Ident, Box<Expression>),
+    Assign(Assign, Ident, Box<Expression>),
 }
 
 impl Display for Expression {
@@ -192,10 +228,10 @@ impl Display for Expression {
 
                 f.write_str(&out)
             }
-            Expression::Assign(Ident(ident), expr) => {
+            Expression::Assign(op, Ident(ident), expr) => {
                 let mut out = "".to_string();
                 out.push_str(&ident.to_string());
-                out.push_str(" = ");
+                out.push_str(&format!(" {} ", op));
 
                 out.push_str(&expr.to_string());
                 out.push_str(";");

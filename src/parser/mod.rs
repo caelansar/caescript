@@ -23,6 +23,10 @@ impl From<&token::Token> for Precedence {
         match value {
             token::Token::Eq => Precedence::Equals,
             token::Token::Assign => Precedence::Assign,
+            token::Token::PlusEq => Precedence::Assign,
+            token::Token::MinusEq => Precedence::Assign,
+            token::Token::AsteriskEq => Precedence::Assign,
+            token::Token::SlashEq => Precedence::Assign,
             token::Token::Ne => Precedence::Equals,
             token::Token::Lt => Precedence::LessGreater,
             token::Token::Gt => Precedence::LessGreater,
@@ -321,11 +325,13 @@ impl<'a> Parser<'a> {
         Some(idents)
     }
 
-    fn parse_assign_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
+    fn parse_assign_expression(
+        &mut self,
+        op: ast::Assign,
+        lhs: Option<ast::Expression>,
+    ) -> Option<ast::Expression> {
         if let Some(ast::Expression::Ident(ident)) = lhs {
-            if !self.expect_next(&token::Token::Assign) {
-                return None;
-            };
+            self.next_token();
             self.next_token();
 
             let expr = match self.parse_expression(Precedence::Lowest) {
@@ -337,7 +343,7 @@ impl<'a> Parser<'a> {
             {
                 self.next_token();
             }
-            Some(ast::Expression::Assign(ident, Box::new(expr)))
+            Some(ast::Expression::Assign(op, ident, Box::new(expr)))
         } else {
             None
         }
@@ -518,7 +524,13 @@ impl<'a> Parser<'a> {
                     self.next_token();
                     lhs = self.parse_call_expression(lhs)
                 }
-                token::Token::Assign => lhs = self.parse_assign_expression(lhs),
+                token::Token::Assign
+                | token::Token::PlusEq
+                | token::Token::MinusEq
+                | token::Token::AsteriskEq
+                | token::Token::SlashEq => {
+                    lhs = self.parse_assign_expression((&self.next_token).try_into().unwrap(), lhs)
+                }
                 _ => return lhs,
             }
         }
@@ -556,8 +568,7 @@ mod test {
     #[test]
     fn assign_statement_should_work() {
         let input = r#"
-            a = 1;
-            b = 1 + 2
+            a += 1;
             "#;
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
@@ -568,17 +579,24 @@ mod test {
         assert_eq!(
             program,
             ast::BlockStatement(vec![
+                //     ast::Statement::Expression(ast::Expression::Assign(
+                //         ast::Assign::Assign,
+                //         ast::Ident("a".to_string()),
+                //         Box::new(ast::Expression::Literal(ast::Literal::Int(1))),
+                //     )),
+                //     ast::Statement::Expression(ast::Expression::Assign(
+                //         ast::Assign::Assign,
+                //         ast::Ident("b".to_string()),
+                //         Box::new(ast::Expression::Infix(
+                //             ast::Infix::Plus,
+                //             Box::new(ast::Expression::Literal(ast::Literal::Int(1))),
+                //             Box::new(ast::Expression::Literal(ast::Literal::Int(2))),
+                //         )),
+                //     )),
                 ast::Statement::Expression(ast::Expression::Assign(
+                    ast::Assign::PlusEq,
                     ast::Ident("a".to_string()),
                     Box::new(ast::Expression::Literal(ast::Literal::Int(1))),
-                )),
-                ast::Statement::Expression(ast::Expression::Assign(
-                    ast::Ident("b".to_string()),
-                    Box::new(ast::Expression::Infix(
-                        ast::Infix::Plus,
-                        Box::new(ast::Expression::Literal(ast::Literal::Int(1))),
-                        Box::new(ast::Expression::Literal(ast::Literal::Int(2))),
-                    )),
                 )),
             ])
         );

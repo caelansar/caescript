@@ -70,20 +70,61 @@ impl Evaluator {
         None
     }
 
-    fn eval_assign(&mut self, ident: &ast::Ident, expr: &ast::Expression) -> Option<Object> {
-        println!("eval assign");
-        let val = match self.eval_expression(expr) {
-            Some(val) => val,
-            None => return None,
-        };
+    fn eval_assign(
+        &mut self,
+        op: &ast::Assign,
+        ident: &ast::Ident,
+        expr: &ast::Expression,
+    ) -> Option<Object> {
+        let val: Object;
+
         let ast::Ident(ident) = ident;
 
-        match self.env.borrow().get(ident.as_str()) {
-            Some(_) => (),
+        let curr = match self.env.borrow().get(ident.as_str()) {
+            Some(obj) => obj,
             None => {
                 println!("vairable is not declared");
                 todo!()
             }
+        };
+        match op {
+            ast::Assign::Assign => {
+                val = match self.eval_expression(expr) {
+                    Some(val) => val,
+                    None => return None,
+                };
+            }
+            ast::Assign::PlusEq => {
+                let exp_val = match self.eval_expression(expr) {
+                    Some(val) => val,
+                    None => return None,
+                };
+                match curr {
+                    Object::Int(a) => {
+                        if let Object::Int(b) = exp_val {
+                            val = Object::Int(a + b)
+                        } else {
+                            todo!();
+                        }
+                    }
+                    Object::Float(a) => {
+                        if let Object::Float(b) = exp_val {
+                            val = Object::Float(a + b)
+                        } else {
+                            todo!();
+                        }
+                    }
+                    Object::String(a) => {
+                        if let Object::String(b) = exp_val {
+                            val = Object::String(format!("{}{}", a, b))
+                        } else {
+                            todo!();
+                        }
+                    }
+                    _ => todo!(),
+                }
+            }
+            _ => todo!(),
         }
 
         self.env.borrow_mut().set(ident.clone(), val);
@@ -132,7 +173,7 @@ impl Evaluator {
                     None
                 }
             }
-            ast::Expression::Assign(ident, expr) => self.eval_assign(ident, expr),
+            ast::Expression::Assign(op, ident, expr) => self.eval_assign(op, ident, expr),
         }
     }
 
@@ -230,7 +271,6 @@ impl Evaluator {
                         ast::Infix::GtEq => Some(Object::Bool(l >= r)),
                         ast::Infix::Lt => Some(Object::Bool(l < r)),
                         ast::Infix::LtEq => Some(Object::Bool(l <= r)),
-                        _ => None,
                     }
                 } else {
                     None
@@ -459,7 +499,10 @@ mod test {
 
     #[test]
     fn eval_assign_should_work() {
-        let tests = vec![("let a = 12; a=a+100; a", Some(Object::Int(112)))];
+        let tests = vec![
+            ("let a = 12; a=a+100; a", Some(Object::Int(112))),
+            ("let a = 12; a+=100; a", Some(Object::Int(112))),
+        ];
 
         tests.iter().for_each(|test| {
             let lexer = lexer::Lexer::new(test.0);
