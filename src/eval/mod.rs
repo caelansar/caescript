@@ -124,7 +124,75 @@ impl Evaluator {
                     _ => todo!(),
                 }
             }
-            _ => todo!(),
+            ast::Assign::MinusEq => {
+                let exp_val = match self.eval_expression(expr) {
+                    Some(val) => val,
+                    None => return None,
+                };
+                match curr {
+                    Object::Int(a) => {
+                        if let Object::Int(b) = exp_val {
+                            val = Object::Int(a - b)
+                        } else {
+                            todo!();
+                        }
+                    }
+                    Object::Float(a) => {
+                        if let Object::Float(b) = exp_val {
+                            val = Object::Float(a - b)
+                        } else {
+                            todo!();
+                        }
+                    }
+                    _ => todo!(),
+                }
+            }
+            ast::Assign::MultiplyEq => {
+                let exp_val = match self.eval_expression(expr) {
+                    Some(val) => val,
+                    None => return None,
+                };
+                match curr {
+                    Object::Int(a) => {
+                        if let Object::Int(b) = exp_val {
+                            val = Object::Int(a * b)
+                        } else {
+                            todo!();
+                        }
+                    }
+                    Object::Float(a) => {
+                        if let Object::Float(b) = exp_val {
+                            val = Object::Float(a * b)
+                        } else {
+                            todo!();
+                        }
+                    }
+                    _ => todo!(),
+                }
+            }
+            ast::Assign::DivideEq => {
+                let exp_val = match self.eval_expression(expr) {
+                    Some(val) => val,
+                    None => return None,
+                };
+                match curr {
+                    Object::Int(a) => {
+                        if let Object::Int(b) = exp_val {
+                            val = Object::Int(a / b)
+                        } else {
+                            todo!();
+                        }
+                    }
+                    Object::Float(a) => {
+                        if let Object::Float(b) = exp_val {
+                            val = Object::Float(a / b)
+                        } else {
+                            todo!();
+                        }
+                    }
+                    _ => todo!(),
+                }
+            }
         }
 
         self.env.borrow_mut().set(ident.clone(), val);
@@ -502,6 +570,10 @@ mod test {
         let tests = vec![
             ("let a = 12; a=a+100; a", Some(Object::Int(112))),
             ("let a = 12; a+=100; a", Some(Object::Int(112))),
+            ("let a = 12; a-=2; a", Some(Object::Int(10))),
+            ("let a = 12; a*=2; a", Some(Object::Int(24))),
+            ("let a = 12; a/=2; a", Some(Object::Int(6))),
+            ("let a = 12; a+=1+2; a", Some(Object::Int(15))),
         ];
 
         tests.iter().for_each(|test| {
