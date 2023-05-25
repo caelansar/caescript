@@ -5,6 +5,7 @@ use crate::ast;
 use self::{env::Environment, object::*};
 
 pub mod env;
+mod macros;
 mod object;
 
 pub struct Evaluator {
@@ -87,112 +88,20 @@ impl Evaluator {
                 todo!()
             }
         };
+        let exp_val = match self.eval_expression(expr) {
+            Some(val) => val,
+            None => return None,
+        };
         match op {
-            ast::Assign::Assign => {
-                val = match self.eval_expression(expr) {
-                    Some(val) => val,
-                    None => return None,
-                };
-            }
-            ast::Assign::PlusEq => {
-                let exp_val = match self.eval_expression(expr) {
-                    Some(val) => val,
-                    None => return None,
-                };
-                match curr {
-                    Object::Int(a) => {
-                        if let Object::Int(b) = exp_val {
-                            val = Object::Int(a + b)
-                        } else {
-                            todo!();
-                        }
-                    }
-                    Object::Float(a) => {
-                        if let Object::Float(b) = exp_val {
-                            val = Object::Float(a + b)
-                        } else {
-                            todo!();
-                        }
-                    }
-                    Object::String(a) => {
-                        if let Object::String(b) = exp_val {
-                            val = Object::String(format!("{}{}", a, b))
-                        } else {
-                            todo!();
-                        }
-                    }
-                    _ => todo!(),
-                }
-            }
-            ast::Assign::MinusEq => {
-                let exp_val = match self.eval_expression(expr) {
-                    Some(val) => val,
-                    None => return None,
-                };
-                match curr {
-                    Object::Int(a) => {
-                        if let Object::Int(b) = exp_val {
-                            val = Object::Int(a - b)
-                        } else {
-                            todo!();
-                        }
-                    }
-                    Object::Float(a) => {
-                        if let Object::Float(b) = exp_val {
-                            val = Object::Float(a - b)
-                        } else {
-                            todo!();
-                        }
-                    }
-                    _ => todo!(),
-                }
-            }
-            ast::Assign::MultiplyEq => {
-                let exp_val = match self.eval_expression(expr) {
-                    Some(val) => val,
-                    None => return None,
-                };
-                match curr {
-                    Object::Int(a) => {
-                        if let Object::Int(b) = exp_val {
-                            val = Object::Int(a * b)
-                        } else {
-                            todo!();
-                        }
-                    }
-                    Object::Float(a) => {
-                        if let Object::Float(b) = exp_val {
-                            val = Object::Float(a * b)
-                        } else {
-                            todo!();
-                        }
-                    }
-                    _ => todo!(),
-                }
-            }
-            ast::Assign::DivideEq => {
-                let exp_val = match self.eval_expression(expr) {
-                    Some(val) => val,
-                    None => return None,
-                };
-                match curr {
-                    Object::Int(a) => {
-                        if let Object::Int(b) = exp_val {
-                            val = Object::Int(a / b)
-                        } else {
-                            todo!();
-                        }
-                    }
-                    Object::Float(a) => {
-                        if let Object::Float(b) = exp_val {
-                            val = Object::Float(a / b)
-                        } else {
-                            todo!();
-                        }
-                    }
-                    _ => todo!(),
-                }
-            }
+            ast::Assign::Assign => val = exp_val,
+            ast::Assign::PlusEq => val = curr + exp_val,
+            ast::Assign::MinusEq => val = curr - exp_val,
+            ast::Assign::MultiplyEq => val = curr * exp_val,
+            ast::Assign::DivideEq => val = curr / exp_val,
+        }
+
+        if let Object::Null = val {
+            todo!("invalid op")
         }
 
         self.env.borrow_mut().set(ident.clone(), val);
@@ -358,7 +267,7 @@ impl Evaluator {
             Object::String(l) => {
                 if let Object::String(r) = rhs {
                     match infix {
-                        ast::Infix::Plus => Some(Object::String(format!("{}{}", l, r))),
+                        ast::Infix::Plus => Some(Object::String(l + r)),
                         ast::Infix::Eq => Some(Object::Bool(l == r)),
                         ast::Infix::Ne => Some(Object::Bool(l != r)),
                         ast::Infix::Gt => Some(Object::Bool(l > r)),
@@ -388,7 +297,7 @@ impl Evaluator {
             ast::Literal::Int(i) => Some(Object::Int(i.clone())),
             ast::Literal::Float(f) => Some(Object::Float(f.clone())),
             ast::Literal::Bool(b) => Some(b.clone().into()),
-            ast::Literal::String(s) => Some(Object::String(s.clone())),
+            ast::Literal::String(s) => Some(Object::String(object::CString(s.clone()))),
         }
     }
 }
@@ -447,7 +356,7 @@ mod test {
             ("1 + 4 == 5", Some(Object::Bool(true))),
             (
                 r#""hello "+"world""#,
-                Some(Object::String("hello world".to_string())),
+                Some(Object::String(CString("hello world".to_string()))),
             ),
             (r#""hello" == "hello""#, Some(Object::Bool(true))),
             (r#""hello" != "hello""#, Some(Object::Bool(false))),
@@ -478,7 +387,10 @@ mod test {
             ("return true", Some(Object::Bool(true))),
             ("return false", Some(Object::Bool(false))),
             ("return 1+2", Some(Object::Int(3))),
-            (r#"return "1""#, Some(Object::String("1".to_string()))),
+            (
+                r#"return "1""#,
+                Some(Object::String(CString("1".to_string()))),
+            ),
         ];
 
         tests.iter().for_each(|test| {
