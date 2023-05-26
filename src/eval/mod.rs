@@ -76,6 +76,15 @@ impl Evaluator {
         None
     }
 
+    fn eval_array(&mut self, elements: Vec<ast::Expression>) -> Option<Object> {
+        let objects = elements
+            .iter()
+            .map(|e| self.eval_expression(e).unwrap_or(Object::Null))
+            .collect::<Vec<_>>();
+
+        Some(Object::Array(objects))
+    }
+
     fn eval_assign(
         &mut self,
         op: &ast::Assign,
@@ -156,6 +165,7 @@ impl Evaluator {
                 }
             }
             ast::Expression::Assign(op, ident, expr) => self.eval_assign(op, ident, expr),
+            ast::Expression::Array(elements) => self.eval_array(elements.clone()),
         }
     }
 
@@ -527,12 +537,42 @@ mod test {
             let mut parser = Parser::new(lexer);
 
             let program = parser.parse_program();
-            println!("{}", program);
             let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
             let obj = evaluator.eval(&program);
             assert_eq!(
                 test.1, obj,
                 "expect function call {} eval to be {:?}, got {:?}",
+                test.0, test.1, obj
+            );
+        })
+    }
+
+    #[test]
+    fn eval_array_should_work() {
+        let tests = vec![
+            (
+                "[1,2,3]",
+                Some(Object::Array(vec![
+                    Object::Int(1),
+                    Object::Int(2),
+                    Object::Int(3),
+                ])),
+            ),
+            ("[1+2]", Some(Object::Array(vec![Object::Int(3)]))),
+            ("[]", Some(Object::Array(vec![]))),
+        ];
+
+        tests.iter().for_each(|test| {
+            let lexer = lexer::Lexer::new(test.0);
+            let mut parser = Parser::new(lexer);
+
+            let program = parser.parse_program();
+            println!("array {}", program);
+            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let obj = evaluator.eval(&program);
+            assert_eq!(
+                test.1, obj,
+                "expect array {} eval to be {:?}, got {:?}",
                 test.0, test.1, obj
             );
         })

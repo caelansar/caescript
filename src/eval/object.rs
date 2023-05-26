@@ -46,6 +46,7 @@ pub enum Object {
         ast::BlockStatement,
         Rc<RefCell<Environment>>,
     ),
+    Array(Vec<Object>),
     Null,
 }
 
@@ -57,6 +58,14 @@ impl Display for Object {
             Object::Bool(b) => write!(f, "{}", b),
             Object::String(s) => write!(f, "{}", s),
             Object::Return(r) => write!(f, "{}", r.to_string()),
+            Object::Array(e) => write!(
+                f,
+                "[{}]",
+                e.iter()
+                    .map(|x| x.to_string())
+                    .collect::<Vec<_>>()
+                    .join(",")
+            ),
             Object::Null => write!(f, "null"),
             _ => unreachable!(),
         }

@@ -26,6 +26,8 @@ pub(crate) enum Token {
     Rparen,
     Lbrace,
     Rbrace,
+    Lbracket,
+    Rbracket,
     Gt,
     Lt,
     GtEq,
@@ -70,6 +72,8 @@ impl FromStr for Token {
             ")" => Ok(Token::Rparen),
             "{" => Ok(Token::Lbrace),
             "}" => Ok(Token::Rbrace),
+            "[" => Ok(Token::Lbracket),
+            "]" => Ok(Token::Rbracket),
             _ => Err("unknow token str"),
         }
     }
@@ -105,6 +109,8 @@ impl fmt::Display for Token {
             Token::Rparen => write!(f, ")"),
             Token::Lbrace => write!(f, "{{"),
             Token::Rbrace => write!(f, "}}"),
+            Token::Lbracket => write!(f, "["),
+            Token::Rbracket => write!(f, "]"),
             Token::Function => write!(f, "fn"),
             Token::Let => write!(f, "let"),
             Token::If => write!(f, "if"),

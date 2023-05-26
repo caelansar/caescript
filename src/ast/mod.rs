@@ -142,6 +142,7 @@ pub enum Expression {
         args: Vec<Expression>,
     },
     Assign(Assign, Ident, Box<Expression>),
+    Array(Vec<Expression>),
 }
 
 impl Display for Expression {
@@ -238,6 +239,14 @@ impl Display for Expression {
 
                 f.write_str(&out)
             }
+            Expression::Array(elements) => f.write_str(&format!(
+                "[{}]",
+                elements
+                    .iter()
+                    .map(|e| e.to_string())
+                    .collect::<Vec<_>>()
+                    .join(",")
+            )),
         }
     }
 }

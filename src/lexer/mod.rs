@@ -141,7 +141,7 @@ impl<'a> Lexer<'a> {
                         Token::from_str(token.to_string().as_str()).unwrap()
                     }
                 }
-                ',' | ';' | '(' | ')' | '{' | '}' => {
+                ',' | ';' | '(' | ')' | '{' | '}' | '[' | ']' => {
                     Token::from_str(token.to_string().as_str()).unwrap()
                 }
                 _ => {

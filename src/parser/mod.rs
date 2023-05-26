@@ -273,8 +273,45 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn parse_array(&mut self) -> Option<ast::Expression> {
+        #[cfg(feature = "trace")]
+        defer!(untrace, trace("parse_array"));
+
+        let mut exprs = vec![];
+
+        if self.next_token_is(&token::Token::Rbracket) {
+            self.next_token();
+            return Some(ast::Expression::Array(exprs));
+        }
+
+        self.next_token();
+
+        match self.parse_expression(Precedence::Lowest) {
+            Some(e) => exprs.push(e),
+            _ => return None,
+        };
+
+        while self.next_token_is(&token::Token::Comma) {
+            self.next_token();
+            self.next_token();
+
+            match self.parse_expression(Precedence::Lowest) {
+                Some(e) => exprs.push(e),
+                _ => return None,
+            };
+        }
+
+        if !self.expect_next(&token::Token::Rbracket) {
+            return None;
+        }
+
+        Some(ast::Expression::Array(exprs))
+    }
+
     #[inline(always)]
     fn parse_function_literal(&mut self) -> Option<ast::Expression> {
+        #[cfg(feature = "trace")]
+        defer!(untrace, trace("parse_function_literal"));
         if !self.expect_next(&token::Token::Lparen) {
             return None;
         }
@@ -528,6 +565,7 @@ impl<'a> Parser<'a> {
             token::Token::If => self.parse_if_expression(),
             token::Token::String(_) => self.parse_string_literal(),
             token::Token::Function => self.parse_function_literal(),
+            token::Token::Lbracket => self.parse_array(),
             _ => {
                 self.no_prefix_parse_fn_error(&self.current_token.clone());
                 return None;
@@ -597,6 +635,8 @@ mod test {
     #[test]
     fn assign_statement_should_work() {
         let input = r#"
+            a = 1;
+            b = 1 + 2;
             a += 1;
             "#;
         let lexer = lexer::Lexer::new(input);
@@ -608,20 +648,20 @@ mod test {
         assert_eq!(
             program,
             ast::BlockStatement(vec![
-                //     ast::Statement::Expression(ast::Expression::Assign(
-                //         ast::Assign::Assign,
-                //         ast::Ident("a".to_string()),
-                //         Box::new(ast::Expression::Literal(ast::Literal::Int(1))),
-                //     )),
-                //     ast::Statement::Expression(ast::Expression::Assign(
-                //         ast::Assign::Assign,
-                //         ast::Ident("b".to_string()),
-                //         Box::new(ast::Expression::Infix(
-                //             ast::Infix::Plus,
-                //             Box::new(ast::Expression::Literal(ast::Literal::Int(1))),
-                //             Box::new(ast::Expression::Literal(ast::Literal::Int(2))),
-                //         )),
-                //     )),
+                ast::Statement::Expression(ast::Expression::Assign(
+                    ast::Assign::Assign,
+                    ast::Ident("a".to_string()),
+                    Box::new(ast::Expression::Literal(ast::Literal::Int(1))),
+                )),
+                ast::Statement::Expression(ast::Expression::Assign(
+                    ast::Assign::Assign,
+                    ast::Ident("b".to_string()),
+                    Box::new(ast::Expression::Infix(
+                        ast::Infix::Plus,
+                        Box::new(ast::Expression::Literal(ast::Literal::Int(1))),
+                        Box::new(ast::Expression::Literal(ast::Literal::Int(2))),
+                    )),
+                )),
                 ast::Statement::Expression(ast::Expression::Assign(
                     ast::Assign::PlusEq,
                     ast::Ident("a".to_string()),
@@ -943,6 +983,29 @@ mod test {
                     ast::Expression::Ident(ast::Ident("y".to_string()))
                 )])),
             })])
+        )
+    }
+
+    #[test]
+    fn array_should_work() {
+        let input = r#"
+        [1,2,3];
+        "#;
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parse_error(&parser);
+
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![ast::Statement::Expression(ast::Expression::Array(
+                vec![
+                    ast::Expression::Literal(ast::Literal::Int(1)),
+                    ast::Expression::Literal(ast::Literal::Int(2)),
+                    ast::Expression::Literal(ast::Literal::Int(3))
+                ]
+            ))])
         )
     }
 }
