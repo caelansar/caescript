@@ -268,6 +268,7 @@ pub enum Statement {
     Let(Ident, Expression),
     Return(Expression),
     Expression(Expression),
+    Function(Ident, Vec<Ident>, BlockStatement),
 }
 
 impl Display for Statement {
@@ -290,6 +291,28 @@ impl Display for Statement {
 
                 out.push_str(&expr.to_string());
                 out.push_str(";");
+
+                f.write_str(&out)
+            }
+            Statement::Function(ident, params, body) => {
+                let mut out = String::new();
+
+                out.push_str("fn ");
+                out.push_str(&ident.0);
+                out.push_str("(");
+                out.push_str(
+                    params
+                        .iter()
+                        .map(|ident| ident.0.clone())
+                        .collect::<Vec<String>>()
+                        .join(",")
+                        .as_str(),
+                );
+                out.push_str(")");
+
+                out.push_str("{");
+                out.push_str(&body.to_string());
+                out.push_str("}");
 
                 f.write_str(&out)
             }

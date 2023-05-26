@@ -58,6 +58,11 @@ impl Evaluator {
             ast::Statement::Return(ret) => self
                 .eval_expression(&ret)
                 .map(|x| Object::Return(Box::new(x))),
+            ast::Statement::Function(ast::Ident(ident), params, body) => {
+                let val = Object::Function(params.clone(), body.clone(), self.env.clone());
+                self.env.borrow_mut().set(ident.clone(), val);
+                None
+            }
         }
     }
 
@@ -514,6 +519,7 @@ mod test {
                 "let f1 = fn(x,y){x+y}; let f2 = fn(x,y,func) {func(x,y)}; f2(1,2,f1)",
                 Some(Object::Int(3)),
             ),
+            ("fn add(x,y){x+y}; add(1,2)", Some(Object::Int(3))),
         ];
 
         tests.iter().for_each(|test| {

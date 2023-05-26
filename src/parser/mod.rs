@@ -293,6 +293,34 @@ impl<'a> Parser<'a> {
         Some(ast::Expression::Func { params, body })
     }
 
+    #[inline]
+    fn parse_function_statement(&mut self) -> Option<ast::Statement> {
+        if let token::Token::Ident(ident) = self.next_token.clone() {
+            self.next_token();
+            if !self.expect_next(&token::Token::Lparen) {
+                return None;
+            }
+            let params = match self.parse_function_params() {
+                Some(params) => params,
+                None => return None,
+            };
+
+            if !self.expect_next(&token::Token::Lbrace) {
+                return None;
+            }
+
+            let body = self.parse_block_statemnt();
+
+            Some(ast::Statement::Function(
+                ast::Ident(ident.clone()),
+                params,
+                body,
+            ))
+        } else {
+            self.parse_expression_statement()
+        }
+    }
+
     fn parse_function_params(&mut self) -> Option<Vec<ast::Ident>> {
         let mut idents = vec![];
 
@@ -408,6 +436,7 @@ impl<'a> Parser<'a> {
         match self.current_token {
             token::Token::Let => self.parse_let_statement(),
             token::Token::Return => self.parse_return_statement(),
+            token::Token::Function => self.parse_function_statement(),
             _ => self.parse_expression_statement(),
         }
     }
