@@ -1,5 +1,5 @@
 #[macro_export]
-macro_rules! obj_operator {
+macro_rules! arithmetic_operator {
     ($l:expr, $r:expr, $op:tt, $($t:ident),*) => {
         match $l {
             $(
@@ -14,4 +14,12 @@ macro_rules! obj_operator {
             _ => Object::Null
         }
     };
+}
+
+#[macro_export]
+macro_rules! map {
+    ($($k:expr => $v:expr),* $(,)?) => {{
+        use std::iter::{Iterator, IntoIterator};
+        Iterator::collect(IntoIterator::into_iter([$(($k, $v),)*]))
+    }};
 }

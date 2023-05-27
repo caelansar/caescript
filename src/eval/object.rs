@@ -1,9 +1,9 @@
-use std::{cell::RefCell, fmt::Display, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::ast;
 
 use super::env::Environment;
-use crate::obj_operator;
+use crate::arithmetic_operator;
 
 pub const BOOL_OBJ_TRUE: Object = Object::Bool(true);
 pub const BOOL_OBJ_FALSE: Object = Object::Bool(false);
@@ -47,7 +47,22 @@ pub enum Object {
         Rc<RefCell<Environment>>,
     ),
     Array(Vec<Object>),
+    Hash(HashMap<Object, Object>),
     Null,
+}
+
+impl Eq for Object {}
+
+impl std::hash::Hash for Object {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // we only support Int/String/Bool type as Hash key
+        match self {
+            Object::Int(i) => i.hash(state),
+            Object::String(s) => s.0.hash(state),
+            Object::Bool(b) => b.hash(state),
+            _ => panic!("unsupport type"),
+        }
+    }
 }
 
 impl Display for Object {
@@ -76,7 +91,7 @@ impl std::ops::Add for Object {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        obj_operator!(self, rhs, +, Int, Float, String)
+        arithmetic_operator!(self, rhs, +, Int, Float, String)
     }
 }
 
@@ -84,7 +99,7 @@ impl std::ops::Sub for Object {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        obj_operator!(self, rhs, -, Int, Float)
+        arithmetic_operator!(self, rhs, -, Int, Float)
     }
 }
 
@@ -92,7 +107,7 @@ impl std::ops::Mul for Object {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        obj_operator!(self, rhs, *, Int, Float)
+        arithmetic_operator!(self, rhs, *, Int, Float)
     }
 }
 
@@ -100,7 +115,7 @@ impl std::ops::Div for Object {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
-        obj_operator!(self, rhs, /, Int, Float)
+        arithmetic_operator!(self, rhs, /, Int, Float)
     }
 }
 

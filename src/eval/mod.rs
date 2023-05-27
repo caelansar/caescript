@@ -1,6 +1,6 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::ast;
+use crate::{ast, map};
 
 use self::{env::Environment, object::*};
 
@@ -84,6 +84,25 @@ impl Evaluator {
             .collect::<Vec<_>>();
 
         Some(Object::Array(objects))
+    }
+
+    fn eval_hash(&mut self, hash: Vec<(ast::Expression, ast::Expression)>) -> Option<Object> {
+        let mut h = HashMap::new();
+        hash.iter()
+            .map(|(k, v)| {
+                (
+                    self.eval_expression(k).unwrap_or(Object::Null),
+                    self.eval_expression(v).unwrap_or(Object::Null),
+                )
+            })
+            .for_each(|(k, v)| {
+                match k {
+                    Object::Int(_) | Object::String(_) | Object::Bool(_) => h.insert(k, v),
+                    _ => todo!(),
+                };
+            });
+
+        Some(Object::Hash(h))
     }
 
     fn eval_index(&mut self, lhs: &ast::Expression, idx: &ast::Expression) -> Option<Object> {
@@ -188,6 +207,7 @@ impl Evaluator {
             }
             ast::Expression::Assign(op, ident, expr) => self.eval_assign(op, ident, expr),
             ast::Expression::Array(elements) => self.eval_array(elements.clone()),
+            ast::Expression::Hash(hash) => self.eval_hash(hash.clone()),
             ast::Expression::Index(lhs, idx) => self.eval_index(lhs, idx),
         }
     }
@@ -600,6 +620,36 @@ mod test {
             assert_eq!(
                 test.1, obj,
                 "expect array {} eval to be {:?}, got {:?}",
+                test.0, test.1, obj
+            );
+        })
+    }
+
+    #[test]
+    fn eval_hash_should_work() {
+        let tests = vec![
+            (
+                r#"{1:2, "a":"b", true: false}"#,
+                Some(Object::Hash(map! {
+                    Object::Int(1) => Object::Int(2),
+                    Object::String(CString("a".to_string())) => Object::String(CString("b".to_string())),
+                    Object::Bool(true) => Object::Bool(false),
+                })),
+            ),
+            ("{}", Some(Object::Hash(HashMap::new()))),
+        ];
+
+        tests.iter().for_each(|test| {
+            let lexer = lexer::Lexer::new(test.0);
+            let mut parser = Parser::new(lexer);
+
+            let program = parser.parse_program();
+            println!("hash {}", program);
+            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let obj = evaluator.eval(&program);
+            assert_eq!(
+                test.1, obj,
+                "expect hash {} eval to be {:?}, got {:?}",
                 test.0, test.1, obj
             );
         })

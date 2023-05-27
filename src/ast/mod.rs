@@ -143,6 +143,7 @@ pub enum Expression {
     },
     Assign(Assign, Ident, Box<Expression>),
     Array(Vec<Expression>),
+    Hash(Vec<(Expression, Expression)>),
     Index(Box<Expression>, Box<Expression>),
 }
 
@@ -247,6 +248,13 @@ impl Display for Expression {
                     .map(|e| e.to_string())
                     .collect::<Vec<_>>()
                     .join(",")
+            )),
+            Expression::Hash(hash) => f.write_str(&format!(
+                "{{{}}}",
+                hash.iter()
+                    .map(|(k, v)| format!("{}: {}", k.to_string(), v.to_string()))
+                    .collect::<Vec<_>>()
+                    .join(", ")
             )),
             Expression::Index(lhs, idx) => {
                 f.write_str(&format!("{}[{}]", lhs.to_string(), idx.to_string()))

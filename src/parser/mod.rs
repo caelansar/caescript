@@ -78,6 +78,15 @@ impl<'a> Parser<'a> {
         ))
     }
 
+    fn is_illegal_token(&mut self) -> bool {
+        if self.current_token_is(&token::Token::Illegal) {
+            self.errors.push("illegal token".to_string());
+            true
+        } else {
+            false
+        }
+    }
+
     #[inline]
     fn expect_next(&mut self, token: &token::Token) -> bool {
         if self.next_token_is(token) {
@@ -290,7 +299,7 @@ impl<'a> Parser<'a> {
 
         match self.parse_expression(Precedence::Lowest) {
             Some(e) => exprs.push(e),
-            _ => return None,
+            None => return None,
         };
 
         while self.next_token_is(&token::Token::Comma) {
@@ -299,7 +308,7 @@ impl<'a> Parser<'a> {
 
             match self.parse_expression(Precedence::Lowest) {
                 Some(e) => exprs.push(e),
-                _ => return None,
+                None => return None,
             };
         }
 
@@ -308,6 +317,45 @@ impl<'a> Parser<'a> {
         }
 
         Some(ast::Expression::Array(exprs))
+    }
+
+    fn parse_hash(&mut self) -> Option<ast::Expression> {
+        let mut hash = vec![];
+
+        while !self.next_token_is(&token::Token::Rbrace)
+            && !self.next_token_is(&token::Token::EOF)
+            && !self.next_token_is(&token::Token::SemiColon)
+        {
+            self.next_token();
+
+            let key = match self.parse_expression(Precedence::Lowest) {
+                Some(key) => key,
+                None => return None,
+            };
+
+            if !self.expect_next(&token::Token::Colon) {
+                return None;
+            }
+
+            self.next_token();
+
+            let value = match self.parse_expression(Precedence::Lowest) {
+                Some(value) => value,
+                None => return None,
+            };
+
+            if !self.next_token_is(&token::Token::Rbrace)
+                && !self.next_token_is(&token::Token::Comma)
+            {
+                return None;
+            }
+
+            hash.push((key, value));
+
+            self.next_token();
+        }
+
+        Some(ast::Expression::Hash(hash))
     }
 
     #[inline(always)]
@@ -483,9 +531,12 @@ impl<'a> Parser<'a> {
         Some(args)
     }
 
-    pub(crate) fn parse_program(&mut self) -> ast::Program {
+    pub fn parse_program(&mut self) -> ast::Program {
         let mut stmts = Vec::new();
         while self.current_token != token::Token::EOF {
+            if self.is_illegal_token() {
+                return ast::BlockStatement(stmts);
+            }
             let stmt = self.parse_statement();
             if let Some(stmt) = stmt {
                 stmts.push(stmt);
@@ -592,6 +643,7 @@ impl<'a> Parser<'a> {
             token::Token::String(_) => self.parse_string_literal(),
             token::Token::Function => self.parse_function_literal(),
             token::Token::Lbracket => self.parse_array(),
+            token::Token::Lbrace => self.parse_hash(),
             _ => {
                 self.no_prefix_parse_fn_error(&self.current_token.clone());
                 return None;
@@ -1031,6 +1083,62 @@ mod test {
                     ast::Expression::Literal(ast::Literal::Int(1)),
                     ast::Expression::Literal(ast::Literal::Int(2)),
                     ast::Expression::Literal(ast::Literal::Int(3))
+                ]
+            ))])
+        )
+    }
+
+    #[test]
+    fn index_should_work() {
+        let input = r#"
+        [1,2,3][1];
+        "#;
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parse_error(&parser);
+
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![ast::Statement::Expression(ast::Expression::Index(
+                Box::new(ast::Expression::Array(vec![
+                    ast::Expression::Literal(ast::Literal::Int(1)),
+                    ast::Expression::Literal(ast::Literal::Int(2)),
+                    ast::Expression::Literal(ast::Literal::Int(3))
+                ])),
+                Box::new(ast::Expression::Literal(ast::Literal::Int(1)))
+            ))])
+        )
+    }
+
+    #[test]
+    fn hash_should_work() {
+        let input = r#"
+        {1:2, "a":"b", true: false};
+        "#;
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parse_error(&parser);
+
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![ast::Statement::Expression(ast::Expression::Hash(
+                vec![
+                    (
+                        ast::Expression::Literal(ast::Literal::Int(1)),
+                        (ast::Expression::Literal(ast::Literal::Int(2)))
+                    ),
+                    (
+                        ast::Expression::Literal(ast::Literal::String("a".to_string())),
+                        (ast::Expression::Literal(ast::Literal::String("b".to_string())))
+                    ),
+                    (
+                        ast::Expression::Literal(ast::Literal::Bool(true)),
+                        (ast::Expression::Literal(ast::Literal::Bool(false)))
+                    ),
                 ]
             ))])
         )
