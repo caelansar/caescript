@@ -16,6 +16,7 @@ pub(crate) enum Precedence {
     Product,
     Prefix,
     Call,
+    Index,
 }
 
 impl From<&token::Token> for Precedence {
@@ -37,6 +38,7 @@ impl From<&token::Token> for Precedence {
             token::Token::Slash => Precedence::Product,
             token::Token::Asterisk => Precedence::Product,
             token::Token::Lparen => Precedence::Call,
+            token::Token::Lbracket => Precedence::Index,
             _ => Precedence::Lowest,
         }
     }
@@ -431,6 +433,30 @@ impl<'a> Parser<'a> {
         })
     }
 
+    #[inline(always)]
+    fn parse_index_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
+        if lhs.is_none() {
+            return None;
+        }
+
+        self.next_token();
+        self.next_token();
+
+        let idx = match self.parse_expression(Precedence::Lowest) {
+            Some(args) => args,
+            None => return None,
+        };
+
+        if !self.expect_next(&token::Token::Rbracket) {
+            todo!()
+        }
+
+        Some(ast::Expression::Index(
+            Box::new(lhs.unwrap()),
+            Box::new(idx),
+        ))
+    }
+
     fn parse_call_args(&mut self) -> Option<Vec<ast::Expression>> {
         let mut args = vec![];
 
@@ -598,6 +624,7 @@ impl<'a> Parser<'a> {
                 | token::Token::SlashEq => {
                     lhs = self.parse_assign_expression((&self.next_token).try_into().unwrap(), lhs)
                 }
+                token::Token::Lbracket => lhs = self.parse_index_expression(lhs),
                 _ => return lhs,
             }
         }

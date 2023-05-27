@@ -143,6 +143,7 @@ pub enum Expression {
     },
     Assign(Assign, Ident, Box<Expression>),
     Array(Vec<Expression>),
+    Index(Box<Expression>, Box<Expression>),
 }
 
 impl Display for Expression {
@@ -247,6 +248,9 @@ impl Display for Expression {
                     .collect::<Vec<_>>()
                     .join(",")
             )),
+            Expression::Index(lhs, idx) => {
+                f.write_str(&format!("{}[{}]", lhs.to_string(), idx.to_string()))
+            }
         }
     }
 }

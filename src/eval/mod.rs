@@ -43,6 +43,7 @@ impl Evaluator {
         rv
     }
 
+    #[inline(always)]
     fn is_true(&self, cond: Object) -> bool {
         match cond {
             Object::Bool(b) => b,
@@ -83,6 +84,27 @@ impl Evaluator {
             .collect::<Vec<_>>();
 
         Some(Object::Array(objects))
+    }
+
+    fn eval_index(&mut self, lhs: &ast::Expression, idx: &ast::Expression) -> Option<Object> {
+        let obj = match self.eval_expression(lhs) {
+            Some(obj) => obj,
+            None => return None,
+        };
+        match obj {
+            Object::Array(elements) => {
+                let idx = match self.eval_expression(idx) {
+                    Some(Object::Int(i)) => i,
+                    Some(_) => todo!(),
+                    None => return None,
+                };
+                elements
+                    .get(idx as usize)
+                    .map(|x| x.clone())
+                    .or(Some(Object::Null))
+            }
+            _ => todo!(),
+        }
     }
 
     fn eval_assign(
@@ -166,6 +188,7 @@ impl Evaluator {
             }
             ast::Expression::Assign(op, ident, expr) => self.eval_assign(op, ident, expr),
             ast::Expression::Array(elements) => self.eval_array(elements.clone()),
+            ast::Expression::Index(lhs, idx) => self.eval_index(lhs, idx),
         }
     }
 
@@ -228,6 +251,7 @@ impl Evaluator {
         rv
     }
 
+    #[inline]
     fn eval_prefix_expression(&self, prefix: &ast::Prefix, obj: Object) -> Option<Object> {
         match prefix {
             ast::Prefix::Minus => self.eval_minus_prefix(obj),
@@ -235,6 +259,7 @@ impl Evaluator {
         }
     }
 
+    #[inline(always)]
     fn eval_not_prefix(&self, obj: Object) -> Option<Object> {
         match obj {
             Object::Bool(b) => Some((!b).into()),
@@ -299,6 +324,7 @@ impl Evaluator {
         }
     }
 
+    #[inline(always)]
     fn eval_minus_prefix(&self, obj: Object) -> Option<Object> {
         if let Object::Int(int) = obj {
             Some(Object::Int(-int))
@@ -307,6 +333,7 @@ impl Evaluator {
         }
     }
 
+    #[inline(always)]
     fn eval_literal(&self, literal: &ast::Literal) -> Option<Object> {
         match literal {
             ast::Literal::Int(i) => Some(Object::Int(i.clone())),
@@ -573,6 +600,33 @@ mod test {
             assert_eq!(
                 test.1, obj,
                 "expect array {} eval to be {:?}, got {:?}",
+                test.0, test.1, obj
+            );
+        })
+    }
+
+    #[test]
+    fn eval_index_should_work() {
+        let tests = vec![
+            ("let arr = [1,2,3]; arr[0]", Some(Object::Int(1))),
+            ("let arr = [1,2,3]; arr[-1]", Some(Object::Null)),
+            ("let arr = [1+2]; arr[0]", Some(Object::Int(3))),
+            ("let arr = [1+2]; arr[1]", Some(Object::Null)),
+            ("[1,2,3][1]", Some(Object::Int(2))),
+            ("let arr = [1,2,3]; let i=2; arr[i]", Some(Object::Int(3))),
+        ];
+
+        tests.iter().for_each(|test| {
+            let lexer = lexer::Lexer::new(test.0);
+            let mut parser = Parser::new(lexer);
+
+            let program = parser.parse_program();
+            println!("index {}", program);
+            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let obj = evaluator.eval(&program);
+            assert_eq!(
+                test.1, obj,
+                "expect index {} eval to be {:?}, got {:?}",
                 test.0, test.1, obj
             );
         })
