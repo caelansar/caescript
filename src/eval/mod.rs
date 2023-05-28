@@ -122,6 +122,16 @@ impl Evaluator {
                     .map(|x| x.clone())
                     .or(Some(Object::Null))
             }
+            Object::Hash(hash) => {
+                let key = match self.eval_expression(idx) {
+                    Some(Object::Int(i)) => Object::Int(i),
+                    Some(Object::String(s)) => Object::String(s.clone()),
+                    Some(Object::Bool(b)) => Object::Bool(b),
+                    Some(_) => todo!(),
+                    None => return None,
+                };
+                hash.get(&key).map(|x| x.clone()).or(Some(Object::Null))
+            }
             _ => todo!(),
         }
     }
@@ -679,6 +689,19 @@ mod test {
             ("let arr = [1+2]; arr[1]", Some(Object::Null)),
             ("[1,2,3][1]", Some(Object::Int(2))),
             ("let arr = [1,2,3]; let i=2; arr[i]", Some(Object::Int(3))),
+            ("let hash = {1:2,true:false}; hash[1]", Some(Object::Int(2))),
+            (
+                r#"let list = [{"name":"aa"},{"name":"bb"}]; list[1]["name"]"#,
+                Some(Object::String(CString("bb".to_string()))),
+            ),
+            (
+                r#"{"name":"aa"}["name"]"#,
+                Some(Object::String(CString("aa".to_string()))),
+            ),
+            (
+                r#"[{"name":"aa"},{"name":"bb"}][1]["name"]"#,
+                Some(Object::String(CString("bb".to_string()))),
+            ),
         ];
 
         tests.iter().for_each(|test| {

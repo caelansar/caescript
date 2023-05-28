@@ -344,17 +344,18 @@ impl<'a> Parser<'a> {
                 None => return None,
             };
 
-            if !self.next_token_is(&token::Token::Rbrace)
-                && !self.next_token_is(&token::Token::Comma)
+            // if next token is Comma, should move forward
+            if !self.next_token_is(&token::Token::Rbrace) && !self.expect_next(&token::Token::Comma)
             {
                 return None;
             }
 
             hash.push((key, value));
-
-            self.next_token();
         }
 
+        if !self.expect_next(&token::Token::Rbrace) {
+            return None;
+        }
         Some(ast::Expression::Hash(hash))
     }
 
