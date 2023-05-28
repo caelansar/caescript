@@ -242,7 +242,7 @@ impl Evaluator {
         params
             .iter()
             .zip(args)
-            .for_each(|(ast::Ident(param), arg)| call_env.set(param.clone(), arg));
+            .for_each(|(ast::Ident(param), arg)| call_env.set_self(param.clone(), arg));
 
         self.env = Rc::new(RefCell::new(call_env));
         let rv = self.eval_block_statements(body);
@@ -577,6 +577,21 @@ mod test {
                 Some(Object::Int(3)),
             ),
             ("fn add(x,y){x+y}; add(1,2)", Some(Object::Int(3))),
+            // x is capature vairable
+            // every time we call c
+            // should update x value
+            (
+                r#"let closure = fn(){
+                    let x= 1;
+                    fn(){x+=1; x}
+                };
+                let c = closure();
+                c();
+                c();
+                c()
+                "#,
+                Some(Object::Int(4)),
+            ),
         ];
 
         tests.iter().for_each(|test| {
