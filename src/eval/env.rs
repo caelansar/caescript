@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, cell::RefCell, collections::HashMap, rc::Rc};
 
-use super::object::Object;
+use super::{builtin::new_builtins, object::Object};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Environment {
@@ -11,7 +11,7 @@ pub struct Environment {
 impl Environment {
     pub fn new() -> Self {
         Self {
-            store: HashMap::new(),
+            store: new_builtins(),
             outer: None,
         }
     }

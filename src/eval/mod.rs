@@ -4,6 +4,7 @@ use crate::{ast, map};
 
 use self::{env::Environment, object::*};
 
+mod builtin;
 pub mod env;
 mod macros;
 mod object;
@@ -233,6 +234,7 @@ impl Evaluator {
             .collect();
         let (params, ref body, env) = match func {
             Object::Function(params, body, env) => (params, body, env),
+            Object::Builtin(f) => return Some(f(args)),
             _ => {
                 println!("{}", func);
                 todo!()

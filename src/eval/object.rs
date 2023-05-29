@@ -48,6 +48,7 @@ pub enum Object {
     ),
     Array(Vec<Object>),
     Hash(HashMap<Object, Object>),
+    Builtin(fn(Vec<Object>) -> Object),
     Null,
 }
 
@@ -81,6 +82,7 @@ impl Display for Object {
                     .collect::<Vec<_>>()
                     .join(",")
             ),
+            Object::Builtin(_) => write!(f, "[builtin]"),
             Object::Null => write!(f, "null"),
             _ => unreachable!(),
         }
