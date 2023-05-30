@@ -721,4 +721,40 @@ mod test {
             );
         })
     }
+
+    #[test]
+    fn eval_comment_should_work() {
+        let tests = vec![
+            (
+                r#"
+            let a = 12;
+            // a+=1;
+            a
+            "#,
+                Some(Object::Int(12)),
+            ),
+            (
+                r#"
+            let a = 12;
+            // a+=1;
+            // a
+            "#,
+                None,
+            ),
+        ];
+
+        tests.iter().for_each(|test| {
+            let lexer = lexer::Lexer::new(test.0);
+            let mut parser = Parser::new(lexer);
+
+            let program = parser.parse_program();
+            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let obj = evaluator.eval(&program);
+            assert_eq!(
+                test.1, obj,
+                "expect let stmt {} eval to be {:?}, got {:?}",
+                test.0, test.1, obj
+            );
+        })
+    }
 }

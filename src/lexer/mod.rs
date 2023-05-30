@@ -28,6 +28,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn read_char(&mut self) {
+        self.skip_comment();
         if self.next_pos >= self.input.len() {
             self.ch = None
         } else {
@@ -37,9 +38,19 @@ impl<'a> Lexer<'a> {
         self.next_pos += 1;
     }
 
+    fn skip_comment(&mut self) {
+        if self.ch == Some('/') && self.peek_char() == Some('/') {
+            if let Some(pos) = self.input[self.pos..].find('\n') {
+                self.ch = Some(self.input.as_bytes()[self.pos + pos] as char);
+                self.pos += pos - 1;
+                self.next_pos = self.pos + 1;
+            }
+        }
+    }
+
     fn read_identifier(&mut self) -> String {
         let pos = self.pos;
-        while let Some(true) = self.ch.map(|c| c.is_alphanumeric()) {
+        while self.ch.map(|c| c.is_alphanumeric()).is_some_and(|t| t) {
             self.read_char();
         }
         return self.input[pos..self.pos].to_string();
@@ -47,7 +58,7 @@ impl<'a> Lexer<'a> {
 
     fn read_number(&mut self) -> String {
         let pos = self.pos;
-        while let Some(true) = self.ch.map(|c| c.is_numeric()) {
+        while self.ch.map(|c| c.is_numeric()).is_some_and(|t| t) {
             self.read_char();
         }
         return self.input[pos..self.pos].to_string();
@@ -66,7 +77,7 @@ impl<'a> Lexer<'a> {
 
     #[inline(always)]
     fn eat_whitespace(&mut self) {
-        while let Some(true) = self.ch.map(|c| c.is_whitespace()) {
+        while self.ch.map(|c| c.is_whitespace()).is_some_and(|x| x) {
             self.read_char()
         }
     }
