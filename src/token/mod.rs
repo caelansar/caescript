@@ -41,6 +41,7 @@ pub(crate) enum Token {
     If,
     Else,
     Return,
+    Comment,
 }
 
 impl FromStr for Token {
@@ -120,6 +121,7 @@ impl fmt::Display for Token {
             Token::Else => write!(f, "else"),
             Token::Return => write!(f, "return"),
             Token::Illegal => write!(f, "ILLEGAL"),
+            Token::Comment => write!(f, "//comment"),
             Token::EOF => write!(f, "EOF"),
         }
     }

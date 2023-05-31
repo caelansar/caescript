@@ -728,8 +728,16 @@ mod test {
             (
                 r#"
             let a = 12;
-            // a+=1;
+            // b+=1;
             a
+            "#,
+                Some(Object::Int(12)),
+            ),
+            (
+                r#"
+            let a = 12;
+            // a+=1;
+            a // comment
             "#,
                 Some(Object::Int(12)),
             ),

@@ -144,14 +144,17 @@ impl<'a> Lexer<'a> {
                         Token::from_str(token.to_string().as_str()).unwrap()
                     }
                 }
-                '/' => {
-                    if let Some('=') = self.peek_char() {
+                '/' => match self.peek_char() {
+                    Some('=') => {
                         self.read_char();
                         Token::SlashEq
-                    } else {
-                        Token::from_str(token.to_string().as_str()).unwrap()
                     }
-                }
+                    Some('/') => {
+                        self.skip_comment();
+                        Token::Comment
+                    }
+                    _ => Token::from_str(token.to_string().as_str()).unwrap(),
+                },
                 ',' | ';' | ':' | '(' | ')' | '{' | '}' | '[' | ']' => {
                     Token::from_str(token.to_string().as_str()).unwrap()
                 }

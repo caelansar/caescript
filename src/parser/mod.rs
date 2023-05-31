@@ -122,7 +122,10 @@ impl<'a> Parser<'a> {
 
         while !self.current_token_is(&token::Token::Rbrace) {
             if self.current_token_is(&token::Token::EOF) {
-                panic!("unterminated block statement");
+                panic!(
+                    "unterminated block statement, current token {:?}",
+                    self.current_token
+                );
             }
             let stmt = self.parse_statement();
             if let Some(stmt) = stmt {
@@ -645,6 +648,9 @@ impl<'a> Parser<'a> {
             token::Token::Function => self.parse_function_literal(),
             token::Token::Lbracket => self.parse_array(),
             token::Token::Lbrace => self.parse_hash(),
+            token::Token::Comment => {
+                return None;
+            }
             _ => {
                 self.no_prefix_parse_fn_error(&self.current_token.clone());
                 return None;
