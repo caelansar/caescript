@@ -175,6 +175,34 @@ impl<'a> Parser<'a> {
         })
     }
 
+    #[inline]
+    fn parse_for_expression(&mut self) -> Option<ast::Expression> {
+        #[cfg(feature = "trace")]
+        defer!(untrace, trace("parse_for_expression"));
+
+        if !self.expect_next(&token::Token::Lparen) {
+            return None;
+        }
+
+        self.next_token();
+
+        let condition = self.parse_expression(Precedence::Lowest);
+
+        if !self.expect_next(&token::Token::Rparen) {
+            return None;
+        }
+        if !self.expect_next(&token::Token::Lbrace) {
+            return None;
+        }
+
+        let consequence = self.parse_block_statemnt();
+
+        Some(ast::Expression::For {
+            condition: Box::new(condition.unwrap()),
+            consequence,
+        })
+    }
+
     #[inline(always)]
     fn parse_infix_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
@@ -644,6 +672,7 @@ impl<'a> Parser<'a> {
             token::Token::Bang => self.parse_prefix_expression(),
             token::Token::Lparen => self.parse_grouped_expression(),
             token::Token::If => self.parse_if_expression(),
+            token::Token::For => self.parse_for_expression(),
             token::Token::String(_) => self.parse_string_literal(),
             token::Token::Function => self.parse_function_literal(),
             token::Token::Lbracket => self.parse_array(),
@@ -1068,6 +1097,26 @@ mod test {
                 alternative: Some(ast::BlockStatement(vec![ast::Statement::Expression(
                     ast::Expression::Ident(ast::Ident("y".to_string()))
                 )])),
+            })])
+        )
+    }
+
+    #[test]
+    fn for_expression_should_work() {
+        let input = "for (true) {x}";
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        let program = parser.parse_program();
+        check_parse_error(&parser);
+
+        assert_eq!(
+            program,
+            ast::BlockStatement(vec![ast::Statement::Expression(ast::Expression::For {
+                condition: Box::new(ast::Expression::Literal(ast::Literal::Bool(true))),
+                consequence: ast::BlockStatement(vec![ast::Statement::Expression(
+                    ast::Expression::Ident(ast::Ident("x".to_string()))
+                )]),
             })])
         )
     }

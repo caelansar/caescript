@@ -40,6 +40,7 @@ pub(crate) enum Token {
     Let,
     If,
     Else,
+    For,
     Return,
     Comment,
 }
@@ -55,6 +56,7 @@ impl FromStr for Token {
             "fn" => Ok(Token::Function),
             "if" => Ok(Token::If),
             "else" => Ok(Token::Else),
+            "for" => Ok(Token::For),
             "return" => Ok(Token::Return),
             "=" => Ok(Token::Assign),
             "+" => Ok(Token::Plus),
@@ -119,6 +121,7 @@ impl fmt::Display for Token {
             Token::Let => write!(f, "let"),
             Token::If => write!(f, "if"),
             Token::Else => write!(f, "else"),
+            Token::For => write!(f, "for"),
             Token::Return => write!(f, "return"),
             Token::Illegal => write!(f, "ILLEGAL"),
             Token::Comment => write!(f, "//comment"),
@@ -149,5 +152,6 @@ mod test {
         assert_eq!(Token::Function, lookup_ident("fn"));
         assert_eq!(Token::Ident("func".to_string()), lookup_ident("func"));
         assert_eq!(Token::Else, lookup_ident("else"));
+        assert_eq!(Token::For, lookup_ident("for"));
     }
 }

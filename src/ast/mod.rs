@@ -114,10 +114,10 @@ impl fmt::Display for Assign {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Assign::Assign => write!(f, "="),
-            Assign::PlusEq => write!(f, "+"),
-            Assign::MinusEq => write!(f, "-"),
-            Assign::DivideEq => write!(f, "/"),
-            Assign::MultiplyEq => write!(f, "*"),
+            Assign::PlusEq => write!(f, "+="),
+            Assign::MinusEq => write!(f, "-="),
+            Assign::DivideEq => write!(f, "/="),
+            Assign::MultiplyEq => write!(f, "*="),
         }
     }
 }
@@ -128,6 +128,10 @@ pub enum Expression {
     Literal(Literal),
     Prefix(Prefix, Box<Expression>),
     Infix(Infix, Box<Expression>, Box<Expression>),
+    For {
+        condition: Box<Expression>,
+        consequence: BlockStatement,
+    },
     If {
         condition: Box<Expression>,
         consequence: BlockStatement,
@@ -173,6 +177,19 @@ impl Display for Expression {
                 out.push_str(&rexpr.to_string());
                 out.push_str(")");
 
+                f.write_str(&out)
+            }
+            Expression::For {
+                condition,
+                consequence,
+            } => {
+                let mut out = String::new();
+
+                out.push_str("if ");
+                out.push_str(&condition.to_string());
+                out.push_str(" ");
+                out.push_str(&consequence.to_string());
+                out.push_str(" ");
                 f.write_str(&out)
             }
             Expression::If {

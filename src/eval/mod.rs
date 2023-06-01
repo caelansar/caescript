@@ -203,6 +203,10 @@ impl Evaluator {
                     None
                 }
             }
+            ast::Expression::For {
+                condition,
+                consequence,
+            } => self.eval_for_expression(condition, consequence),
             ast::Expression::Ident(ast::Ident(ident)) => self.eval_identifier(ident),
             ast::Expression::Func { params, body } => Some(Object::Function(
                 params.clone(),
@@ -280,6 +284,31 @@ impl Evaluator {
                 .inspect(|alternative| rv = self.eval_block_statements(alternative));
         }
 
+        rv
+    }
+
+    fn eval_for_expression(
+        &mut self,
+        condition: &Box<ast::Expression>,
+        consequence: &ast::BlockStatement,
+    ) -> Option<Object> {
+        let mut rv = Some(Object::Null);
+
+        let mut cond = match self.eval_expression(condition) {
+            Some(o) => o,
+            None => return None,
+        };
+
+        while self.is_true(cond.clone()) {
+            rv = self.eval_block_statements(consequence);
+            if let Some(Object::Return(_)) = rv {
+                return rv;
+            }
+            cond = match self.eval_expression(condition) {
+                Some(o) => o,
+                None => return None,
+            };
+        }
         rv
     }
 
@@ -517,7 +546,52 @@ mod test {
             let obj = evaluator.eval(&program);
             assert_eq!(
                 test.1, obj,
-                "expect return stmt {} eval to be {:?}, got {:?}",
+                "expect if expr {} eval to be {:?}, got {:?}",
+                test.0, test.1, obj
+            );
+        })
+    }
+
+    #[test]
+    fn eval_for_should_work() {
+        let tests = vec![
+            ("for (true) {return 1;}", Some(Object::Int(1))),
+            ("for (1>2) {return 1;}", Some(Object::Null)),
+            (
+                r#"
+                let x = 10;
+                for (x>0) {
+                    x -= 1;
+                    if (x==4) {
+                       return 4;
+                    } 
+                }"#,
+                Some(Object::Int(4)),
+            ),
+            (
+                r#"
+                let sum = 0;
+                let i = 5;
+                for (i>0) {
+                    sum += i;
+                    i -= 1;
+                }
+                sum
+                "#,
+                Some(Object::Int(15)),
+            ),
+        ];
+
+        tests.iter().for_each(|test| {
+            let lexer = lexer::Lexer::new(test.0);
+            let mut parser = Parser::new(lexer);
+
+            let program = parser.parse_program();
+            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let obj = evaluator.eval(&program);
+            assert_eq!(
+                test.1, obj,
+                "expect for expr {} eval to be {:?}, got {:?}",
                 test.0, test.1, obj
             );
         })
