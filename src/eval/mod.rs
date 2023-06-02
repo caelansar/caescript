@@ -37,6 +37,8 @@ impl Evaluator {
         for stmt in program.iter() {
             match self.eval_statement(stmt) {
                 Some(Object::Return(r)) => return Some(Object::Return(r)),
+                Some(Object::Break) => return Some(Object::Break),
+                Some(Object::Continue) => return Some(Object::Continue),
                 obj => rv = obj,
             }
         }
@@ -65,6 +67,8 @@ impl Evaluator {
                 self.env.borrow_mut().set(ident.clone(), val);
                 None
             }
+            ast::Statement::Break => Some(Object::Break),
+            ast::Statement::Continue => Some(Object::Continue),
         }
     }
 
@@ -301,8 +305,11 @@ impl Evaluator {
 
         while self.is_true(cond.clone()) {
             rv = self.eval_block_statements(consequence);
-            if let Some(Object::Return(_)) = rv {
-                return rv;
+            match rv {
+                Some(Object::Return(_)) => return rv,
+                Some(Object::Continue) => continue,
+                Some(Object::Break) => break,
+                _ => (),
             }
             cond = match self.eval_expression(condition) {
                 Some(o) => o,
@@ -564,7 +571,7 @@ mod test {
                     x -= 1;
                     if (x==4) {
                        return 4;
-                    } 
+                    }
                 }"#,
                 Some(Object::Int(4)),
             ),
@@ -579,6 +586,36 @@ mod test {
                 sum
                 "#,
                 Some(Object::Int(15)),
+            ),
+            (
+                r#"
+                let sum = 0;
+                let i = 5;
+                for (i>0) {
+                    if (i == 4) {
+                        break;
+                    }
+                    sum += i;
+                    i -= 1;
+                }
+                sum
+                "#,
+                Some(Object::Int(5)),
+            ),
+            (
+                r#"
+                let sum = 0;
+                let i = 5;
+                for (i>0) {
+                    i -= 1;
+                    if (i == 4) {
+                        continue;
+                    }
+                    sum += i;
+                }
+                sum
+                "#,
+                Some(Object::Int(6)),
             ),
         ];
 

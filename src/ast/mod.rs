@@ -306,6 +306,8 @@ pub enum Statement {
     Let(Ident, Expression),
     Return(Expression),
     Expression(Expression),
+    Break,
+    Continue,
     Function(Ident, Vec<Ident>, BlockStatement),
 }
 
@@ -355,6 +357,8 @@ impl Display for Statement {
                 f.write_str(&out)
             }
             Statement::Expression(expr) => f.write_str(&expr.to_string()),
+            Statement::Break => f.write_str("break"),
+            Statement::Continue => f.write_str("continue"),
         }
     }
 }

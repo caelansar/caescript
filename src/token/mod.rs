@@ -41,6 +41,8 @@ pub(crate) enum Token {
     If,
     Else,
     For,
+    Break,
+    Continue,
     Return,
     Comment,
 }
@@ -57,6 +59,8 @@ impl FromStr for Token {
             "if" => Ok(Token::If),
             "else" => Ok(Token::Else),
             "for" => Ok(Token::For),
+            "break" => Ok(Token::Break),
+            "continue" => Ok(Token::Continue),
             "return" => Ok(Token::Return),
             "=" => Ok(Token::Assign),
             "+" => Ok(Token::Plus),
@@ -125,6 +129,8 @@ impl fmt::Display for Token {
             Token::Return => write!(f, "return"),
             Token::Illegal => write!(f, "ILLEGAL"),
             Token::Comment => write!(f, "//comment"),
+            Token::Break => write!(f, "break"),
+            Token::Continue => write!(f, "continue"),
             Token::EOF => write!(f, "EOF"),
         }
     }

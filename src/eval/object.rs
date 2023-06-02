@@ -41,6 +41,8 @@ pub enum Object {
     Bool(bool),
     String(CString),
     Return(Box<Object>),
+    Break,
+    Continue,
     Function(
         Vec<ast::Ident>,
         ast::BlockStatement,
