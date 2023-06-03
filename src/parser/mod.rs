@@ -583,8 +583,18 @@ impl<'a> Parser<'a> {
             token::Token::Let => self.parse_let_statement(),
             token::Token::Return => self.parse_return_statement(),
             token::Token::Function => self.parse_function_statement(),
-            token::Token::Break => Some(ast::Statement::Break),
-            token::Token::Continue => Some(ast::Statement::Continue),
+            token::Token::Break => {
+                if self.next_token_is(&token::Token::SemiColon) {
+                    self.next_token();
+                }
+                Some(ast::Statement::Break)
+            }
+            token::Token::Continue => {
+                if self.next_token_is(&token::Token::SemiColon) {
+                    self.next_token();
+                }
+                Some(ast::Statement::Continue)
+            }
             _ => self.parse_expression_statement(),
         }
     }
