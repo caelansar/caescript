@@ -856,8 +856,7 @@ mod test {
                 r#"
             let a = 12;
             // a+=1;
-            // a
-            "#,
+            // a"#,
                 None,
             ),
         ];
@@ -871,7 +870,7 @@ mod test {
             let obj = evaluator.eval(&program);
             assert_eq!(
                 test.1, obj,
-                "expect let stmt {} eval to be {:?}, got {:?}",
+                "expect stmt {} eval to be {:?}, got {:?}",
                 test.0, test.1, obj
             );
         })

@@ -44,6 +44,11 @@ impl<'a> Lexer<'a> {
                 self.ch = Some(self.input.as_bytes()[self.pos + pos] as char);
                 self.pos += pos - 1;
                 self.next_pos = self.pos + 1;
+            } else {
+                // the comment is in last line
+                self.ch = None;
+                self.pos = self.input.len();
+                self.next_pos = self.pos + 1;
             }
         }
     }
