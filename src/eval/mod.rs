@@ -361,6 +361,24 @@ impl Evaluator {
                     None
                 }
             }
+            Object::Float(l) => {
+                if let Object::Float(r) = rhs {
+                    match infix {
+                        ast::Infix::Plus => Some(lhs + rhs),
+                        ast::Infix::Minus => Some(lhs - rhs),
+                        ast::Infix::Divide => Some(lhs / rhs),
+                        ast::Infix::Multiply => Some(lhs * rhs),
+                        ast::Infix::Eq => Some(Object::Bool(l == r)),
+                        ast::Infix::Ne => Some(Object::Bool(l != r)),
+                        ast::Infix::Gt => Some(Object::Bool(l > r)),
+                        ast::Infix::GtEq => Some(Object::Bool(l >= r)),
+                        ast::Infix::Lt => Some(Object::Bool(l < r)),
+                        ast::Infix::LtEq => Some(Object::Bool(l <= r)),
+                    }
+                } else {
+                    None
+                }
+            }
             Object::Bool(l) => {
                 if let Object::Bool(r) = rhs {
                     match infix {
@@ -474,6 +492,8 @@ mod test {
             (r#""a" > "b""#, Some(Object::Bool(false))),
             (r#""a" >= "a""#, Some(Object::Bool(true))),
             (r#""a" <= "a""#, Some(Object::Bool(true))),
+            ("1.0+2.2", Some(Object::Float(3.2))),
+            ("1.0 < 2.2", Some(Object::Bool(true))),
         ];
 
         tests.iter().for_each(|test| {
