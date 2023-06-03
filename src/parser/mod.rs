@@ -44,7 +44,7 @@ impl From<&token::Token> for Precedence {
     }
 }
 
-pub(crate) struct Parser<'a> {
+pub struct Parser<'a> {
     lexer: lexer::Lexer<'a>,
     current_token: token::Token,
     next_token: token::Token,
@@ -52,7 +52,7 @@ pub(crate) struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub(crate) fn new(lexer: lexer::Lexer<'a>) -> Self {
+    pub fn new(lexer: lexer::Lexer<'a>) -> Self {
         let mut parser = Self {
             lexer,
             current_token: token::Token::EOF,
@@ -66,7 +66,7 @@ impl<'a> Parser<'a> {
     }
 
     #[inline(always)]
-    pub(crate) fn errors(&self) -> Vec<String> {
+    pub fn errors(&self) -> Vec<String> {
         self.errors.clone()
     }
 

@@ -4,10 +4,10 @@ use crate::{ast, map};
 
 use self::{env::Environment, object::*};
 
-mod builtin;
+pub mod builtin;
 pub mod env;
 mod macros;
-mod object;
+pub mod object;
 
 pub struct Evaluator {
     env: Rc<RefCell<Environment>>,

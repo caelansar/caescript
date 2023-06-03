@@ -2,7 +2,7 @@ use crate::token::{lookup_ident, Token};
 use std::str::FromStr;
 
 #[derive(Default)]
-pub(crate) struct Lexer<'a> {
+pub struct Lexer<'a> {
     input: &'a str,
     pos: usize,
     next_pos: usize,
@@ -10,7 +10,7 @@ pub(crate) struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    pub(crate) fn new(input: &'a str) -> Self {
+    pub fn new(input: &'a str) -> Self {
         let mut l = Lexer {
             input: input.as_ref(),
             ..Default::default()

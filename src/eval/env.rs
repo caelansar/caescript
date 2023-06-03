@@ -16,6 +16,10 @@ impl Environment {
         }
     }
 
+    pub fn from_store(store: HashMap<String, Object>) -> Self {
+        Self { store, outer: None }
+    }
+
     pub fn outer(outer: Rc<RefCell<Environment>>) -> Self {
         Self {
             store: HashMap::new(),
