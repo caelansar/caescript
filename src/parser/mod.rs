@@ -328,19 +328,13 @@ impl<'a> Parser<'a> {
 
         self.next_token();
 
-        match self.parse_expression(Precedence::Lowest) {
-            Some(e) => exprs.push(e),
-            None => return None,
-        };
+        exprs.push(self.parse_expression(Precedence::Lowest)?);
 
         while self.next_token_is(&token::Token::Comma) {
             self.next_token();
             self.next_token();
 
-            match self.parse_expression(Precedence::Lowest) {
-                Some(e) => exprs.push(e),
-                None => return None,
-            };
+            exprs.push(self.parse_expression(Precedence::Lowest)?);
         }
 
         if !self.expect_next(&token::Token::Rbracket) {
@@ -359,10 +353,7 @@ impl<'a> Parser<'a> {
         {
             self.next_token();
 
-            let key = match self.parse_expression(Precedence::Lowest) {
-                Some(key) => key,
-                None => return None,
-            };
+            let key = self.parse_expression(Precedence::Lowest)?;
 
             if !self.expect_next(&token::Token::Colon) {
                 return None;
@@ -370,10 +361,7 @@ impl<'a> Parser<'a> {
 
             self.next_token();
 
-            let value = match self.parse_expression(Precedence::Lowest) {
-                Some(value) => value,
-                None => return None,
-            };
+            let value = self.parse_expression(Precedence::Lowest)?;
 
             // if next token is Comma, should move forward
             if !self.next_token_is(&token::Token::Rbrace) && !self.expect_next(&token::Token::Comma)
@@ -398,10 +386,7 @@ impl<'a> Parser<'a> {
             return None;
         }
 
-        let params = match self.parse_function_params() {
-            Some(params) => params,
-            None => return None,
-        };
+        let params = self.parse_function_params()?;
 
         if !self.expect_next(&token::Token::Lbrace) {
             return None;
@@ -419,10 +404,7 @@ impl<'a> Parser<'a> {
             if !self.expect_next(&token::Token::Lparen) {
                 return None;
             }
-            let params = match self.parse_function_params() {
-                Some(params) => params,
-                None => return None,
-            };
+            let params = self.parse_function_params()?;
 
             if !self.expect_next(&token::Token::Lbrace) {
                 return None;
@@ -481,10 +463,8 @@ impl<'a> Parser<'a> {
             self.next_token();
             self.next_token();
 
-            let expr = match self.parse_expression(Precedence::Lowest) {
-                Some(expr) => expr,
-                None => return None,
-            };
+            let expr = self.parse_expression(Precedence::Lowest)?;
+
             while !self.current_token_is(&token::Token::SemiColon)
                 && !self.current_token_is(&token::Token::EOF)
             {
@@ -502,10 +482,7 @@ impl<'a> Parser<'a> {
             return None;
         }
 
-        let args = match self.parse_call_args() {
-            Some(args) => args,
-            None => return None,
-        };
+        let args = self.parse_call_args()?;
 
         Some(ast::Expression::Call {
             func: Box::new(lhs.unwrap()),
@@ -522,10 +499,7 @@ impl<'a> Parser<'a> {
         self.next_token();
         self.next_token();
 
-        let idx = match self.parse_expression(Precedence::Lowest) {
-            Some(args) => args,
-            None => return None,
-        };
+        let idx = self.parse_expression(Precedence::Lowest)?;
 
         if !self.expect_next(&token::Token::Rbracket) {
             todo!()
@@ -602,10 +576,7 @@ impl<'a> Parser<'a> {
     fn parse_return_statement(&mut self) -> Option<ast::Statement> {
         self.next_token();
 
-        let expr = match self.parse_expression(Precedence::Lowest) {
-            Some(expr) => expr,
-            None => return None,
-        };
+        let expr = self.parse_expression(Precedence::Lowest)?;
 
         self.next_token();
 
@@ -632,10 +603,7 @@ impl<'a> Parser<'a> {
 
         self.next_token();
 
-        let expr = match self.parse_expression(Precedence::Lowest) {
-            Some(expr) => expr,
-            None => return None,
-        };
+        let expr = self.parse_expression(Precedence::Lowest)?;
 
         if self.next_token_is(&token::Token::SemiColon) {
             self.next_token();
@@ -646,11 +614,7 @@ impl<'a> Parser<'a> {
     fn parse_expression_statement(&mut self) -> Option<ast::Statement> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_expression_statement"));
-        let expression = self.parse_expression(Precedence::Lowest);
-        let expression = match expression {
-            Some(expression) => expression,
-            None => return None,
-        };
+        let expression = self.parse_expression(Precedence::Lowest)?;
         let stmt = ast::Statement::Expression(expression);
 
         // eat SemiColon
