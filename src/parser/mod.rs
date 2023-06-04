@@ -609,9 +609,7 @@ impl<'a> Parser<'a> {
 
         self.next_token();
 
-        while !self.current_token_is(&token::Token::SemiColon)
-            && !self.current_token_is(&token::Token::EOF)
-        {
+        if self.next_token_is(&token::Token::SemiColon) {
             self.next_token();
         }
         Some(ast::Statement::Return(expr))
@@ -639,12 +637,9 @@ impl<'a> Parser<'a> {
             None => return None,
         };
 
-        while !self.current_token_is(&token::Token::SemiColon)
-            && !self.current_token_is(&token::Token::EOF)
-        {
+        if self.next_token_is(&token::Token::SemiColon) {
             self.next_token();
         }
-
         Some(ast::Statement::Let(identifier, expr))
     }
 
@@ -805,6 +800,7 @@ mod test {
             let b = 2;
             let c = 3;
             let d = e
+            let e = f
             "#;
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
@@ -830,6 +826,10 @@ mod test {
                 ast::Statement::Let(
                     ast::Ident("d".to_string()),
                     ast::Expression::Ident(ast::Ident("e".to_string())),
+                ),
+                ast::Statement::Let(
+                    ast::Ident("e".to_string()),
+                    ast::Expression::Ident(ast::Ident("f".to_string())),
                 ),
             ])
         );
