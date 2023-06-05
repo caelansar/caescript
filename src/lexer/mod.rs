@@ -218,6 +218,7 @@ mod test {
         let cc = "string";
         let dd = 1.1;
         bb += 10;
+        break - continue
         "#;
         let mut lexer = Lexer::new(input);
 
@@ -301,6 +302,9 @@ mod test {
             Token::PlusEq,
             Token::Int(10),
             Token::SemiColon,
+            Token::Break,
+            Token::Minus,
+            Token::Continue,
             Token::EOF,
         ];
         tests.into_iter().for_each(|test| {

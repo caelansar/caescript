@@ -51,6 +51,7 @@ pub enum Object {
     Array(Vec<Object>),
     Hash(HashMap<Object, Object>),
     Builtin(fn(Vec<Object>) -> Object),
+    Error(String),
     Null,
 }
 
@@ -86,7 +87,31 @@ impl Display for Object {
             ),
             Object::Builtin(_) => write!(f, "[builtin]"),
             Object::Null => write!(f, "null"),
-            _ => unreachable!(),
+            Object::Error(e) => write!(f, "err: {}", e),
+            Object::Break => write!(f, "break"),
+            Object::Continue => write!(f, "continue"),
+            Object::Hash(ref hash) => {
+                let mut result = String::new();
+                for (i, (k, v)) in hash.iter().enumerate() {
+                    if i < 1 {
+                        result.push_str(&format!("{}: {}", k, v));
+                    } else {
+                        result.push_str(&format!(", {}: {}", k, v));
+                    }
+                }
+                write!(f, "{{{}}}", result)
+            }
+            Object::Function(ref params, _, _) => {
+                let mut result = String::new();
+                for (i, ast::Ident(ref s)) in params.iter().enumerate() {
+                    if i < 1 {
+                        result.push_str(&format!("{}", s));
+                    } else {
+                        result.push_str(&format!(", {}", s));
+                    }
+                }
+                write!(f, "fn({}) {{  }}", result)
+            }
         }
     }
 }

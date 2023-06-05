@@ -24,6 +24,7 @@ impl Evaluator {
         for stmt in program.iter() {
             match self.eval_statement(stmt) {
                 Some(Object::Return(r)) => return Some(*r),
+                Some(Object::Error(e)) => return Some(Object::Error(e)),
                 obj => rv = obj,
             }
         }
@@ -37,6 +38,7 @@ impl Evaluator {
         for stmt in program.iter() {
             match self.eval_statement(stmt) {
                 Some(Object::Return(r)) => return Some(Object::Return(r)),
+                Some(Object::Error(e)) => return Some(Object::Error(e)),
                 Some(Object::Break) => return Some(Object::Break),
                 Some(Object::Continue) => return Some(Object::Continue),
                 obj => rv = obj,
@@ -154,8 +156,7 @@ impl Evaluator {
         let curr = match self.env.borrow().get(ident.as_str()) {
             Some(obj) => obj,
             None => {
-                println!("vairable is not declared");
-                todo!()
+                return Some(Object::Error("vairable is not declared".into()));
             }
         };
         let exp_val = match self.eval_expression(expr) {
@@ -189,12 +190,9 @@ impl Evaluator {
                 }
             }
             ast::Expression::Infix(infix, lhs, rhs) => {
-                let lhs = self.eval_expression(lhs);
-                let rhs = self.eval_expression(rhs);
-                if lhs.is_none() || rhs.is_none() {
-                    return None;
-                }
-                self.eval_infix_expression(infix, lhs.unwrap(), rhs.unwrap())
+                let lhs = self.eval_expression(lhs)?;
+                let rhs = self.eval_expression(rhs)?;
+                self.eval_infix_expression(infix, lhs, rhs)
             }
             ast::Expression::If {
                 condition,
@@ -358,7 +356,10 @@ impl Evaluator {
                         ast::Infix::LtEq => Some(Object::Bool(l <= r)),
                     }
                 } else {
-                    None
+                    Some(Object::Error(format!(
+                        "type mismatch: {} {} {}",
+                        &lhs, infix, rhs
+                    )))
                 }
             }
             Object::Float(l) => {
@@ -376,7 +377,10 @@ impl Evaluator {
                         ast::Infix::LtEq => Some(Object::Bool(l <= r)),
                     }
                 } else {
-                    None
+                    Some(Object::Error(format!(
+                        "type mismatch: {} {} {}",
+                        &lhs, infix, rhs
+                    )))
                 }
             }
             Object::Bool(l) => {
@@ -384,10 +388,16 @@ impl Evaluator {
                     match infix {
                         ast::Infix::Eq => Some(Object::Bool(l == r)),
                         ast::Infix::Ne => Some(Object::Bool(l != r)),
-                        _ => None,
+                        _ => Some(Object::Error(format!(
+                            "unsupported operator {} for bool",
+                            infix
+                        ))),
                     }
                 } else {
-                    None
+                    Some(Object::Error(format!(
+                        "type mismatch: {} {} {}",
+                        &lhs, infix, rhs
+                    )))
                 }
             }
             Object::String(l) => {
@@ -400,13 +410,22 @@ impl Evaluator {
                         ast::Infix::GtEq => Some(Object::Bool(l >= r)),
                         ast::Infix::Lt => Some(Object::Bool(l < r)),
                         ast::Infix::LtEq => Some(Object::Bool(l <= r)),
-                        _ => None,
+                        _ => Some(Object::Error(format!(
+                            "unsupported operator {} for string",
+                            infix
+                        ))),
                     }
                 } else {
-                    None
+                    Some(Object::Error(format!(
+                        "type mismatch: {} {} {}",
+                        &l, infix, rhs
+                    )))
                 }
             }
-            _ => None,
+            _ => Some(Object::Error(format!(
+                "unknown operator: {} {} {}",
+                lhs, infix, rhs
+            ))),
         }
     }
 
@@ -415,7 +434,7 @@ impl Evaluator {
         if let Object::Int(int) = obj {
             Some(Object::Int(-int))
         } else {
-            None
+            Some(Object::Error(format!("unknown operator: -{}", obj)))
         }
     }
 
@@ -891,6 +910,48 @@ mod test {
             assert_eq!(
                 test.1, obj,
                 "expect stmt {} eval to be {:?}, got {:?}",
+                test.0, test.1, obj
+            );
+        })
+    }
+
+    #[test]
+    fn eval_error_should_work() {
+        let tests = vec![
+            (
+                "-true",
+                Some(Object::Error("unknown operator: -true".into())),
+            ),
+            (
+                r#"-"str""#,
+                Some(Object::Error("unknown operator: -str".into())),
+            ),
+            (
+                "1-true; 10",
+                Some(Object::Error("type mismatch: 1 - true".into())),
+            ),
+            (
+                r#""str1"-"str""#,
+                Some(Object::Error("unsupported operator - for string".into())),
+            ),
+            (
+                r#"[1.2] - [1]"#,
+                Some(Object::Error("unknown operator: [1.2] - [1]".into())),
+            ),
+        ];
+
+        tests.iter().for_each(|test| {
+            let lexer = lexer::Lexer::new(test.0);
+            let mut parser = Parser::new(lexer);
+
+            let program = parser.parse_program();
+            println!("{:?}", parser.errors());
+            println!("{:?}", program);
+            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let obj = evaluator.eval(&program);
+            assert_eq!(
+                test.1, obj,
+                "expect {} eval to be {:?}, got {:?}",
                 test.0, test.1, obj
             );
         })
