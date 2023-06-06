@@ -668,7 +668,8 @@ impl<'a> Parser<'a> {
                 | token::Token::Lt
                 | token::Token::LtEq
                 | token::Token::Slash
-                | token::Token::Asterisk => {
+                | token::Token::Asterisk
+                | token::Token::Mod => {
                     self.next_token();
                     lhs = self.parse_infix_expression(lhs)
                 }

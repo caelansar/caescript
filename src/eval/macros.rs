@@ -7,11 +7,11 @@ macro_rules! arithmetic_operator {
                     if let Object::$t(b) = $r {
                         Object::$t(a $op b)
                     } else {
-                        Object::Null
+                        Object::Error(format!("type mismatch: {} {} {}", a, stringify!($op), $r))
                     }
                 }
             )*
-            _ => Object::Null
+            other => Object::Error(format!("unknown operator {} for {:?}", stringify!($op), other))
         }
     };
 }

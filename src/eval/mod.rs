@@ -344,10 +344,11 @@ impl Evaluator {
             Object::Int(l) => {
                 if let Object::Int(r) = rhs {
                     match infix {
-                        ast::Infix::Plus => Some(Object::Int(l + r)),
-                        ast::Infix::Minus => Some(Object::Int(l - r)),
-                        ast::Infix::Divide => Some(Object::Int(l / r)),
-                        ast::Infix::Multiply => Some(Object::Int(l * r)),
+                        ast::Infix::Plus => Some(lhs + rhs),
+                        ast::Infix::Minus => Some(lhs - rhs),
+                        ast::Infix::Divide => Some(lhs / rhs),
+                        ast::Infix::Multiply => Some(lhs * rhs),
+                        ast::Infix::Mod => Some(lhs % rhs),
                         ast::Infix::Eq => Some(Object::Bool(l == r)),
                         ast::Infix::Ne => Some(Object::Bool(l != r)),
                         ast::Infix::Gt => Some(Object::Bool(l > r)),
@@ -369,6 +370,7 @@ impl Evaluator {
                         ast::Infix::Minus => Some(lhs - rhs),
                         ast::Infix::Divide => Some(lhs / rhs),
                         ast::Infix::Multiply => Some(lhs * rhs),
+                        ast::Infix::Mod => Some(lhs % rhs),
                         ast::Infix::Eq => Some(Object::Bool(l == r)),
                         ast::Infix::Ne => Some(Object::Bool(l != r)),
                         ast::Infix::Gt => Some(Object::Bool(l > r)),
@@ -389,8 +391,8 @@ impl Evaluator {
                         ast::Infix::Eq => Some(Object::Bool(l == r)),
                         ast::Infix::Ne => Some(Object::Bool(l != r)),
                         _ => Some(Object::Error(format!(
-                            "unsupported operator {} for bool",
-                            infix
+                            "unsupported operator {} for {:?}",
+                            infix, rhs,
                         ))),
                     }
                 } else {
@@ -411,8 +413,9 @@ impl Evaluator {
                         ast::Infix::Lt => Some(Object::Bool(l < r)),
                         ast::Infix::LtEq => Some(Object::Bool(l <= r)),
                         _ => Some(Object::Error(format!(
-                            "unsupported operator {} for string",
-                            infix
+                            "unsupported operator {} for {:?}",
+                            infix,
+                            Object::String(r),
                         ))),
                     }
                 } else {
@@ -500,6 +503,7 @@ mod test {
             ("1 + 1", Some(Object::Int(2))),
             ("1 * 1", Some(Object::Int(1))),
             ("1 / 1", Some(Object::Int(1))),
+            ("1 % 2", Some(Object::Int(1))),
             ("1 + 4 == 5", Some(Object::Bool(true))),
             (
                 r#""hello "+"world""#,
@@ -932,7 +936,9 @@ mod test {
             ),
             (
                 r#""str1"-"str""#,
-                Some(Object::Error("unsupported operator - for string".into())),
+                Some(Object::Error(
+                    "unsupported operator - for String(str)".into(),
+                )),
             ),
             (
                 r#"[1.2] - [1]"#,
@@ -945,8 +951,6 @@ mod test {
             let mut parser = Parser::new(lexer);
 
             let program = parser.parse_program();
-            println!("{:?}", parser.errors());
-            println!("{:?}", program);
             let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
             let obj = evaluator.eval(&program);
             assert_eq!(
