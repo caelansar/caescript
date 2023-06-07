@@ -235,6 +235,7 @@ mod test {
         let dd = 1.1;
         bb += 10;
         break - continue
+        null
         "#;
         let mut lexer = Lexer::new(input);
 
@@ -321,6 +322,7 @@ mod test {
             Token::Break,
             Token::Minus,
             Token::Continue,
+            Token::Null,
             Token::EOF,
         ];
         tests.into_iter().for_each(|test| {

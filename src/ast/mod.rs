@@ -158,6 +158,7 @@ pub enum Expression {
     Array(Vec<Expression>),
     Hash(Vec<(Expression, Expression)>),
     Index(Box<Expression>, Box<Expression>),
+    Null,
 }
 
 impl Display for Expression {
@@ -285,6 +286,7 @@ impl Display for Expression {
             Expression::Index(lhs, idx) => {
                 f.write_str(&format!("{}[{}]", lhs.to_string(), idx.to_string()))
             }
+            Expression::Null => f.write_str("null"),
         }
     }
 }

@@ -226,6 +226,7 @@ impl Evaluator {
             ast::Expression::Array(elements) => self.eval_array(elements.clone()),
             ast::Expression::Hash(hash) => self.eval_hash(hash.clone()),
             ast::Expression::Index(lhs, idx) => self.eval_index(lhs, idx),
+            ast::Expression::Null => Some(Object::Null),
         }
     }
 
@@ -994,6 +995,8 @@ mod test {
             ("1 && 2", Some(Object::Int(2))),
             ("1 && 2", Some(Object::Int(2))),
             ("1.1 && 2.2", Some(Object::Float(2.2))),
+            ("null && null", Some(Object::Null)),
+            ("null || 1", Some(Object::Int(1))),
         ];
 
         tests.iter().for_each(|test| {
@@ -1001,6 +1004,8 @@ mod test {
             let mut parser = Parser::new(lexer);
 
             let program = parser.parse_program();
+            println!("{:?}", parser.errors());
+            println!("{:?}", program);
             let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
             let obj = evaluator.eval(&program);
             assert_eq!(

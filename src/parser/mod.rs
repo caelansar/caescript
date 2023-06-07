@@ -654,6 +654,7 @@ impl<'a> Parser<'a> {
             token::Token::Comment => {
                 return None;
             }
+            token::Token::Null => Some(ast::Expression::Null),
             _ => {
                 self.no_prefix_parse_fn_error(&self.current_token.clone());
                 return None;

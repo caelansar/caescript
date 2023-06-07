@@ -48,6 +48,7 @@ pub(crate) enum Token {
     Comment,
     And,
     Or,
+    Null,
 }
 
 impl FromStr for Token {
@@ -67,6 +68,7 @@ impl FromStr for Token {
             "return" => Ok(Token::Return),
             "and" => Ok(Token::And),
             "or" => Ok(Token::Or),
+            "null" => Ok(Token::Null),
             "=" => Ok(Token::Assign),
             "+" => Ok(Token::Plus),
             "-" => Ok(Token::Minus),
@@ -140,6 +142,7 @@ impl fmt::Display for Token {
             Token::Continue => write!(f, "continue"),
             Token::And => write!(f, "&&"),
             Token::Or => write!(f, "||"),
+            Token::Null => write!(f, "null"),
             Token::EOF => write!(f, "EOF"),
         }
     }
@@ -168,5 +171,6 @@ mod test {
         assert_eq!(Token::Ident("func".to_string()), lookup_ident("func"));
         assert_eq!(Token::Else, lookup_ident("else"));
         assert_eq!(Token::For, lookup_ident("for"));
+        assert_eq!(Token::Null, lookup_ident("null"));
     }
 }
