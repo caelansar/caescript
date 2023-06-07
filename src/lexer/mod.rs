@@ -160,6 +160,22 @@ impl<'a> Lexer<'a> {
                     }
                     _ => Token::from_str(token.to_string().as_str()).unwrap(),
                 },
+                '&' => {
+                    if let Some('&') = self.peek_char() {
+                        self.read_char();
+                        Token::And
+                    } else {
+                        Token::Illegal
+                    }
+                }
+                '|' => {
+                    if let Some('|') = self.peek_char() {
+                        self.read_char();
+                        Token::Or
+                    } else {
+                        Token::Illegal
+                    }
+                }
                 ',' | ';' | ':' | '(' | ')' | '{' | '}' | '[' | ']' => {
                     Token::from_str(token.to_string().as_str()).unwrap()
                 }

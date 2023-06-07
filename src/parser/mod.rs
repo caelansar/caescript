@@ -11,6 +11,7 @@ pub(crate) enum Precedence {
     Lowest,
     Assign,
     Equals,
+    Logical,
     LessGreater,
     Sum,
     Product,
@@ -39,6 +40,8 @@ impl From<&token::Token> for Precedence {
             token::Token::Asterisk => Precedence::Product,
             token::Token::Lparen => Precedence::Call,
             token::Token::Lbracket => Precedence::Index,
+            token::Token::And => Precedence::Logical,
+            token::Token::Or => Precedence::Logical,
             _ => Precedence::Lowest,
         }
     }
@@ -669,7 +672,9 @@ impl<'a> Parser<'a> {
                 | token::Token::LtEq
                 | token::Token::Slash
                 | token::Token::Asterisk
-                | token::Token::Mod => {
+                | token::Token::Mod
+                | token::Token::And
+                | token::Token::Or => {
                     self.next_token();
                     lhs = self.parse_infix_expression(lhs)
                 }

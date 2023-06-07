@@ -355,6 +355,8 @@ impl Evaluator {
                         ast::Infix::GtEq => Some(Object::Bool(l >= r)),
                         ast::Infix::Lt => Some(Object::Bool(l < r)),
                         ast::Infix::LtEq => Some(Object::Bool(l <= r)),
+                        ast::Infix::And => Some(Object::Int(r)),
+                        ast::Infix::Or => Some(Object::Int(l)),
                     }
                 } else {
                     Some(Object::Error(format!(
@@ -377,6 +379,8 @@ impl Evaluator {
                         ast::Infix::GtEq => Some(Object::Bool(l >= r)),
                         ast::Infix::Lt => Some(Object::Bool(l < r)),
                         ast::Infix::LtEq => Some(Object::Bool(l <= r)),
+                        ast::Infix::And => Some(Object::Float(r)),
+                        ast::Infix::Or => Some(Object::Float(l)),
                     }
                 } else {
                     Some(Object::Error(format!(
@@ -390,6 +394,12 @@ impl Evaluator {
                     match infix {
                         ast::Infix::Eq => Some(Object::Bool(l == r)),
                         ast::Infix::Ne => Some(Object::Bool(l != r)),
+                        ast::Infix::And => {
+                            Some(Object::Bool(self.is_true(lhs) && self.is_true(rhs)))
+                        }
+                        ast::Infix::Or => {
+                            Some(Object::Bool(self.is_true(lhs) || self.is_true(rhs)))
+                        }
                         _ => Some(Object::Error(format!(
                             "unsupported operator {} for {:?}",
                             infix, rhs,
@@ -412,6 +422,8 @@ impl Evaluator {
                         ast::Infix::GtEq => Some(Object::Bool(l >= r)),
                         ast::Infix::Lt => Some(Object::Bool(l < r)),
                         ast::Infix::LtEq => Some(Object::Bool(l <= r)),
+                        ast::Infix::And => Some(Object::String(r)),
+                        ast::Infix::Or => Some(Object::String(l)),
                         _ => Some(Object::Error(format!(
                             "unsupported operator {} for {:?}",
                             infix,
@@ -425,6 +437,15 @@ impl Evaluator {
                     )))
                 }
             }
+            Object::Null => match infix {
+                ast::Infix::Or => Some(rhs),
+                ast::Infix::And => Some(Object::Null),
+                _ => Some(Object::Error(format!(
+                    "unsupported operator {} for {:?}",
+                    infix,
+                    Object::Null,
+                ))),
+            },
             _ => Some(Object::Error(format!(
                 "unknown operator: {} {} {}",
                 lhs, infix, rhs
@@ -504,6 +525,7 @@ mod test {
             ("1 * 1", Some(Object::Int(1))),
             ("1 / 1", Some(Object::Int(1))),
             ("1 % 2", Some(Object::Int(1))),
+            ("2 + 1 % 2", Some(Object::Int(3))),
             ("1 + 4 == 5", Some(Object::Bool(true))),
             (
                 r#""hello "+"world""#,
@@ -944,6 +966,34 @@ mod test {
                 r#"[1.2] - [1]"#,
                 Some(Object::Error("unknown operator: [1.2] - [1]".into())),
             ),
+        ];
+
+        tests.iter().for_each(|test| {
+            let lexer = lexer::Lexer::new(test.0);
+            let mut parser = Parser::new(lexer);
+
+            let program = parser.parse_program();
+            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+            let obj = evaluator.eval(&program);
+            assert_eq!(
+                test.1, obj,
+                "expect {} eval to be {:?}, got {:?}",
+                test.0, test.1, obj
+            );
+        })
+    }
+
+    #[test]
+    fn eval_logical_should_work() {
+        let tests = vec![
+            ("true && true", Some(Object::Bool(true))),
+            ("true && false", Some(Object::Bool(false))),
+            ("false && false", Some(Object::Bool(false))),
+            ("true || false", Some(Object::Bool(true))),
+            ("1 || 2", Some(Object::Int(1))),
+            ("1 && 2", Some(Object::Int(2))),
+            ("1 && 2", Some(Object::Int(2))),
+            ("1.1 && 2.2", Some(Object::Float(2.2))),
         ];
 
         tests.iter().for_each(|test| {

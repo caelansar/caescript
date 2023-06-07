@@ -46,6 +46,8 @@ pub(crate) enum Token {
     Continue,
     Return,
     Comment,
+    And,
+    Or,
 }
 
 impl FromStr for Token {
@@ -63,6 +65,8 @@ impl FromStr for Token {
             "break" => Ok(Token::Break),
             "continue" => Ok(Token::Continue),
             "return" => Ok(Token::Return),
+            "and" => Ok(Token::And),
+            "or" => Ok(Token::Or),
             "=" => Ok(Token::Assign),
             "+" => Ok(Token::Plus),
             "-" => Ok(Token::Minus),
@@ -134,6 +138,8 @@ impl fmt::Display for Token {
             Token::Comment => write!(f, "//comment"),
             Token::Break => write!(f, "break"),
             Token::Continue => write!(f, "continue"),
+            Token::And => write!(f, "&&"),
+            Token::Or => write!(f, "||"),
             Token::EOF => write!(f, "EOF"),
         }
     }
