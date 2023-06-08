@@ -781,6 +781,18 @@ mod test {
                 "#,
                 Some(Object::Int(4)),
             ),
+            (
+                r#"let fib = fn(x){
+                    if (x==1 || x==2) {
+                        1
+                    } else {
+                        fib(x-1) + fib(x-2)
+                    }
+                };
+                fib(9);
+                "#,
+                Some(Object::Int(34)),
+            ),
         ];
 
         tests.iter().for_each(|test| {

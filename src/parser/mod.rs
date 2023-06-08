@@ -10,8 +10,8 @@ use trace::{trace, untrace, ScopeCall};
 pub(crate) enum Precedence {
     Lowest,
     Assign,
-    Equals,
     Logical,
+    Equals,
     LessGreater,
     Sum,
     Product,
