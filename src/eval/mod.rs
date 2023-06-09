@@ -480,6 +480,20 @@ mod test {
 
     use super::*;
 
+    fn eval(input: &str) -> Option<Object> {
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+        assert!(
+            parser.errors().len() == 0,
+            "parse error: {:?}",
+            parser.errors()
+        );
+
+        let program = parser.parse_program();
+        let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+        evaluator.eval(&program)
+    }
+
     #[test]
     fn eval_literal_should_work() {
         let tests = vec![
@@ -490,12 +504,7 @@ mod test {
         ];
 
         tests.iter().for_each(|test| {
-            let lexer = lexer::Lexer::new(test.0);
-            let mut parser = Parser::new(lexer);
-
-            let program = parser.parse_program();
-            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-            let obj = evaluator.eval(&program);
+            let obj = eval(test.0);
             assert_eq!(
                 test.1, obj,
                 "want literal {} eval to be {:?}, got {:?}",
@@ -543,12 +552,7 @@ mod test {
         ];
 
         tests.iter().for_each(|test| {
-            let lexer = lexer::Lexer::new(test.0);
-            let mut parser = Parser::new(lexer);
-
-            let program = parser.parse_program();
-            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-            let obj = evaluator.eval(&program);
+            let obj = eval(test.0);
             assert_eq!(
                 test.1, obj,
                 "want expr {} eval to be {:?}, got {:?}",
@@ -570,12 +574,7 @@ mod test {
         ];
 
         tests.iter().for_each(|test| {
-            let lexer = lexer::Lexer::new(test.0);
-            let mut parser = Parser::new(lexer);
-
-            let program = parser.parse_program();
-            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-            let obj = evaluator.eval(&program);
+            let obj = eval(test.0);
             assert_eq!(
                 test.1, obj,
                 "want return stmt {} eval to be {:?}, got {:?}",
@@ -611,12 +610,7 @@ mod test {
         ];
 
         tests.iter().for_each(|test| {
-            let lexer = lexer::Lexer::new(test.0);
-            let mut parser = Parser::new(lexer);
-
-            let program = parser.parse_program();
-            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-            let obj = evaluator.eval(&program);
+            let obj = eval(test.0);
             assert_eq!(
                 test.1, obj,
                 "expect if expr {} eval to be {:?}, got {:?}",
@@ -686,12 +680,7 @@ mod test {
         ];
 
         tests.iter().for_each(|test| {
-            let lexer = lexer::Lexer::new(test.0);
-            let mut parser = Parser::new(lexer);
-
-            let program = parser.parse_program();
-            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-            let obj = evaluator.eval(&program);
+            let obj = eval(test.0);
             assert_eq!(
                 test.1, obj,
                 "expect for expr {} eval to be {:?}, got {:?}",
@@ -714,12 +703,7 @@ mod test {
         ];
 
         tests.iter().for_each(|test| {
-            let lexer = lexer::Lexer::new(test.0);
-            let mut parser = Parser::new(lexer);
-
-            let program = parser.parse_program();
-            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-            let obj = evaluator.eval(&program);
+            let obj = eval(test.0);
             assert_eq!(
                 test.1, obj,
                 "expect let stmt {} eval to be {:?}, got {:?}",
@@ -740,12 +724,7 @@ mod test {
         ];
 
         tests.iter().for_each(|test| {
-            let lexer = lexer::Lexer::new(test.0);
-            let mut parser = Parser::new(lexer);
-
-            let program = parser.parse_program();
-            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-            let obj = evaluator.eval(&program);
+            let obj = eval(test.0);
             assert_eq!(
                 test.1, obj,
                 "expect assign stmt {} eval to be {:?}, got {:?}",
@@ -796,12 +775,7 @@ mod test {
         ];
 
         tests.iter().for_each(|test| {
-            let lexer = lexer::Lexer::new(test.0);
-            let mut parser = Parser::new(lexer);
-
-            let program = parser.parse_program();
-            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-            let obj = evaluator.eval(&program);
+            let obj = eval(test.0);
             assert_eq!(
                 test.1, obj,
                 "expect function call {} eval to be {:?}, got {:?}",
@@ -826,13 +800,7 @@ mod test {
         ];
 
         tests.iter().for_each(|test| {
-            let lexer = lexer::Lexer::new(test.0);
-            let mut parser = Parser::new(lexer);
-
-            let program = parser.parse_program();
-            println!("array {}", program);
-            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-            let obj = evaluator.eval(&program);
+            let obj = eval(test.0);
             assert_eq!(
                 test.1, obj,
                 "expect array {} eval to be {:?}, got {:?}",
@@ -856,13 +824,7 @@ mod test {
         ];
 
         tests.iter().for_each(|test| {
-            let lexer = lexer::Lexer::new(test.0);
-            let mut parser = Parser::new(lexer);
-
-            let program = parser.parse_program();
-            println!("hash {}", program);
-            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-            let obj = evaluator.eval(&program);
+            let obj = eval(test.0);
             assert_eq!(
                 test.1, obj,
                 "expect hash {} eval to be {:?}, got {:?}",
@@ -896,13 +858,7 @@ mod test {
         ];
 
         tests.iter().for_each(|test| {
-            let lexer = lexer::Lexer::new(test.0);
-            let mut parser = Parser::new(lexer);
-
-            let program = parser.parse_program();
-            println!("index {}", program);
-            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-            let obj = evaluator.eval(&program);
+            let obj = eval(test.0);
             assert_eq!(
                 test.1, obj,
                 "expect index {} eval to be {:?}, got {:?}",
@@ -940,12 +896,7 @@ mod test {
         ];
 
         tests.iter().for_each(|test| {
-            let lexer = lexer::Lexer::new(test.0);
-            let mut parser = Parser::new(lexer);
-
-            let program = parser.parse_program();
-            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-            let obj = evaluator.eval(&program);
+            let obj = eval(test.0);
             assert_eq!(
                 test.1, obj,
                 "expect stmt {} eval to be {:?}, got {:?}",
@@ -982,12 +933,7 @@ mod test {
         ];
 
         tests.iter().for_each(|test| {
-            let lexer = lexer::Lexer::new(test.0);
-            let mut parser = Parser::new(lexer);
-
-            let program = parser.parse_program();
-            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-            let obj = evaluator.eval(&program);
+            let obj = eval(test.0);
             assert_eq!(
                 test.1, obj,
                 "expect {} eval to be {:?}, got {:?}",
@@ -1012,14 +958,7 @@ mod test {
         ];
 
         tests.iter().for_each(|test| {
-            let lexer = lexer::Lexer::new(test.0);
-            let mut parser = Parser::new(lexer);
-
-            let program = parser.parse_program();
-            println!("{:?}", parser.errors());
-            println!("{:?}", program);
-            let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-            let obj = evaluator.eval(&program);
+            let obj = eval(test.0);
             assert_eq!(
                 test.1, obj,
                 "expect {} eval to be {:?}, got {:?}",
