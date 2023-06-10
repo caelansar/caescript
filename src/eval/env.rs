@@ -2,6 +2,7 @@ use std::{borrow::Borrow, cell::RefCell, collections::HashMap, rc::Rc};
 
 use super::{builtin::new_builtins, object::Object};
 
+/// Environment holds a store of kv pairs and a pointer to an "outer", enclosing environment
 #[derive(Debug, PartialEq, Clone)]
 pub struct Environment {
     store: HashMap<String, Object>,
@@ -20,7 +21,7 @@ impl Environment {
         Self { store, outer: None }
     }
 
-    pub fn outer(outer: Rc<RefCell<Environment>>) -> Self {
+    pub fn enclosed(outer: Rc<RefCell<Environment>>) -> Self {
         Self {
             store: HashMap::new(),
             outer: Some(outer),
@@ -70,7 +71,7 @@ fn env_should_work() {
     assert_eq!(Some(Object::Int(1)), env.get("1"));
 
     let outer = Rc::new(RefCell::new(env));
-    let mut env1 = Environment::outer(outer.clone());
+    let mut env1 = Environment::enclosed(outer.clone());
     env1.set("2".to_string(), Object::Null);
     assert_eq!(Some(Object::Int(1)), env1.get("1"));
     assert_eq!(Some(Object::Null), env1.get("2"));

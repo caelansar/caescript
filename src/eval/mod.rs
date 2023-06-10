@@ -255,7 +255,7 @@ impl Evaluator {
         let current_env = self.env.clone();
 
         // set function env as outer scope
-        let mut call_env = Environment::outer(env.clone());
+        let mut call_env = Environment::enclosed(env.clone());
 
         // set our args
         params
