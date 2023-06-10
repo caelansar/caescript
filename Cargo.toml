@@ -9,6 +9,8 @@ name = "caescript"
 path = "src/bin/main.rs"
 
 [dependencies]
+byteorder = { version = "1", optional = true }
 
 [features]
 trace = []
+vm = ["byteorder"]
