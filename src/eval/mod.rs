@@ -32,7 +32,7 @@ impl Evaluator {
         rv
     }
 
-    pub fn eval_block_statements(&mut self, program: &ast::BlockStatement) -> Option<Object> {
+    fn eval_block_statements(&mut self, program: &ast::BlockStatement) -> Option<Object> {
         let mut rv = None;
 
         for stmt in program.iter() {

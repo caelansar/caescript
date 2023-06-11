@@ -1,15 +1,35 @@
-use std::{fmt::Display, io::Cursor, ops::Deref};
+use std::{
+    fmt::Display,
+    ops::{Deref, DerefMut},
+    vec::IntoIter,
+};
 
-use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 
-#[derive(Debug, PartialEq, PartialOrd)]
-pub struct Instructions(Vec<u8>);
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
+pub struct Instructions(pub Vec<u8>);
+
+impl DerefMut for Instructions {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl Deref for Instructions {
     type Target = Vec<u8>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl IntoIterator for Instructions {
+    type Item = u8;
+
+    type IntoIter = IntoIter<u8>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -29,7 +49,7 @@ impl Display for Instructions {
                 i,
                 format_instruction(&op, &operands)
             ));
-            i = i + 1 + read;
+            i = i + 1 + read; // op + operands
         }
 
         f.write_str(ret.as_str())
@@ -53,11 +73,7 @@ pub fn read_operands(op: &Op, instructions: &[u8]) -> (Vec<usize>, usize) {
     for width in op.operand_widths() {
         match width {
             2 => {
-                operands.push(
-                    Cursor::new(&instructions[offset..offset + 2])
-                        .read_u16::<BigEndian>()
-                        .unwrap() as usize,
-                );
+                operands.push(BigEndian::read_u16(&instructions[offset..offset + 2]) as usize);
                 offset += 2;
             }
             1 => {
@@ -75,32 +91,60 @@ pub fn read_operands(op: &Op, instructions: &[u8]) -> (Vec<usize>, usize) {
 #[derive(Debug)]
 pub enum Op {
     Const,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    Pop,
 }
 
 impl Op {
     pub fn name(&self) -> &str {
         match self {
             Op::Const => "OpConstant",
+            Op::Add => "OpAdd",
+            Op::Sub => "OpSub",
+            Op::Mul => "OpMul",
+            Op::Div => "OpDiv",
+            Op::Mod => "OpMod",
+            Op::Pop => "OpPop",
         }
     }
 
     pub fn operand_widths(&self) -> Vec<usize> {
         match self {
             Op::Const => vec![2],
+            Op::Add => vec![],
+            Op::Sub => vec![],
+            Op::Mul => vec![],
+            Op::Div => vec![],
+            Op::Mod => vec![],
+            Op::Pop => vec![],
         }
     }
 }
 
 pub fn make(op: Op, operands: &Vec<usize>) -> Instructions {
-    let _ = op.operand_widths();
+    let widths = op.operand_widths();
     let mut instruction = Vec::new();
 
     instruction.push(op as u8);
-    instruction
-        .write_u16::<BigEndian>(operands[0] as u16)
-        .unwrap();
+
+    operands
+        .iter()
+        .zip(widths)
+        .for_each(|(operand, width)| match width {
+            2 => instruction.write_u16::<BigEndian>(*operand as u16).unwrap(),
+            1 => instruction.write_u8(*operand as u8).unwrap(),
+            _ => unreachable!(),
+        });
 
     Instructions(instruction)
+}
+
+pub(crate) fn concat_instructions(ins: Vec<Instructions>) -> Instructions {
+    Instructions(ins.into_iter().flatten().collect::<Vec<u8>>())
 }
 
 #[cfg(test)]
@@ -109,17 +153,32 @@ mod test {
 
     #[test]
     fn make_should_work() {
-        let tests = [(
-            Op::Const,
-            vec![65534],
-            vec![Op::Const as u8, 255, 254],
-            "0000 OpConstant 65534\n",
-        )];
+        let tests = [
+            (
+                vec![make(Op::Const, &vec![65534])],
+                vec![Op::Const as u8, 255, 254],
+                "0000 OpConstant 65534\n",
+            ),
+            (
+                vec![make(Op::Add, &vec![])],
+                vec![Op::Add as u8],
+                "0000 OpAdd\n",
+            ),
+            (
+                vec![
+                    make(Op::Add, &vec![]),
+                    make(Op::Const, &vec![0]),
+                    make(Op::Const, &vec![1]),
+                ],
+                vec![Op::Add as u8, Op::Const as u8, 0, 0, Op::Const as u8, 0, 1],
+                "0000 OpAdd\n0001 OpConstant 0\n0004 OpConstant 1\n",
+            ),
+        ];
 
         tests.into_iter().for_each(|test| {
-            let instrucations = make(test.0, &test.1);
-            assert_eq!(test.2, *instrucations);
-            assert_eq!(&test.3, &format!("{}", instrucations));
+            let instructions = concat_instructions(test.0);
+            assert_eq!(test.1, instructions.0);
+            assert_eq!(&test.2, &format!("{}", instructions));
         })
     }
 }
