@@ -45,6 +45,16 @@ impl Compiler {
                 let pos = self.add_const(int);
                 self.emit(code::Op::Const, &vec![pos]);
             }
+            ast::Expression::Literal(ast::Literal::Float(f)) => {
+                let float = object::Object::Float(*f);
+                let pos = self.add_const(float);
+                self.emit(code::Op::Const, &vec![pos]);
+            }
+            ast::Expression::Literal(ast::Literal::String(ref s)) => {
+                let s = object::Object::String(s.as_str().into());
+                let pos = self.add_const(s);
+                self.emit(code::Op::Const, &vec![pos]);
+            }
             ast::Expression::Literal(ast::Literal::Bool(true)) => {
                 self.emit(code::Op::True, &vec![]);
             }

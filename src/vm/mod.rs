@@ -115,6 +115,11 @@ mod test {
             ("2-1", Some(object::Object::Int(1))),
             ("2*2", Some(object::Object::Int(4))),
             ("2/2", Some(object::Object::Int(1))),
+            ("1.0+2.1", Some(object::Object::Float(3.1))),
+            (
+                r#""hello "+"world""#,
+                Some(object::Object::String("hello world".into())),
+            ),
             ("1%2", Some(object::Object::Int(1))),
             ("true", Some(object::Object::Bool(true))),
             ("false", Some(object::Object::Bool(false))),
