@@ -59,9 +59,9 @@ impl Display for Instructions {
 #[inline(always)]
 fn format_instruction(op: &Op, operands: &Vec<usize>) -> String {
     match op.operand_widths().len() {
-        2 => format!("{} {} {}", op.name(), operands[0], operands[1]),
-        1 => format!("{} {}", op.name(), operands[0]),
-        0 => format!("{}", op.name()),
+        2 => format!("{} {} {}", op, operands[0], operands[1]),
+        1 => format!("{} {}", op, operands[0]),
+        0 => format!("{}", op),
         _ => panic!("unsuported operand width"),
     }
 }
@@ -73,7 +73,7 @@ pub fn read_operands(op: &Op, instructions: &[u8]) -> (Vec<usize>, usize) {
     for width in op.operand_widths() {
         match width {
             2 => {
-                operands.push(BigEndian::read_u16(&instructions[offset..offset + 2]) as usize);
+                operands.push(read_u16(&instructions[offset..offset + 2]));
                 offset += 2;
             }
             1 => {
@@ -87,6 +87,10 @@ pub fn read_operands(op: &Op, instructions: &[u8]) -> (Vec<usize>, usize) {
     (operands, offset)
 }
 
+pub(crate) fn read_u16(slice: &[u8]) -> usize {
+    BigEndian::read_u16(slice) as usize
+}
+
 #[repr(u8)]
 #[derive(Debug)]
 pub enum Op {
@@ -96,12 +100,14 @@ pub enum Op {
     Mul,
     Div,
     Mod,
+    True,
+    False,
     Pop,
 }
 
-impl Op {
-    pub fn name(&self) -> &str {
-        match self {
+impl Display for Op {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
             Op::Const => "OpConstant",
             Op::Add => "OpAdd",
             Op::Sub => "OpSub",
@@ -109,9 +115,14 @@ impl Op {
             Op::Div => "OpDiv",
             Op::Mod => "OpMod",
             Op::Pop => "OpPop",
-        }
+            Op::True => "OpTrue",
+            Op::False => "OpFalse",
+        };
+        f.write_str(s)
     }
+}
 
+impl Op {
     pub fn operand_widths(&self) -> Vec<usize> {
         match self {
             Op::Const => vec![2],
@@ -120,6 +131,8 @@ impl Op {
             Op::Mul => vec![],
             Op::Div => vec![],
             Op::Mod => vec![],
+            Op::True => vec![],
+            Op::False => vec![],
             Op::Pop => vec![],
         }
     }

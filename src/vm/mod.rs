@@ -1,7 +1,5 @@
 use crate::{code, compiler, eval::object};
 
-use byteorder::{BigEndian, ByteOrder, ReadBytesExt};
-
 const STACK_SIZE: usize = 2048;
 
 pub struct VM {
@@ -61,7 +59,7 @@ impl VM {
             ip += 1;
             match op {
                 code::Op::Const => {
-                    let const_idx = BigEndian::read_u16(&self.instructions[ip..]) as usize;
+                    let const_idx = code::read_u16(&self.instructions[ip..]);
                     ip += 2;
                     self.push(self.consts[const_idx].clone());
                 }
@@ -93,6 +91,8 @@ impl VM {
                 code::Op::Pop => {
                     self.pop();
                 }
+                code::Op::False => self.push(object::Object::Bool(false)),
+                code::Op::True => self.push(object::Object::Bool(true)),
                 _ => todo!(),
             }
         }
@@ -116,6 +116,8 @@ mod test {
             ("2*2", Some(object::Object::Int(4))),
             ("2/2", Some(object::Object::Int(1))),
             ("1%2", Some(object::Object::Int(1))),
+            ("true", Some(object::Object::Bool(true))),
+            ("false", Some(object::Object::Bool(false))),
         ];
 
         tests.into_iter().for_each(|test| {

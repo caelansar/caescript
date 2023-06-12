@@ -45,6 +45,12 @@ impl Compiler {
                 let pos = self.add_const(int);
                 self.emit(code::Op::Const, &vec![pos]);
             }
+            ast::Expression::Literal(ast::Literal::Bool(true)) => {
+                self.emit(code::Op::True, &vec![]);
+            }
+            ast::Expression::Literal(ast::Literal::Bool(false)) => {
+                self.emit(code::Op::False, &vec![]);
+            }
             ast::Expression::Infix(infix, lhs, rhs) => match infix {
                 ast::Infix::Plus => {
                     self.compile_expression(lhs);
@@ -73,7 +79,7 @@ impl Compiler {
                 }
                 _ => todo!(),
             },
-            _ => todo!(),
+            _ => todo!("unknown expr: {}", expr),
         }
     }
 
@@ -109,16 +115,34 @@ mod test {
 
     #[test]
     fn compile_should_work() {
-        let tests = [(
-            "1;2",
-            vec![
-                code::make(code::Op::Const, &vec![0]),
-                code::make(code::Op::Pop, &vec![]),
-                code::make(code::Op::Const, &vec![1]),
-                code::make(code::Op::Pop, &vec![]),
-            ],
-            vec![object::Object::Int(1), object::Object::Int(2)],
-        )];
+        let tests = [
+            (
+                "1;2",
+                vec![
+                    code::make(code::Op::Const, &vec![0]),
+                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Const, &vec![1]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![object::Object::Int(1), object::Object::Int(2)],
+            ),
+            (
+                "true",
+                vec![
+                    code::make(code::Op::True, &vec![1]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![],
+            ),
+            (
+                "false",
+                vec![
+                    code::make(code::Op::False, &vec![1]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![],
+            ),
+        ];
 
         tests.into_iter().for_each(|test| {
             let program = parser::Parser::new(lexer::Lexer::new(test.0)).parse_program();
