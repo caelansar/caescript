@@ -102,6 +102,10 @@ pub enum Op {
     Mod,
     True,
     False,
+    Gt,
+    Eq,
+    Ne,
+    GtEq,
     Pop,
 }
 
@@ -117,6 +121,10 @@ impl Display for Op {
             Op::Pop => "OpPop",
             Op::True => "OpTrue",
             Op::False => "OpFalse",
+            Op::Gt => "OpGreaterThan",
+            Op::Eq => "OpEqual",
+            Op::Ne => "OpNotEqual",
+            Op::GtEq => "OpGreaterThanEqual",
         };
         f.write_str(s)
     }
@@ -134,6 +142,10 @@ impl Op {
             Op::True => vec![],
             Op::False => vec![],
             Op::Pop => vec![],
+            Op::Gt => vec![],
+            Op::Eq => vec![],
+            Op::Ne => vec![],
+            Op::GtEq => vec![],
         }
     }
 }

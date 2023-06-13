@@ -87,6 +87,36 @@ impl Compiler {
                     self.compile_expression(rhs);
                     self.emit(code::Op::Mod, &vec![]);
                 }
+                ast::Infix::Eq => {
+                    self.compile_expression(lhs);
+                    self.compile_expression(rhs);
+                    self.emit(code::Op::Eq, &vec![]);
+                }
+                ast::Infix::Ne => {
+                    self.compile_expression(lhs);
+                    self.compile_expression(rhs);
+                    self.emit(code::Op::Ne, &vec![]);
+                }
+                ast::Infix::Gt => {
+                    self.compile_expression(lhs);
+                    self.compile_expression(rhs);
+                    self.emit(code::Op::Gt, &vec![]);
+                }
+                ast::Infix::GtEq => {
+                    self.compile_expression(lhs);
+                    self.compile_expression(rhs);
+                    self.emit(code::Op::GtEq, &vec![]);
+                }
+                ast::Infix::Lt => {
+                    self.compile_expression(rhs);
+                    self.compile_expression(lhs);
+                    self.emit(code::Op::Gt, &vec![]);
+                }
+                ast::Infix::LtEq => {
+                    self.compile_expression(rhs);
+                    self.compile_expression(lhs);
+                    self.emit(code::Op::GtEq, &vec![]);
+                }
                 _ => todo!(),
             },
             _ => todo!("unknown expr: {}", expr),

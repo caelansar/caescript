@@ -341,104 +341,64 @@ impl Evaluator {
         lhs: Object,
         rhs: Object,
     ) -> Option<Object> {
-        match lhs {
-            Object::Int(l) => {
-                if let Object::Int(r) = rhs {
-                    match infix {
-                        ast::Infix::Plus => Some(lhs + rhs),
-                        ast::Infix::Minus => Some(lhs - rhs),
-                        ast::Infix::Divide => Some(lhs / rhs),
-                        ast::Infix::Multiply => Some(lhs * rhs),
-                        ast::Infix::Mod => Some(lhs % rhs),
-                        ast::Infix::Eq => Some(Object::Bool(l == r)),
-                        ast::Infix::Ne => Some(Object::Bool(l != r)),
-                        ast::Infix::Gt => Some(Object::Bool(l > r)),
-                        ast::Infix::GtEq => Some(Object::Bool(l >= r)),
-                        ast::Infix::Lt => Some(Object::Bool(l < r)),
-                        ast::Infix::LtEq => Some(Object::Bool(l <= r)),
-                        ast::Infix::And => Some(Object::Int(r)),
-                        ast::Infix::Or => Some(Object::Int(l)),
-                    }
-                } else {
-                    Some(Object::Error(format!(
-                        "type mismatch: {} {} {}",
-                        &lhs, infix, rhs
-                    )))
-                }
-            }
-            Object::Float(l) => {
-                if let Object::Float(r) = rhs {
-                    match infix {
-                        ast::Infix::Plus => Some(lhs + rhs),
-                        ast::Infix::Minus => Some(lhs - rhs),
-                        ast::Infix::Divide => Some(lhs / rhs),
-                        ast::Infix::Multiply => Some(lhs * rhs),
-                        ast::Infix::Mod => Some(lhs % rhs),
-                        ast::Infix::Eq => Some(Object::Bool(l == r)),
-                        ast::Infix::Ne => Some(Object::Bool(l != r)),
-                        ast::Infix::Gt => Some(Object::Bool(l > r)),
-                        ast::Infix::GtEq => Some(Object::Bool(l >= r)),
-                        ast::Infix::Lt => Some(Object::Bool(l < r)),
-                        ast::Infix::LtEq => Some(Object::Bool(l <= r)),
-                        ast::Infix::And => Some(Object::Float(r)),
-                        ast::Infix::Or => Some(Object::Float(l)),
-                    }
-                } else {
-                    Some(Object::Error(format!(
-                        "type mismatch: {} {} {}",
-                        &lhs, infix, rhs
-                    )))
-                }
-            }
-            Object::Bool(l) => {
-                if let Object::Bool(r) = rhs {
-                    match infix {
-                        ast::Infix::Eq => Some(Object::Bool(l == r)),
-                        ast::Infix::Ne => Some(Object::Bool(l != r)),
-                        ast::Infix::And => {
-                            Some(Object::Bool(self.is_true(lhs) && self.is_true(rhs)))
-                        }
-                        ast::Infix::Or => {
-                            Some(Object::Bool(self.is_true(lhs) || self.is_true(rhs)))
-                        }
-                        _ => Some(Object::Error(format!(
-                            "unsupported operator {} for {:?}",
-                            infix, rhs,
-                        ))),
-                    }
-                } else {
-                    Some(Object::Error(format!(
-                        "type mismatch: {} {} {}",
-                        &lhs, infix, rhs
-                    )))
-                }
-            }
-            Object::String(l) => {
-                if let Object::String(r) = rhs {
-                    match infix {
-                        ast::Infix::Plus => Some(Object::String(l + r)),
-                        ast::Infix::Eq => Some(Object::Bool(l == r)),
-                        ast::Infix::Ne => Some(Object::Bool(l != r)),
-                        ast::Infix::Gt => Some(Object::Bool(l > r)),
-                        ast::Infix::GtEq => Some(Object::Bool(l >= r)),
-                        ast::Infix::Lt => Some(Object::Bool(l < r)),
-                        ast::Infix::LtEq => Some(Object::Bool(l <= r)),
-                        ast::Infix::And => Some(Object::String(r)),
-                        ast::Infix::Or => Some(Object::String(l)),
-                        _ => Some(Object::Error(format!(
-                            "unsupported operator {} for {:?}",
-                            infix,
-                            Object::String(r),
-                        ))),
-                    }
-                } else {
-                    Some(Object::Error(format!(
-                        "type mismatch: {} {} {}",
-                        &l, infix, rhs
-                    )))
-                }
-            }
-            Object::Null => match infix {
+        match (lhs.clone(), rhs.clone()) {
+            (Object::Int(l), Object::Int(r)) => match infix {
+                ast::Infix::Plus => Some(lhs + rhs),
+                ast::Infix::Minus => Some(lhs - rhs),
+                ast::Infix::Divide => Some(lhs / rhs),
+                ast::Infix::Multiply => Some(lhs * rhs),
+                ast::Infix::Mod => Some(lhs % rhs),
+                ast::Infix::Eq => Some((l == r).into()),
+                ast::Infix::Ne => Some((l != r).into()),
+                ast::Infix::Gt => Some((l > r).into()),
+                ast::Infix::GtEq => Some((l >= r).into()),
+                ast::Infix::Lt => Some((l < r).into()),
+                ast::Infix::LtEq => Some((l <= r).into()),
+                ast::Infix::And => Some(Object::Int(r)),
+                ast::Infix::Or => Some(Object::Int(l)),
+            },
+            (Object::Float(l), Object::Float(r)) => match infix {
+                ast::Infix::Plus => Some(lhs + rhs),
+                ast::Infix::Minus => Some(lhs - rhs),
+                ast::Infix::Divide => Some(lhs / rhs),
+                ast::Infix::Multiply => Some(lhs * rhs),
+                ast::Infix::Mod => Some(lhs % rhs),
+                ast::Infix::Eq => Some(Object::Bool(l == r)),
+                ast::Infix::Ne => Some(Object::Bool(l != r)),
+                ast::Infix::Gt => Some(Object::Bool(l > r)),
+                ast::Infix::GtEq => Some(Object::Bool(l >= r)),
+                ast::Infix::Lt => Some(Object::Bool(l < r)),
+                ast::Infix::LtEq => Some(Object::Bool(l <= r)),
+                ast::Infix::And => Some(Object::Float(r)),
+                ast::Infix::Or => Some(Object::Float(l)),
+            },
+            (Object::Bool(l), Object::Bool(r)) => match infix {
+                ast::Infix::Eq => Some(Object::Bool(l == r)),
+                ast::Infix::Ne => Some(Object::Bool(l != r)),
+                ast::Infix::And => Some(Object::Bool(self.is_true(lhs) && self.is_true(rhs))),
+                ast::Infix::Or => Some(Object::Bool(self.is_true(lhs) || self.is_true(rhs))),
+                _ => Some(Object::Error(format!(
+                    "unsupported operator {} for {:?}",
+                    infix, rhs,
+                ))),
+            },
+            (Object::String(l), Object::String(r)) => match infix {
+                ast::Infix::Plus => Some(Object::String(l + r)),
+                ast::Infix::Eq => Some(Object::Bool(l == r)),
+                ast::Infix::Ne => Some(Object::Bool(l != r)),
+                ast::Infix::Gt => Some(Object::Bool(l > r)),
+                ast::Infix::GtEq => Some(Object::Bool(l >= r)),
+                ast::Infix::Lt => Some(Object::Bool(l < r)),
+                ast::Infix::LtEq => Some(Object::Bool(l <= r)),
+                ast::Infix::And => Some(Object::String(r)),
+                ast::Infix::Or => Some(Object::String(l)),
+                _ => Some(Object::Error(format!(
+                    "unsupported operator {} for {:?}",
+                    infix,
+                    Object::String(r),
+                ))),
+            },
+            (Object::Null, rhs) => match infix {
                 ast::Infix::Or => Some(rhs),
                 ast::Infix::And => Some(Object::Null),
                 _ => Some(Object::Error(format!(
@@ -918,7 +878,7 @@ mod test {
             ),
             (
                 "1-true; 10",
-                Some(Object::Error("type mismatch: 1 - true".into())),
+                Some(Object::Error("unknown operator: 1 - true".into())),
             ),
             (
                 r#""str1"-"str""#,

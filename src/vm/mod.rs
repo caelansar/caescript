@@ -93,6 +93,42 @@ impl VM {
                 }
                 code::Op::False => self.push(object::Object::Bool(false)),
                 code::Op::True => self.push(object::Object::Bool(true)),
+                code::Op::Eq => {
+                    let r = self.pop().unwrap();
+                    let l = self.pop().unwrap();
+                    self.push((l == r).into());
+                }
+                code::Op::Ne => {
+                    let r = self.pop().unwrap();
+                    let l = self.pop().unwrap();
+                    self.push((l != r).into());
+                }
+                code::Op::Gt => {
+                    let r = self.pop().unwrap();
+                    let l = self.pop().unwrap();
+                    match (l, r) {
+                        (object::Object::Int(l), object::Object::Int(r)) => {
+                            self.push((l > r).into());
+                        }
+                        (object::Object::Float(l), object::Object::Float(r)) => {
+                            self.push((l > r).into());
+                        }
+                        _ => todo!(),
+                    }
+                }
+                code::Op::GtEq => {
+                    let r = self.pop().unwrap();
+                    let l = self.pop().unwrap();
+                    match (l, r) {
+                        (object::Object::Int(l), object::Object::Int(r)) => {
+                            self.push((l >= r).into());
+                        }
+                        (object::Object::Float(l), object::Object::Float(r)) => {
+                            self.push((l >= r).into());
+                        }
+                        _ => todo!(),
+                    }
+                }
                 _ => todo!(),
             }
         }
@@ -123,6 +159,13 @@ mod test {
             ("1%2", Some(object::Object::Int(1))),
             ("true", Some(object::Object::Bool(true))),
             ("false", Some(object::Object::Bool(false))),
+            ("1>2", Some(object::Object::Bool(false))),
+            ("2>=2", Some(object::Object::Bool(true))),
+            ("1<2", Some(object::Object::Bool(true))),
+            ("2<=2", Some(object::Object::Bool(true))),
+            ("1==2", Some(object::Object::Bool(false))),
+            ("1==1", Some(object::Object::Bool(true))),
+            ("2.1>=2.0", Some(object::Object::Bool(true))),
         ];
 
         tests.into_iter().for_each(|test| {
