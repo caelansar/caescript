@@ -540,11 +540,11 @@ impl<'a> Parser<'a> {
         Some(args)
     }
 
-    pub fn parse_program(&mut self) -> ast::Program {
+    pub fn parse_program(&mut self) -> Result<ast::Program, String> {
         let mut stmts = Vec::new();
         while self.current_token != token::Token::EOF {
             if self.is_illegal_token() {
-                return ast::BlockStatement(stmts);
+                return Ok(ast::BlockStatement(stmts));
             }
             let stmt = self.parse_statement();
             if let Some(stmt) = stmt {
@@ -552,7 +552,19 @@ impl<'a> Parser<'a> {
             }
             self.next_token();
         }
-        ast::BlockStatement(stmts)
+
+        let errors = self.errors();
+
+        if errors.len() > 0 {
+            let msg = errors
+                .into_iter()
+                .map(|e| format!("{}\n", e))
+                .collect::<String>();
+
+            return Err(msg);
+        }
+
+        Ok(ast::BlockStatement(stmts))
     }
 
     fn parse_statement(&mut self) -> Option<ast::Statement> {
@@ -735,7 +747,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -776,7 +788,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -817,7 +829,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -839,7 +851,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -856,7 +868,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -873,7 +885,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -890,7 +902,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -907,7 +919,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -925,7 +937,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -947,7 +959,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -989,7 +1001,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -1042,7 +1054,7 @@ mod test {
             let lexer = lexer::Lexer::new(testcase.0);
             let mut parser = Parser::new(lexer);
 
-            let program = parser.parse_program();
+            let program = parser.parse_program().unwrap();
             check_parse_error(&parser);
 
             assert_eq!(testcase.1, &program.to_string())
@@ -1063,7 +1075,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -1090,7 +1102,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -1112,7 +1124,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -1135,7 +1147,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(
@@ -1159,7 +1171,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
 
-        let program = parser.parse_program();
+        let program = parser.parse_program().unwrap();
         check_parse_error(&parser);
 
         assert_eq!(

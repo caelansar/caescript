@@ -190,7 +190,9 @@ mod test {
         ];
 
         tests.into_iter().for_each(|test| {
-            let program = parser::Parser::new(lexer::Lexer::new(test.0)).parse_program();
+            let program = parser::Parser::new(lexer::Lexer::new(test.0))
+                .parse_program()
+                .unwrap();
             let mut compiler = Compiler::new();
             compiler.compile(program);
 

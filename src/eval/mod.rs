@@ -451,7 +451,7 @@ mod test {
 
         let program = parser.parse_program();
         let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
-        evaluator.eval(&program)
+        evaluator.eval(&program.unwrap())
     }
 
     #[test]
@@ -704,10 +704,8 @@ mod test {
                 "let f1 = fn(x,y){x+y}; let f2 = fn(x,y,func) {func(x,y)}; f2(1,2,f1)",
                 Some(Object::Int(3)),
             ),
-            ("fn add(x,y){x+y}; add(1,2)", Some(Object::Int(3))),
-            // x is capature vairable
-            // every time we call c
-            // should update x value
+            ("fn add(x,y){x+y} add(1,2)", Some(Object::Int(3))),
+            // x is capature vairable, every time we call c should update x value
             (
                 r#"let closure = fn(){
                     let x= 1;

@@ -21,13 +21,7 @@ pub fn repl() -> io::Result<()> {
 
         let lexer = lexer::Lexer::new(&input);
         let mut parser = parser::Parser::new(lexer);
-        let program = parser.parse_program();
-
-        if parser.errors().len() != 0 {
-            print!("syntax error: ");
-            parser.errors().iter().for_each(|e| println!("{}", e));
-            continue;
-        }
+        let program = parser.parse_program().unwrap();
 
         let obj = evaluator.eval(&program);
 
