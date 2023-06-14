@@ -129,6 +129,22 @@ impl VM {
                         _ => todo!(),
                     }
                 }
+                code::Op::Minus => {
+                    let operand = self.pop().unwrap();
+                    match operand {
+                        object::Object::Float(f) => self.push(object::Object::Float(-f)),
+                        object::Object::Int(i) => self.push(object::Object::Int(-i)),
+                        _ => todo!(),
+                    }
+                }
+                code::Op::Not => {
+                    let operand = self.pop().unwrap();
+                    match operand {
+                        object::Object::Bool(false) => self.push(object::BOOL_OBJ_TRUE),
+                        object::Object::Bool(true) => self.push(object::BOOL_OBJ_FALSE),
+                        _ => self.push(object::BOOL_OBJ_FALSE),
+                    }
+                }
                 _ => todo!(),
             }
         }
@@ -166,6 +182,11 @@ mod test {
             ("1==2", Some(object::Object::Bool(false))),
             ("1==1", Some(object::Object::Bool(true))),
             ("2.1>=2.0", Some(object::Object::Bool(true))),
+            ("-1", Some(object::Object::Int(-1))),
+            ("!true", Some(object::Object::Bool(false))),
+            ("!!true", Some(object::Object::Bool(true))),
+            ("-1.1", Some(object::Object::Float(-1.1))),
+            ("-(1+2) * -3", Some(object::Object::Int(9))),
         ];
 
         tests.into_iter().for_each(|test| {

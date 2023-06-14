@@ -61,6 +61,13 @@ impl Compiler {
             ast::Expression::Literal(ast::Literal::Bool(false)) => {
                 self.emit(code::Op::False, &vec![]);
             }
+            ast::Expression::Prefix(prefix, expr) => {
+                self.compile_expression(expr);
+                match prefix {
+                    ast::Prefix::Minus => self.emit(code::Op::Minus, &vec![]),
+                    ast::Prefix::Not => self.emit(code::Op::Not, &vec![]),
+                };
+            }
             ast::Expression::Infix(infix, lhs, rhs) => match infix {
                 ast::Infix::Plus => {
                     self.compile_expression(lhs);

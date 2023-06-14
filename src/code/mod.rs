@@ -106,6 +106,8 @@ pub enum Op {
     Eq,
     Ne,
     GtEq,
+    Minus,
+    Not,
     Pop,
 }
 
@@ -125,6 +127,8 @@ impl Display for Op {
             Op::Eq => "OpEqual",
             Op::Ne => "OpNotEqual",
             Op::GtEq => "OpGreaterThanEqual",
+            Op::Not => "OpNot",
+            Op::Minus => "OpMinus",
         };
         f.write_str(s)
     }
@@ -146,6 +150,8 @@ impl Op {
             Op::Eq => vec![],
             Op::Ne => vec![],
             Op::GtEq => vec![],
+            Op::Minus => vec![],
+            Op::Not => vec![],
         }
     }
 }
