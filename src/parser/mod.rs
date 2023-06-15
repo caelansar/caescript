@@ -415,6 +415,10 @@ impl<'a> Parser<'a> {
 
             let body = self.parse_block_statemnt();
 
+            if self.next_token_is(&token::Token::SemiColon) {
+                self.next_token();
+            }
+
             Some(ast::Statement::Function(
                 ast::Ident(ident.clone()),
                 params,
@@ -468,9 +472,7 @@ impl<'a> Parser<'a> {
 
             let expr = self.parse_expression(Precedence::Lowest)?;
 
-            while !self.current_token_is(&token::Token::SemiColon)
-                && !self.current_token_is(&token::Token::EOF)
-            {
+            if self.next_token_is(&token::Token::SemiColon) {
                 self.next_token();
             }
             Some(ast::Expression::Assign(op, ident, Box::new(expr)))
@@ -633,7 +635,7 @@ impl<'a> Parser<'a> {
         let stmt = ast::Statement::Expression(expression);
 
         // eat SemiColon
-        while self.next_token_is(&token::Token::SemiColon) {
+        if self.next_token_is(&token::Token::SemiColon) {
             self.next_token();
         }
         Some(stmt)
