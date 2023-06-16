@@ -152,6 +152,16 @@ impl Compiler {
         self.instructions.extend_from_slice(ins.as_slice());
         pos
     }
+
+    fn change_operand(&mut self, pos: usize, operand: usize) {
+        let op: code::Op = unsafe { std::mem::transmute(self.instructions[pos]) };
+        let new_instruction = code::make(op, &vec![operand]);
+
+        new_instruction
+            .into_iter()
+            .enumerate()
+            .for_each(|(idx, d)| self.instructions[pos + idx] = d)
+    }
 }
 
 #[cfg(test)]
@@ -200,6 +210,36 @@ mod test {
             let bytecode = compiler.bytecode();
             assert_eq!(concat_instructions(test.1), bytecode.instructions);
             assert_eq!(test.2, bytecode.consts);
+        })
+    }
+
+    #[test]
+    fn change_operand_should_work() {
+        let tests = [(
+            "1;2",
+            vec![
+                // 0000
+                code::make(code::Op::Const, &vec![0]),
+                // 0003
+                code::make(code::Op::Pop, &vec![]),
+                // 0004
+                code::make(code::Op::Const, &vec![10]),
+                // 0007
+                code::make(code::Op::Pop, &vec![]),
+            ],
+        )];
+
+        tests.into_iter().for_each(|test| {
+            let program = parser::Parser::new(lexer::Lexer::new(test.0))
+                .parse_program()
+                .unwrap();
+            let mut compiler = Compiler::new();
+            compiler.compile(program);
+
+            compiler.change_operand(4, 10);
+
+            let bytecode = compiler.bytecode();
+            assert_eq!(concat_instructions(test.1), bytecode.instructions);
         })
     }
 }
