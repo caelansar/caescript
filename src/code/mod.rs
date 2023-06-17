@@ -6,7 +6,9 @@ use std::{
 
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
+use crate::ast;
+
+#[derive(Debug, PartialEq, PartialOrd, Clone, Default)]
 pub struct Instructions(pub Vec<u8>);
 
 impl DerefMut for Instructions {
@@ -92,7 +94,7 @@ pub(crate) fn read_u16(slice: &[u8]) -> usize {
 }
 
 #[repr(u8)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Op {
     Const,
     Add,
@@ -110,7 +112,25 @@ pub enum Op {
     Not,
     JumpNotTruthy,
     Jump,
+    Null,
     Pop,
+}
+
+impl From<&ast::Infix> for Op {
+    fn from(value: &ast::Infix) -> Self {
+        match value {
+            ast::Infix::Plus => Op::Add,
+            ast::Infix::Minus => Op::Sub,
+            ast::Infix::Multiply => Op::Mul,
+            ast::Infix::Divide => Op::Div,
+            ast::Infix::Mod => Op::Mod,
+            ast::Infix::Ne => Op::Ne,
+            ast::Infix::Eq => Op::Eq,
+            ast::Infix::Gt => Op::Gt,
+            ast::Infix::GtEq => Op::GtEq,
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Display for Op {
@@ -133,6 +153,7 @@ impl Display for Op {
             Op::Minus => "OpMinus",
             Op::JumpNotTruthy => "OpJumpNotTruthy",
             Op::Jump => "OpJump",
+            Op::Null => "OpNull",
         };
         f.write_str(s)
     }
@@ -158,6 +179,7 @@ impl Op {
             Op::JumpNotTruthy => vec![2],
             Op::Jump => vec![2],
             Op::Not => vec![],
+            Op::Null => vec![],
         }
     }
 }

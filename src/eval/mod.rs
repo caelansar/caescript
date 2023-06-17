@@ -48,15 +48,6 @@ impl Evaluator {
         rv
     }
 
-    #[inline(always)]
-    fn is_true(&self, cond: Object) -> bool {
-        match cond {
-            Object::Bool(b) => b,
-            Object::Null => false,
-            _ => true,
-        }
-    }
-
     fn eval_statement(&mut self, stmt: &ast::Statement) -> Option<Object> {
         match stmt {
             ast::Statement::Let(ident, expr) => self.eval_let(ident, expr),
@@ -279,7 +270,7 @@ impl Evaluator {
     ) -> Option<Object> {
         let mut rv = Some(Object::Null);
 
-        if self.is_true(cond) {
+        if cond.into() {
             rv = self.eval_block_statements(consequence)
         } else {
             alternative
@@ -302,7 +293,7 @@ impl Evaluator {
             None => return None,
         };
 
-        while self.is_true(cond.clone()) {
+        while cond.clone().into() {
             rv = self.eval_block_statements(consequence);
             match rv {
                 Some(Object::Return(_)) => return rv,
@@ -375,8 +366,8 @@ impl Evaluator {
             (Object::Bool(l), Object::Bool(r)) => match infix {
                 ast::Infix::Eq => Some(Object::Bool(l == r)),
                 ast::Infix::Ne => Some(Object::Bool(l != r)),
-                ast::Infix::And => Some(Object::Bool(self.is_true(lhs) && self.is_true(rhs))),
-                ast::Infix::Or => Some(Object::Bool(self.is_true(lhs) || self.is_true(rhs))),
+                ast::Infix::And => Some(Object::Bool(lhs.into() && rhs.into())),
+                ast::Infix::Or => Some(Object::Bool(lhs.into() || rhs.into())),
                 _ => Some(Object::Error(format!(
                     "unsupported operator {} for {:?}",
                     infix, rhs,

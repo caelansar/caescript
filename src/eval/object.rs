@@ -72,6 +72,16 @@ pub enum Object {
     Null,
 }
 
+impl From<Object> for bool {
+    fn from(value: Object) -> Self {
+        match value {
+            Object::Bool(b) => b,
+            Object::Null => false,
+            _ => true,
+        }
+    }
+}
+
 impl Eq for Object {}
 
 impl std::hash::Hash for Object {

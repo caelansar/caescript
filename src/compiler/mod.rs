@@ -2,10 +2,12 @@ use crate::{ast, code};
 
 use crate::eval::object;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Compiler {
     instructions: code::Instructions,
     consts: Vec<object::Object>,
+    last_instruction: Option<EmittedInstruction>,
+    prev_instruction: Option<EmittedInstruction>,
 }
 
 #[derive(Debug)]
@@ -14,15 +16,24 @@ pub struct Bytecode {
     pub consts: Vec<object::Object>,
 }
 
+#[derive(Debug, Clone)]
+pub struct EmittedInstruction {
+    op: code::Op,
+    pos: usize,
+}
+
+impl EmittedInstruction {
+    fn new(op: code::Op, pos: usize) -> Self {
+        Self { op, pos }
+    }
+}
+
 impl Compiler {
     pub fn new() -> Self {
-        Self {
-            instructions: code::Instructions(vec![]),
-            consts: vec![],
-        }
+        Self::default()
     }
 
-    pub fn compile(&mut self, program: ast::Program) {
+    pub fn compile(&mut self, program: &ast::Program) {
         for stmt in program.iter() {
             self.compile_statement(stmt)
         }
@@ -68,51 +79,55 @@ impl Compiler {
                     ast::Prefix::Not => self.emit(code::Op::Not, &vec![]),
                 };
             }
+            ast::Expression::If {
+                condition,
+                consequence,
+                alternative,
+            } => {
+                self.compile_expression(condition);
+
+                // Emit an `JumpNotTruthy` with a bogus value. After compiling the consequence, we will know
+                // how far to jump and can "back-patching" it. Because the compiler is a single pass compiler
+                // this is the solution, however more complex compilers may not come back to change it on first
+                // pass and instead fill it in on another traversal
+                let pos = self.emit(code::Op::JumpNotTruthy, &vec![9999]);
+                self.compile(consequence);
+
+                // evict redundant `Pop`
+                if self.last_instruction_is(code::Op::Pop) {
+                    self.remove_last();
+                }
+
+                let jump_pos = self.emit(code::Op::Jump, &vec![9999]);
+
+                let mut after_pos = self.instructions.len();
+                self.change_operand(pos, after_pos);
+
+                if alternative.is_none() {
+                    self.emit(code::Op::Null, &vec![]);
+                } else {
+                    self.compile(alternative.as_ref().unwrap());
+
+                    if self.last_instruction_is(code::Op::Pop) {
+                        self.remove_last();
+                    }
+                }
+                after_pos = self.instructions.len();
+                self.change_operand(jump_pos, after_pos);
+            }
             ast::Expression::Infix(infix, lhs, rhs) => match infix {
-                ast::Infix::Plus => {
+                ast::Infix::Plus
+                | ast::Infix::Minus
+                | ast::Infix::Multiply
+                | ast::Infix::Divide
+                | ast::Infix::Mod
+                | ast::Infix::Eq
+                | ast::Infix::Ne
+                | ast::Infix::Gt
+                | ast::Infix::GtEq => {
                     self.compile_expression(lhs);
                     self.compile_expression(rhs);
-                    self.emit(code::Op::Add, &vec![]);
-                }
-                ast::Infix::Minus => {
-                    self.compile_expression(lhs);
-                    self.compile_expression(rhs);
-                    self.emit(code::Op::Sub, &vec![]);
-                }
-                ast::Infix::Multiply => {
-                    self.compile_expression(lhs);
-                    self.compile_expression(rhs);
-                    self.emit(code::Op::Mul, &vec![]);
-                }
-                ast::Infix::Divide => {
-                    self.compile_expression(lhs);
-                    self.compile_expression(rhs);
-                    self.emit(code::Op::Div, &vec![]);
-                }
-                ast::Infix::Mod => {
-                    self.compile_expression(lhs);
-                    self.compile_expression(rhs);
-                    self.emit(code::Op::Mod, &vec![]);
-                }
-                ast::Infix::Eq => {
-                    self.compile_expression(lhs);
-                    self.compile_expression(rhs);
-                    self.emit(code::Op::Eq, &vec![]);
-                }
-                ast::Infix::Ne => {
-                    self.compile_expression(lhs);
-                    self.compile_expression(rhs);
-                    self.emit(code::Op::Ne, &vec![]);
-                }
-                ast::Infix::Gt => {
-                    self.compile_expression(lhs);
-                    self.compile_expression(rhs);
-                    self.emit(code::Op::Gt, &vec![]);
-                }
-                ast::Infix::GtEq => {
-                    self.compile_expression(lhs);
-                    self.compile_expression(rhs);
-                    self.emit(code::Op::GtEq, &vec![]);
+                    self.emit(infix.into(), &vec![]);
                 }
                 ast::Infix::Lt => {
                     self.compile_expression(rhs);
@@ -144,7 +159,26 @@ impl Compiler {
 
     fn emit(&mut self, op: code::Op, operands: &Vec<usize>) -> usize {
         let ins = code::make(op, operands);
-        self.add_instruction(ins)
+        let pos = self.add_instruction(ins);
+
+        self.set_last_instruction(op, pos);
+        pos
+    }
+
+    fn set_last_instruction(&mut self, op: code::Op, pos: usize) {
+        self.prev_instruction = self.last_instruction.take();
+        self.last_instruction = Some(EmittedInstruction::new(op, pos));
+    }
+
+    fn last_instruction_is(&mut self, op: code::Op) -> bool {
+        self.last_instruction.as_ref().is_some_and(|i| i.op == op)
+    }
+
+    fn remove_last(&mut self) {
+        self.last_instruction.as_ref().inspect(|ins| {
+            *self.instructions = self.instructions[..ins.pos].into();
+        });
+        self.last_instruction = self.prev_instruction.take();
     }
 
     fn add_instruction(&mut self, ins: code::Instructions) -> usize {
@@ -199,6 +233,54 @@ mod test {
                 ],
                 vec![],
             ),
+            (
+                "if (true) {10} else {20}; 3333",
+                vec![
+                    // 0000
+                    code::make(code::Op::True, &vec![]),
+                    // 0001
+                    code::make(code::Op::JumpNotTruthy, &vec![10]),
+                    // 0004
+                    code::make(code::Op::Const, &vec![0]),
+                    // 0007
+                    code::make(code::Op::Jump, &vec![13]),
+                    // 0010
+                    code::make(code::Op::Const, &vec![1]),
+                    // 0013
+                    code::make(code::Op::Pop, &vec![]),
+                    // 0014
+                    code::make(code::Op::Const, &vec![2]),
+                    // 0017
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![
+                    object::Object::Int(10),
+                    object::Object::Int(20),
+                    object::Object::Int(3333),
+                ],
+            ),
+            (
+                "if (true) {10}; 3333",
+                vec![
+                    // 0000
+                    code::make(code::Op::True, &vec![]),
+                    // 0001
+                    code::make(code::Op::JumpNotTruthy, &vec![10]),
+                    // 0004
+                    code::make(code::Op::Const, &vec![0]),
+                    // 0007
+                    code::make(code::Op::Jump, &vec![11]),
+                    // 0010
+                    code::make(code::Op::Null, &vec![]),
+                    // 0011
+                    code::make(code::Op::Pop, &vec![]),
+                    // 0012
+                    code::make(code::Op::Const, &vec![1]),
+                    // 0015
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![object::Object::Int(10), object::Object::Int(3333)],
+            ),
         ];
 
         tests.into_iter().for_each(|test| {
@@ -206,9 +288,14 @@ mod test {
                 .parse_program()
                 .unwrap();
             let mut compiler = Compiler::new();
-            compiler.compile(program);
+            compiler.compile(&program);
             let bytecode = compiler.bytecode();
-            assert_eq!(concat_instructions(test.1), bytecode.instructions);
+            let res = concat_instructions(test.1);
+            assert_eq!(
+                res, bytecode.instructions,
+                "expect: \n{}, got: \n{} instead",
+                res, bytecode.instructions
+            );
             assert_eq!(test.2, bytecode.consts);
         })
     }
@@ -234,12 +321,17 @@ mod test {
                 .parse_program()
                 .unwrap();
             let mut compiler = Compiler::new();
-            compiler.compile(program);
+            compiler.compile(&program);
 
             compiler.change_operand(4, 10);
 
             let bytecode = compiler.bytecode();
-            assert_eq!(concat_instructions(test.1), bytecode.instructions);
+            let res = concat_instructions(test.1);
+            assert_eq!(
+                res, bytecode.instructions,
+                "expect {}, got {} instead",
+                res, bytecode.instructions
+            );
         })
     }
 }
