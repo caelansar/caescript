@@ -102,6 +102,8 @@ pub enum Op {
     Mul,
     Div,
     Mod,
+    And,
+    Or,
     True,
     False,
     Gt,
@@ -128,6 +130,8 @@ impl From<&ast::Infix> for Op {
             ast::Infix::Eq => Op::Eq,
             ast::Infix::Gt => Op::Gt,
             ast::Infix::GtEq => Op::GtEq,
+            ast::Infix::And => Op::And,
+            ast::Infix::Or => Op::Or,
             _ => unreachable!(),
         }
     }
@@ -154,6 +158,8 @@ impl Display for Op {
             Op::JumpNotTruthy => "OpJumpNotTruthy",
             Op::Jump => "OpJump",
             Op::Null => "OpNull",
+            Op::And => "OpAnd",
+            Op::Or => "OpOr",
         };
         f.write_str(s)
     }
@@ -180,6 +186,8 @@ impl Op {
             Op::Jump => vec![2],
             Op::Not => vec![],
             Op::Null => vec![],
+            Op::And => vec![],
+            Op::Or => vec![],
         }
     }
 }

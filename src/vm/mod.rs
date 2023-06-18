@@ -137,6 +137,26 @@ impl VM {
                         _ => todo!(),
                     }
                 }
+                code::Op::And => {
+                    let r = self.pop().unwrap();
+                    let l = self.pop().unwrap();
+                    match (l, r) {
+                        (object::Object::Bool(l), object::Object::Bool(r)) => {
+                            self.push((l && r).into());
+                        }
+                        _ => todo!(),
+                    }
+                }
+                code::Op::Or => {
+                    let r = self.pop().unwrap();
+                    let l = self.pop().unwrap();
+                    match (l, r) {
+                        (object::Object::Bool(l), object::Object::Bool(r)) => {
+                            self.push((l || r).into());
+                        }
+                        _ => todo!(),
+                    }
+                }
                 code::Op::Not => {
                     let operand = self.pop().unwrap();
                     match operand {
@@ -201,6 +221,8 @@ mod test {
             ("!!true", Some(object::Object::Bool(true))),
             ("-1.1", Some(object::Object::Float(-1.1))),
             ("-(1+2) * -3", Some(object::Object::Int(9))),
+            ("false || true", Some(object::Object::Bool(true))),
+            ("false && true", Some(object::Object::Bool(false))),
         ];
 
         tests.into_iter().for_each(|test| {

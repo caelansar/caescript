@@ -121,6 +121,8 @@ impl Compiler {
                 | ast::Infix::Multiply
                 | ast::Infix::Divide
                 | ast::Infix::Mod
+                | ast::Infix::And
+                | ast::Infix::Or
                 | ast::Infix::Eq
                 | ast::Infix::Ne
                 | ast::Infix::Gt
