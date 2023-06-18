@@ -2,12 +2,17 @@ use crate::{ast, code};
 
 use crate::eval::object;
 
+use self::symbol_table::SymbolTable;
+
+mod symbol_table;
+
 #[derive(Debug, Default)]
 pub struct Compiler {
     instructions: code::Instructions,
     consts: Vec<object::Object>,
     last_instruction: Option<EmittedInstruction>,
     prev_instruction: Option<EmittedInstruction>,
+    symbol_table: SymbolTable,
 }
 
 #[derive(Debug)]
@@ -45,6 +50,12 @@ impl Compiler {
                 self.compile_expression(expr);
                 self.emit(code::Op::Pop, &vec![]);
             }
+            ast::Statement::Let(ident, expr) => {
+                self.compile_expression(expr);
+
+                let symbol = self.symbol_table.define(ident.0.clone());
+                self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+            }
             _ => todo!(),
         }
     }
@@ -71,6 +82,10 @@ impl Compiler {
             }
             ast::Expression::Literal(ast::Literal::Bool(false)) => {
                 self.emit(code::Op::False, &vec![]);
+            }
+            ast::Expression::Ident(ident) => {
+                let symbol = self.symbol_table.resolve(&ident).unwrap();
+                self.emit(code::Op::GetGlobal, &vec![symbol.index]);
             }
             ast::Expression::Prefix(prefix, expr) => {
                 self.compile_expression(expr);

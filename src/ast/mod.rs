@@ -8,6 +8,14 @@ use crate::token;
 #[derive(PartialEq, Clone, Debug)]
 pub struct Ident(pub String);
 
+impl Deref for Ident {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[derive(PartialEq, Clone, Debug)]
 pub enum Prefix {
     Minus,

@@ -115,6 +115,8 @@ pub enum Op {
     JumpNotTruthy,
     Jump,
     Null,
+    SetGlobal,
+    GetGlobal,
     Pop,
 }
 
@@ -160,6 +162,8 @@ impl Display for Op {
             Op::Null => "OpNull",
             Op::And => "OpAnd",
             Op::Or => "OpOr",
+            Op::SetGlobal => "OpSetGlobal",
+            Op::GetGlobal => "OpGetGlobal",
         };
         f.write_str(s)
     }
@@ -188,6 +192,8 @@ impl Op {
             Op::Null => vec![],
             Op::And => vec![],
             Op::Or => vec![],
+            Op::SetGlobal => vec![2],
+            Op::GetGlobal => vec![2],
         }
     }
 }

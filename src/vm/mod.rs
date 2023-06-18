@@ -1,22 +1,27 @@
 use crate::{code, compiler, eval::object};
 
 const STACK_SIZE: usize = 2048;
+const GLOBAL_SIZE: usize = 65535;
 
+// VM is a stack-based Virtual Machine
 pub struct VM {
     consts: Vec<object::Object>,
     instructions: code::Instructions,
     stack: Vec<object::Object>, // stack pointer
     sp: usize,
+    global: Vec<object::Object>,
 }
 
 impl VM {
     pub fn new(bytecode: compiler::Bytecode) -> Self {
         let stack = Vec::with_capacity(STACK_SIZE);
+        let global = Vec::with_capacity(GLOBAL_SIZE);
 
         Self {
             consts: bytecode.consts,
             instructions: bytecode.instructions,
             stack,
+            global,
             sp: 0,
         }
     }
@@ -179,6 +184,20 @@ impl VM {
                     ip = code::read_u16(&self.instructions[ip..]);
                 }
                 code::Op::Null => self.push(object::Object::Null),
+                code::Op::SetGlobal => {
+                    let pos = code::read_u16(&self.instructions[ip..]);
+                    ip += 2;
+
+                    let val = self.pop().unwrap();
+                    self.global.insert(pos, val);
+                }
+                code::Op::GetGlobal => {
+                    let pos = code::read_u16(&self.instructions[ip..]);
+                    ip += 2;
+
+                    let val = self.global.get(pos);
+                    self.push(val.unwrap().clone());
+                }
                 _ => todo!(),
             }
         }
@@ -254,6 +273,39 @@ mod test {
             ("if (false) {10} else {20}", Some(object::Object::Int(20))),
             ("if (false) {10}", Some(object::Object::Null)),
             ("!(if (false) {10})", Some(object::Object::Bool(true))),
+        ];
+        tests.into_iter().for_each(|test| {
+            let program = parser::Parser::new(lexer::Lexer::new(test.0))
+                .parse_program()
+                .unwrap();
+            let mut compiler = Compiler::new();
+            compiler.compile(&program);
+
+            let bytecode = compiler.bytecode();
+
+            let mut vm = VM::new(bytecode);
+            vm.run();
+
+            assert_eq!(
+                test.1,
+                vm.last_popped(),
+                "{} expect latest pop to be {:?}, got {:?} instead",
+                test.0,
+                test.1,
+                vm.last_popped()
+            )
+        })
+    }
+
+    #[test]
+    fn vm_let_work() {
+        let tests = [
+            ("let a = 10; a", Some(object::Object::Int(10))),
+            ("let a = 10; let b = 20; a+b", Some(object::Object::Int(30))),
+            (
+                "let a = 10; let b = a+a; a+b",
+                Some(object::Object::Int(30)),
+            ),
         ];
         tests.into_iter().for_each(|test| {
             let program = parser::Parser::new(lexer::Lexer::new(test.0))
