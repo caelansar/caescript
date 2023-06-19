@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{ast, map};
+use crate::ast;
 
 use self::{env::Environment, object::*};
 
@@ -427,7 +427,7 @@ impl Evaluator {
 
 #[cfg(test)]
 mod test {
-    use crate::{lexer, parser::Parser};
+    use crate::{lexer, map, parser::Parser};
 
     use super::*;
 
