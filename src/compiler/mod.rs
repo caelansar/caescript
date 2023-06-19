@@ -1,3 +1,5 @@
+use anyhow::{anyhow, Result};
+
 use crate::{ast, code};
 
 use crate::eval::object;
@@ -38,29 +40,31 @@ impl Compiler {
         Self::default()
     }
 
-    pub fn compile(&mut self, program: &ast::Program) {
+    pub fn compile(&mut self, program: &ast::Program) -> Result<Bytecode> {
         for stmt in program.iter() {
-            self.compile_statement(stmt)
+            self.compile_statement(stmt)?
         }
+        Ok(self.bytecode())
     }
 
-    fn compile_statement(&mut self, stmt: &ast::Statement) {
+    fn compile_statement(&mut self, stmt: &ast::Statement) -> Result<()> {
         match stmt {
             ast::Statement::Expression(expr) => {
-                self.compile_expression(expr);
+                self.compile_expression(expr)?;
                 self.emit(code::Op::Pop, &vec![]);
             }
             ast::Statement::Let(ident, expr) => {
-                self.compile_expression(expr);
+                self.compile_expression(expr)?;
 
                 let symbol = self.symbol_table.define(ident.0.clone());
                 self.emit(code::Op::SetGlobal, &vec![symbol.index]);
             }
             _ => todo!(),
         }
+        Ok(())
     }
 
-    fn compile_expression(&mut self, expr: &ast::Expression) {
+    fn compile_expression(&mut self, expr: &ast::Expression) -> Result<()> {
         match expr {
             ast::Expression::Literal(ast::Literal::Int(i)) => {
                 let int = object::Object::Int(*i);
@@ -84,11 +88,14 @@ impl Compiler {
                 self.emit(code::Op::False, &vec![]);
             }
             ast::Expression::Ident(ident) => {
-                let symbol = self.symbol_table.resolve(&ident).unwrap();
+                let symbol = self
+                    .symbol_table
+                    .resolve(&ident)
+                    .ok_or(anyhow!("undefined variable {}", &ident.0))?;
                 self.emit(code::Op::GetGlobal, &vec![symbol.index]);
             }
             ast::Expression::Prefix(prefix, expr) => {
-                self.compile_expression(expr);
+                self.compile_expression(expr)?;
                 match prefix {
                     ast::Prefix::Minus => self.emit(code::Op::Minus, &vec![]),
                     ast::Prefix::Not => self.emit(code::Op::Not, &vec![]),
@@ -99,14 +106,14 @@ impl Compiler {
                 consequence,
                 alternative,
             } => {
-                self.compile_expression(condition);
+                self.compile_expression(condition)?;
 
                 // Emit an `JumpNotTruthy` with a bogus value. After compiling the consequence, we will know
                 // how far to jump and can "back-patching" it. Because the compiler is a single pass compiler
                 // this is the solution, however more complex compilers may not come back to change it on first
                 // pass and instead fill it in on another traversal
                 let pos = self.emit(code::Op::JumpNotTruthy, &vec![9999]);
-                self.compile(consequence);
+                self.compile(consequence)?;
 
                 // evict redundant `Pop`
                 if self.last_instruction_is(code::Op::Pop) {
@@ -121,7 +128,7 @@ impl Compiler {
                 if alternative.is_none() {
                     self.emit(code::Op::Null, &vec![]);
                 } else {
-                    self.compile(alternative.as_ref().unwrap());
+                    self.compile(alternative.as_ref().unwrap())?;
 
                     if self.last_instruction_is(code::Op::Pop) {
                         self.remove_last();
@@ -142,24 +149,24 @@ impl Compiler {
                 | ast::Infix::Ne
                 | ast::Infix::Gt
                 | ast::Infix::GtEq => {
-                    self.compile_expression(lhs);
-                    self.compile_expression(rhs);
+                    self.compile_expression(lhs)?;
+                    self.compile_expression(rhs)?;
                     self.emit(infix.into(), &vec![]);
                 }
                 ast::Infix::Lt => {
-                    self.compile_expression(rhs);
-                    self.compile_expression(lhs);
+                    self.compile_expression(rhs)?;
+                    self.compile_expression(lhs)?;
                     self.emit(code::Op::Gt, &vec![]);
                 }
                 ast::Infix::LtEq => {
-                    self.compile_expression(rhs);
-                    self.compile_expression(lhs);
+                    self.compile_expression(rhs)?;
+                    self.compile_expression(lhs)?;
                     self.emit(code::Op::GtEq, &vec![]);
                 }
-                _ => todo!(),
             },
-            _ => todo!("unknown expr: {}", expr),
+            _ => panic!("unknown expr: {}", expr),
         }
+        Ok(())
     }
 
     pub fn bytecode(&self) -> Bytecode {
@@ -305,7 +312,7 @@ mod test {
                 .parse_program()
                 .unwrap();
             let mut compiler = Compiler::new();
-            compiler.compile(&program);
+            compiler.compile(&program).unwrap();
             let bytecode = compiler.bytecode();
             let res = concat_instructions(test.1);
             assert_eq!(
@@ -338,7 +345,7 @@ mod test {
                 .parse_program()
                 .unwrap();
             let mut compiler = Compiler::new();
-            compiler.compile(&program);
+            compiler.compile(&program).unwrap();
 
             compiler.change_operand(4, 10);
 

@@ -10,7 +10,8 @@ path = "src/bin/main.rs"
 
 [dependencies]
 byteorder = { version = "1", optional = true }
+anyhow = { version = "1.0.71", optional = true}
 
 [features]
 trace = []
-vm = ["byteorder"]
+vm = ["byteorder", "anyhow"]

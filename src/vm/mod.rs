@@ -249,7 +249,7 @@ mod test {
                 .parse_program()
                 .unwrap();
             let mut compiler = Compiler::new();
-            compiler.compile(&program);
+            compiler.compile(&program).unwrap();
 
             let mut vm = VM::new(compiler.bytecode());
             vm.run();
@@ -279,7 +279,7 @@ mod test {
                 .parse_program()
                 .unwrap();
             let mut compiler = Compiler::new();
-            compiler.compile(&program);
+            compiler.compile(&program).unwrap();
 
             let bytecode = compiler.bytecode();
 
@@ -312,7 +312,7 @@ mod test {
                 .parse_program()
                 .unwrap();
             let mut compiler = Compiler::new();
-            compiler.compile(&program);
+            compiler.compile(&program).unwrap();
 
             let bytecode = compiler.bytecode();
 
