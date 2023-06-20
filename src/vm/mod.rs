@@ -198,7 +198,18 @@ impl VM {
                     let val = self.global.get(pos);
                     self.push(val.unwrap().clone());
                 }
-                _ => todo!(),
+                code::Op::Array => {
+                    let len = code::read_u16(&self.instructions[ip..]);
+                    ip += 2;
+
+                    let mut elems = Vec::with_capacity(len);
+                    (self.sp - len..self.sp).into_iter().for_each(|idx| {
+                        elems.push(self.stack[idx].clone());
+                    });
+
+                    self.sp -= len;
+                    self.push(object::Object::Array(elems));
+                }
             }
         }
     }
@@ -305,6 +316,42 @@ mod test {
             (
                 "let a = 10; let b = a+a; a+b",
                 Some(object::Object::Int(30)),
+            ),
+        ];
+        tests.into_iter().for_each(|test| {
+            let program = parser::Parser::new(lexer::Lexer::new(test.0))
+                .parse_program()
+                .unwrap();
+            let mut compiler = Compiler::new();
+            compiler.compile(&program).unwrap();
+
+            let bytecode = compiler.bytecode();
+
+            let mut vm = VM::new(bytecode);
+            vm.run();
+
+            assert_eq!(
+                test.1,
+                vm.last_popped(),
+                "{} expect latest pop to be {:?}, got {:?} instead",
+                test.0,
+                test.1,
+                vm.last_popped()
+            )
+        })
+    }
+
+    #[test]
+    fn vm_array_work() {
+        let tests = [
+            ("[]", Some(object::Object::Array(vec![]))),
+            (
+                "[1,2,3]",
+                Some(object::Object::Array(vec![
+                    object::Object::Int(1),
+                    object::Object::Int(2),
+                    object::Object::Int(3),
+                ])),
             ),
         ];
         tests.into_iter().for_each(|test| {

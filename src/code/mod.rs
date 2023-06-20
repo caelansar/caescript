@@ -117,6 +117,7 @@ pub enum Op {
     Null,
     SetGlobal,
     GetGlobal,
+    Array,
     Pop,
 }
 
@@ -164,6 +165,7 @@ impl Display for Op {
             Op::Or => "OpOr",
             Op::SetGlobal => "OpSetGlobal",
             Op::GetGlobal => "OpGetGlobal",
+            Op::Array => "OpArray",
         };
         f.write_str(s)
     }
@@ -194,6 +196,7 @@ impl Op {
             Op::Or => vec![],
             Op::SetGlobal => vec![2],
             Op::GetGlobal => vec![2],
+            Op::Array => vec![2],
         }
     }
 }
