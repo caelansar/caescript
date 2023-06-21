@@ -165,9 +165,10 @@ impl Compiler {
                 }
             },
             ast::Expression::Array(elems) => {
-                for elem in elems.iter() {
-                    self.compile_expression(elem)?;
-                }
+                elems
+                    .iter()
+                    .try_for_each(|elem| self.compile_expression(elem))?;
+
                 self.emit(code::Op::Array, &vec![elems.len()]);
             }
             _ => panic!("unknown expr: {}", expr),
