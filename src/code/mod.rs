@@ -118,6 +118,7 @@ pub enum Op {
     SetGlobal,
     GetGlobal,
     Array,
+    Hash,
     Pop,
 }
 
@@ -166,6 +167,7 @@ impl Display for Op {
             Op::SetGlobal => "OpSetGlobal",
             Op::GetGlobal => "OpGetGlobal",
             Op::Array => "OpArray",
+            Op::Hash => "OpHash",
         };
         f.write_str(s)
     }
@@ -197,6 +199,7 @@ impl Op {
             Op::SetGlobal => vec![2],
             Op::GetGlobal => vec![2],
             Op::Array => vec![2],
+            Op::Hash => vec![2],
         }
     }
 }

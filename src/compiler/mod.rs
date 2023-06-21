@@ -171,6 +171,14 @@ impl Compiler {
 
                 self.emit(code::Op::Array, &vec![elems.len()]);
             }
+            ast::Expression::Hash(kvs) => {
+                kvs.iter().try_for_each(|(k, v)| {
+                    self.compile_expression(k)?;
+                    self.compile_expression(v)
+                })?;
+
+                self.emit(code::Op::Hash, &vec![kvs.len() * 2]);
+            }
             _ => panic!("unknown expr: {}", expr),
         }
         Ok(())
@@ -410,6 +418,55 @@ mod test {
                 res, bytecode.instructions,
                 "expect {}, got {} instead",
                 res, bytecode.instructions
+            );
+        })
+    }
+
+    #[test]
+    fn compile_hash_should_work() {
+        let tests = [
+            (
+                "{}",
+                vec![
+                    code::make(code::Op::Hash, &vec![0]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+            ),
+            (
+                "{1: 2}",
+                vec![
+                    code::make(code::Op::Const, &vec![0]),
+                    code::make(code::Op::Const, &vec![1]),
+                    code::make(code::Op::Hash, &vec![2]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+            ),
+            (
+                "{1: 2, 4: 1+2}",
+                vec![
+                    code::make(code::Op::Const, &vec![0]),
+                    code::make(code::Op::Const, &vec![1]),
+                    code::make(code::Op::Const, &vec![2]),
+                    code::make(code::Op::Const, &vec![3]),
+                    code::make(code::Op::Const, &vec![4]),
+                    code::make(code::Op::Add, &vec![]),
+                    code::make(code::Op::Hash, &vec![4]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+            ),
+        ];
+
+        tests.into_iter().for_each(|test| {
+            let program = parser::Parser::new(lexer::Lexer::new(test.0))
+                .parse_program()
+                .unwrap();
+            let mut compiler = Compiler::new();
+            let bytecode = compiler.compile(&program).unwrap();
+            let res = concat_instructions(test.1);
+            assert_eq!(
+                res, bytecode.instructions,
+                "test {} expect {}, got {} instead",
+                test.0, res, bytecode.instructions
             );
         })
     }

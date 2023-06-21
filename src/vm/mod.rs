@@ -210,6 +210,23 @@ impl VM {
                     self.sp -= len;
                     self.push(object::Object::Array(elems));
                 }
+                code::Op::Hash => {
+                    let len = code::read_u16(&self.instructions[ip..]);
+                    ip += 2;
+
+                    let mut elems = Vec::with_capacity(len);
+                    (self.sp - len..self.sp)
+                        .into_iter()
+                        .step_by(2)
+                        .for_each(|idx| {
+                            elems.push((self.stack[idx].clone(), self.stack[idx + 1].clone()));
+                        });
+
+                    self.sp -= len;
+                    self.push(object::Object::Hash(Iterator::collect(
+                        IntoIterator::into_iter(elems),
+                    )));
+                }
             }
         }
     }
@@ -217,7 +234,7 @@ impl VM {
 
 #[cfg(test)]
 mod test {
-    use crate::{compiler::Compiler, lexer, parser};
+    use crate::{compiler::Compiler, lexer, map, parser};
 
     use super::*;
 
@@ -352,6 +369,41 @@ mod test {
                     object::Object::Int(2),
                     object::Object::Int(3),
                 ])),
+            ),
+        ];
+        tests.into_iter().for_each(|test| {
+            let program = parser::Parser::new(lexer::Lexer::new(test.0))
+                .parse_program()
+                .unwrap();
+            let mut compiler = Compiler::new();
+            compiler.compile(&program).unwrap();
+
+            let bytecode = compiler.bytecode();
+
+            let mut vm = VM::new(bytecode);
+            vm.run();
+
+            assert_eq!(
+                test.1,
+                vm.last_popped(),
+                "{} expect latest pop to be {:?}, got {:?} instead",
+                test.0,
+                test.1,
+                vm.last_popped()
+            )
+        })
+    }
+
+    #[test]
+    fn vm_hash_work() {
+        let tests = [
+            ("{}", Some(object::Object::Hash(map! {}))),
+            (
+                "{1: 2, 3: 4+5}",
+                Some(object::Object::Hash(map! {
+                    object::Object::Int(1) => object::Object::Int(2),
+                    object::Object::Int(3) => object::Object::Int(9),
+                })),
             ),
         ];
         tests.into_iter().for_each(|test| {
