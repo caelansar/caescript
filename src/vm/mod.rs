@@ -227,6 +227,25 @@ impl VM {
                         IntoIterator::into_iter(elems),
                     )));
                 }
+                code::Op::Index => {
+                    let idx = self.pop().unwrap();
+                    let expr = self.pop().unwrap();
+
+                    match (expr, idx) {
+                        (object::Object::Hash(hash), key) => self.push(
+                            hash.get(&key)
+                                .map(|x| x.clone())
+                                .unwrap_or(object::Object::Null),
+                        ),
+                        (object::Object::Array(array), object::Object::Int(i)) => self.push(
+                            array
+                                .get(i as usize)
+                                .map(|x| x.clone())
+                                .unwrap_or(object::Object::Null),
+                        ),
+                        _ => unreachable!(),
+                    }
+                }
             }
         }
     }
@@ -237,6 +256,26 @@ mod test {
     use crate::{compiler::Compiler, lexer, map, parser};
 
     use super::*;
+
+    fn run(input: &str, expect: Option<object::Object>) {
+        let program = parser::Parser::new(lexer::Lexer::new(input))
+            .parse_program()
+            .unwrap();
+        let mut compiler = Compiler::new();
+        compiler.compile(&program).unwrap();
+
+        let mut vm = VM::new(compiler.bytecode());
+        vm.run();
+
+        assert_eq!(
+            expect,
+            vm.last_popped(),
+            "{} expect latest pop to be {:?}, got {:?} instead",
+            input,
+            expect,
+            vm.last_popped()
+        )
+    }
 
     #[test]
     fn vm_should_work() {
@@ -272,25 +311,7 @@ mod test {
             ("false && true", Some(object::Object::Bool(false))),
         ];
 
-        tests.into_iter().for_each(|test| {
-            let program = parser::Parser::new(lexer::Lexer::new(test.0))
-                .parse_program()
-                .unwrap();
-            let mut compiler = Compiler::new();
-            compiler.compile(&program).unwrap();
-
-            let mut vm = VM::new(compiler.bytecode());
-            vm.run();
-
-            assert_eq!(
-                test.1,
-                vm.last_popped(),
-                "{} expect latest pop to be {:?}, got {:?} instead",
-                test.0,
-                test.1,
-                vm.last_popped()
-            )
-        })
+        tests.into_iter().for_each(|test| run(test.0, test.1))
     }
 
     #[test]
@@ -302,27 +323,7 @@ mod test {
             ("if (false) {10}", Some(object::Object::Null)),
             ("!(if (false) {10})", Some(object::Object::Bool(true))),
         ];
-        tests.into_iter().for_each(|test| {
-            let program = parser::Parser::new(lexer::Lexer::new(test.0))
-                .parse_program()
-                .unwrap();
-            let mut compiler = Compiler::new();
-            compiler.compile(&program).unwrap();
-
-            let bytecode = compiler.bytecode();
-
-            let mut vm = VM::new(bytecode);
-            vm.run();
-
-            assert_eq!(
-                test.1,
-                vm.last_popped(),
-                "{} expect latest pop to be {:?}, got {:?} instead",
-                test.0,
-                test.1,
-                vm.last_popped()
-            )
-        })
+        tests.into_iter().for_each(|test| run(test.0, test.1))
     }
 
     #[test]
@@ -335,27 +336,7 @@ mod test {
                 Some(object::Object::Int(30)),
             ),
         ];
-        tests.into_iter().for_each(|test| {
-            let program = parser::Parser::new(lexer::Lexer::new(test.0))
-                .parse_program()
-                .unwrap();
-            let mut compiler = Compiler::new();
-            compiler.compile(&program).unwrap();
-
-            let bytecode = compiler.bytecode();
-
-            let mut vm = VM::new(bytecode);
-            vm.run();
-
-            assert_eq!(
-                test.1,
-                vm.last_popped(),
-                "{} expect latest pop to be {:?}, got {:?} instead",
-                test.0,
-                test.1,
-                vm.last_popped()
-            )
-        })
+        tests.into_iter().for_each(|test| run(test.0, test.1))
     }
 
     #[test]
@@ -370,28 +351,11 @@ mod test {
                     object::Object::Int(3),
                 ])),
             ),
+            ("[1][0]", Some(object::Object::Int(1))),
+            ("[1,2,3,4][3]", Some(object::Object::Int(4))),
+            ("let arr = [1,2,3,4]; arr[4]", Some(object::Object::Null)),
         ];
-        tests.into_iter().for_each(|test| {
-            let program = parser::Parser::new(lexer::Lexer::new(test.0))
-                .parse_program()
-                .unwrap();
-            let mut compiler = Compiler::new();
-            compiler.compile(&program).unwrap();
-
-            let bytecode = compiler.bytecode();
-
-            let mut vm = VM::new(bytecode);
-            vm.run();
-
-            assert_eq!(
-                test.1,
-                vm.last_popped(),
-                "{} expect latest pop to be {:?}, got {:?} instead",
-                test.0,
-                test.1,
-                vm.last_popped()
-            )
-        })
+        tests.into_iter().for_each(|test| run(test.0, test.1))
     }
 
     #[test]
@@ -405,27 +369,9 @@ mod test {
                     object::Object::Int(3) => object::Object::Int(9),
                 })),
             ),
+            ("{1: 2, 3: 4+5}[3]", Some(object::Object::Int(9))),
+            ("let hash = {1: 2}; hash[1]", Some(object::Object::Int(2))),
         ];
-        tests.into_iter().for_each(|test| {
-            let program = parser::Parser::new(lexer::Lexer::new(test.0))
-                .parse_program()
-                .unwrap();
-            let mut compiler = Compiler::new();
-            compiler.compile(&program).unwrap();
-
-            let bytecode = compiler.bytecode();
-
-            let mut vm = VM::new(bytecode);
-            vm.run();
-
-            assert_eq!(
-                test.1,
-                vm.last_popped(),
-                "{} expect latest pop to be {:?}, got {:?} instead",
-                test.0,
-                test.1,
-                vm.last_popped()
-            )
-        })
+        tests.into_iter().for_each(|test| run(test.0, test.1))
     }
 }

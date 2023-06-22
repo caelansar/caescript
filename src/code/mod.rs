@@ -119,6 +119,7 @@ pub enum Op {
     GetGlobal,
     Array,
     Hash,
+    Index,
     Pop,
 }
 
@@ -168,6 +169,7 @@ impl Display for Op {
             Op::GetGlobal => "OpGetGlobal",
             Op::Array => "OpArray",
             Op::Hash => "OpHash",
+            Op::Index => "OpIndex",
         };
         f.write_str(s)
     }
@@ -200,6 +202,7 @@ impl Op {
             Op::GetGlobal => vec![2],
             Op::Array => vec![2],
             Op::Hash => vec![2],
+            Op::Index => vec![],
         }
     }
 }
