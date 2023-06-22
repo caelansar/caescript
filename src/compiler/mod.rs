@@ -87,6 +87,9 @@ impl Compiler {
             ast::Expression::Literal(ast::Literal::Bool(false)) => {
                 self.emit(code::Op::False, &vec![]);
             }
+            ast::Expression::Null => {
+                self.emit(code::Op::Null, &vec![]);
+            }
             ast::Expression::Ident(ident) => {
                 let symbol = self
                     .symbol_table

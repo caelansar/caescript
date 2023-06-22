@@ -309,6 +309,7 @@ mod test {
             ("-(1+2) * -3", Some(object::Object::Int(9))),
             ("false || true", Some(object::Object::Bool(true))),
             ("false && true", Some(object::Object::Bool(false))),
+            ("null", Some(object::Object::Null)),
         ];
 
         tests.into_iter().for_each(|test| run(test.0, test.1))
