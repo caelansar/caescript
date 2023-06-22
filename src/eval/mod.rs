@@ -160,6 +160,7 @@ impl Evaluator {
             ast::Assign::MinusEq => val = curr - exp_val,
             ast::Assign::MultiplyEq => val = curr * exp_val,
             ast::Assign::DivideEq => val = curr / exp_val,
+            ast::Assign::ModEq => val = curr % exp_val,
         }
 
         if let Object::Null = val {

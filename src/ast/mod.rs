@@ -110,6 +110,7 @@ pub enum Assign {
     MinusEq,
     DivideEq,
     MultiplyEq,
+    ModEq,
 }
 
 impl TryFrom<&token::Token> for Assign {
@@ -121,6 +122,7 @@ impl TryFrom<&token::Token> for Assign {
             token::Token::PlusEq => Ok(Assign::PlusEq),
             token::Token::MinusEq => Ok(Assign::MinusEq),
             token::Token::SlashEq => Ok(Assign::DivideEq),
+            token::Token::ModEq => Ok(Assign::ModEq),
             token::Token::AsteriskEq => Ok(Assign::MultiplyEq),
             _ => Err("invalid token"),
         }
@@ -135,6 +137,7 @@ impl fmt::Display for Assign {
             Assign::MinusEq => write!(f, "-="),
             Assign::DivideEq => write!(f, "/="),
             Assign::MultiplyEq => write!(f, "*="),
+            Assign::ModEq => write!(f, "%="),
         }
     }
 }

@@ -7,8 +7,8 @@ const GLOBAL_SIZE: usize = 65535;
 pub struct VM {
     consts: Vec<object::Object>,
     instructions: code::Instructions,
-    stack: Vec<object::Object>, // stack pointer
-    sp: usize,
+    stack: Vec<object::Object>,
+    sp: usize, // stack pointer
     global: Vec<object::Object>,
 }
 
@@ -262,10 +262,13 @@ mod test {
             .parse_program()
             .unwrap();
         let mut compiler = Compiler::new();
-        compiler.compile(&program).unwrap();
+        let bytecode = compiler.compile(&program).unwrap();
+        println!("{}", bytecode.instructions);
 
         let mut vm = VM::new(compiler.bytecode());
         vm.run();
+        println!("vm global: {:?}", vm.global);
+        println!("vm stack: {:?}", vm.stack);
 
         assert_eq!(
             expect,
@@ -336,6 +339,12 @@ mod test {
                 "let a = 10; let b = a+a; a+b",
                 Some(object::Object::Int(30)),
             ),
+            ("let a = 10 + 1; a = 100; a", Some(object::Object::Int(100))),
+            ("let a = 10 + 1; a += 1; a", Some(object::Object::Int(12))),
+            ("let a = 10 + 2; a /= 2; a", Some(object::Object::Int(6))),
+            ("let a = 10 + 2; a *= 1+1; a", Some(object::Object::Int(24))),
+            ("let a = 10 + 2; a -= 2; a", Some(object::Object::Int(10))),
+            ("let a = 10 + 2; a %= 2; a", Some(object::Object::Int(0))),
         ];
         tests.into_iter().for_each(|test| run(test.0, test.1))
     }

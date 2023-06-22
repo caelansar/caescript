@@ -51,7 +51,9 @@ impl Compiler {
         match stmt {
             ast::Statement::Expression(expr) => {
                 self.compile_expression(expr)?;
-                self.emit(code::Op::Pop, &vec![]);
+                if !matches!(expr, ast::Expression::Assign(_, _, _)) {
+                    self.emit(code::Op::Pop, &vec![]);
+                }
             }
             ast::Statement::Let(ident, expr) => {
                 self.compile_expression(expr)?;
@@ -165,6 +167,84 @@ impl Compiler {
                     self.compile_expression(rhs)?;
                     self.compile_expression(lhs)?;
                     self.emit(code::Op::GtEq, &vec![]);
+                }
+            },
+            ast::Expression::Assign(assign, ident, expr) => match assign {
+                ast::Assign::Assign => {
+                    let symbol = self
+                        .symbol_table
+                        .resolve(&ident)
+                        .ok_or(anyhow!("undefined variable {}", &ident.0))?;
+                    self.emit(code::Op::GetGlobal, &vec![symbol.index]);
+
+                    self.compile_expression(expr)?;
+                    let symbol = self.symbol_table.define(ident.0.clone());
+                    self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+                }
+                ast::Assign::PlusEq => {
+                    let symbol = self
+                        .symbol_table
+                        .resolve(&ident)
+                        .ok_or(anyhow!("undefined variable {}", &ident.0))?;
+
+                    self.emit(code::Op::GetGlobal, &vec![symbol.index]);
+                    self.compile_expression(expr)?;
+                    self.emit(code::Op::Add, &vec![]);
+
+                    let symbol = self.symbol_table.define(ident.0.clone());
+                    self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+                }
+                ast::Assign::MinusEq => {
+                    let symbol = self
+                        .symbol_table
+                        .resolve(&ident)
+                        .ok_or(anyhow!("undefined variable {}", &ident.0))?;
+
+                    self.emit(code::Op::GetGlobal, &vec![symbol.index]);
+                    self.compile_expression(expr)?;
+                    self.emit(code::Op::Sub, &vec![]);
+
+                    let symbol = self.symbol_table.define(ident.0.clone());
+                    self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+                }
+                ast::Assign::MultiplyEq => {
+                    let symbol = self
+                        .symbol_table
+                        .resolve(&ident)
+                        .ok_or(anyhow!("undefined variable {}", &ident.0))?;
+
+                    self.emit(code::Op::GetGlobal, &vec![symbol.index]);
+                    self.compile_expression(expr)?;
+                    self.emit(code::Op::Mul, &vec![]);
+
+                    let symbol = self.symbol_table.define(ident.0.clone());
+                    self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+                }
+                ast::Assign::DivideEq => {
+                    let symbol = self
+                        .symbol_table
+                        .resolve(&ident)
+                        .ok_or(anyhow!("undefined variable {}", &ident.0))?;
+
+                    self.emit(code::Op::GetGlobal, &vec![symbol.index]);
+                    self.compile_expression(expr)?;
+                    self.emit(code::Op::Div, &vec![]);
+
+                    let symbol = self.symbol_table.define(ident.0.clone());
+                    self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+                }
+                ast::Assign::ModEq => {
+                    let symbol = self
+                        .symbol_table
+                        .resolve(&ident)
+                        .ok_or(anyhow!("undefined variable {}", &ident.0))?;
+
+                    self.emit(code::Op::GetGlobal, &vec![symbol.index]);
+                    self.compile_expression(expr)?;
+                    self.emit(code::Op::Mod, &vec![]);
+
+                    let symbol = self.symbol_table.define(ident.0.clone());
+                    self.emit(code::Op::SetGlobal, &vec![symbol.index]);
                 }
             },
             ast::Expression::Array(elems) => {

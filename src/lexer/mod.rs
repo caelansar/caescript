@@ -130,7 +130,7 @@ impl<'a> Lexer<'a> {
                         self.read_char();
                         Token::PlusEq
                     } else {
-                        Token::from_str(token.to_string().as_str()).unwrap()
+                        Token::Plus
                     }
                 }
                 '-' => {
@@ -138,7 +138,7 @@ impl<'a> Lexer<'a> {
                         self.read_char();
                         Token::MinusEq
                     } else {
-                        Token::from_str(token.to_string().as_str()).unwrap()
+                        Token::Minus
                     }
                 }
                 '*' => {
@@ -146,7 +146,7 @@ impl<'a> Lexer<'a> {
                         self.read_char();
                         Token::AsteriskEq
                     } else {
-                        Token::from_str(token.to_string().as_str()).unwrap()
+                        Token::Asterisk
                     }
                 }
                 '/' => match self.peek_char() {
@@ -160,6 +160,14 @@ impl<'a> Lexer<'a> {
                     }
                     _ => Token::from_str(token.to_string().as_str()).unwrap(),
                 },
+                '%' => {
+                    if let Some('=') = self.peek_char() {
+                        self.read_char();
+                        Token::ModEq
+                    } else {
+                        Token::Mod
+                    }
+                }
                 '&' => {
                     if let Some('&') = self.peek_char() {
                         self.read_char();

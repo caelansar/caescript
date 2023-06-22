@@ -29,6 +29,7 @@ impl From<&token::Token> for Precedence {
             token::Token::MinusEq => Precedence::Assign,
             token::Token::AsteriskEq => Precedence::Assign,
             token::Token::SlashEq => Precedence::Assign,
+            token::Token::ModEq => Precedence::Assign,
             token::Token::Ne => Precedence::Equals,
             token::Token::Lt => Precedence::LessGreater,
             token::Token::Gt => Precedence::LessGreater,
@@ -38,6 +39,7 @@ impl From<&token::Token> for Precedence {
             token::Token::Minus => Precedence::Sum,
             token::Token::Slash => Precedence::Product,
             token::Token::Asterisk => Precedence::Product,
+            token::Token::Mod => Precedence::Product,
             token::Token::Lparen => Precedence::Call,
             token::Token::Lbracket => Precedence::Index,
             token::Token::And => Precedence::Logical,
@@ -701,7 +703,8 @@ impl<'a> Parser<'a> {
                 | token::Token::PlusEq
                 | token::Token::MinusEq
                 | token::Token::AsteriskEq
-                | token::Token::SlashEq => {
+                | token::Token::SlashEq
+                | token::Token::ModEq => {
                     lhs = self.parse_assign_expression((&self.next_token).try_into().unwrap(), lhs)
                 }
                 token::Token::Lbracket => lhs = self.parse_index_expression(lhs),
