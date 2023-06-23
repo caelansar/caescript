@@ -44,6 +44,28 @@ impl Compiler {
         for stmt in program.iter() {
             self.compile_statement(stmt)?
         }
+
+        // check invalid opcode
+        let mut i = 0;
+        while i < self.instructions.len() {
+            let op: u8 = *self.instructions.get(i).unwrap();
+            let op: code::Op = unsafe { std::mem::transmute(op) };
+
+            if op == code::Op::Break || op == code::Op::Continue {
+                Err(anyhow!("{} is only allowed in for loop", op))?
+            }
+            let offset: usize = op.operand_widths().iter().sum();
+            i += 1 + offset;
+        }
+
+        Ok(self.bytecode())
+    }
+
+    fn compile_statements(&mut self, program: &ast::BlockStatement) -> Result<Bytecode> {
+        for stmt in program.iter() {
+            self.compile_statement(stmt)?
+        }
+
         Ok(self.bytecode())
     }
 
@@ -51,7 +73,11 @@ impl Compiler {
         match stmt {
             ast::Statement::Expression(expr) => {
                 self.compile_expression(expr)?;
-                if !matches!(expr, ast::Expression::Assign(_, _, _)) {
+                // these expressions do not genreate value, so we do not
+                // need to emit pop
+                if !matches!(expr, ast::Expression::Assign(_, _, _))
+                    && !matches!(expr, ast::Expression::For { .. })
+                {
                     self.emit(code::Op::Pop, &vec![]);
                 }
             }
@@ -60,6 +86,15 @@ impl Compiler {
 
                 let symbol = self.symbol_table.define(ident.0.clone());
                 self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+            }
+            // do not really need Break/Continue opcode, but we still have
+            // some placeholder opcode and it will be replaced with `Jump`
+            // during compiling for loop expression
+            ast::Statement::Break => {
+                self.emit(code::Op::Break, &vec![9999]);
+            }
+            ast::Statement::Continue => {
+                self.emit(code::Op::Continue, &vec![9999]);
             }
             _ => todo!(),
         }
@@ -113,12 +148,12 @@ impl Compiler {
             } => {
                 self.compile_expression(condition)?;
 
-                // Emit an `JumpNotTruthy` with a bogus value. After compiling the consequence, we will know
+                // emit an `JumpNotTruthy` with a bogus value. After compiling the consequence, we will know
                 // how far to jump and can "back-patching" it. Because the compiler is a single pass compiler
                 // this is the solution, however more complex compilers may not come back to change it on first
                 // pass and instead fill it in on another traversal
                 let pos = self.emit(code::Op::JumpNotTruthy, &vec![9999]);
-                self.compile(consequence)?;
+                self.compile_statements(consequence)?;
 
                 // evict redundant `Pop`
                 if self.last_instruction_is(code::Op::Pop) {
@@ -133,7 +168,7 @@ impl Compiler {
                 if alternative.is_none() {
                     self.emit(code::Op::Null, &vec![]);
                 } else {
-                    self.compile(alternative.as_ref().unwrap())?;
+                    self.compile_statements(alternative.as_ref().unwrap())?;
 
                     if self.last_instruction_is(code::Op::Pop) {
                         self.remove_last();
@@ -141,6 +176,30 @@ impl Compiler {
                 }
                 after_pos = self.instructions.len();
                 self.change_operand(jump_pos, after_pos);
+            }
+            ast::Expression::For {
+                condition,
+                consequence,
+            } => {
+                let start = self.instructions.len();
+                self.compile_expression(condition)?;
+
+                let pos = self.emit(code::Op::JumpNotTruthy, &vec![9999]);
+                self.compile_statements(consequence)?;
+
+                // evict redundant `Pop`
+                if self.last_instruction_is(code::Op::Pop) {
+                    self.remove_last();
+                }
+
+                self.change_op(code::Op::Continue, code::Op::Jump, &vec![start]);
+
+                // go back to the start
+                self.emit(code::Op::Jump, &vec![start]);
+
+                let after_pos = self.instructions.len();
+                self.change_operand(pos, after_pos);
+                self.change_op(code::Op::Break, code::Op::Jump, &vec![after_pos]);
             }
             ast::Expression::Infix(infix, lhs, rhs) => match infix {
                 ast::Infix::Plus
@@ -187,12 +246,13 @@ impl Compiler {
                         .resolve(&ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
-                    self.emit(code::Op::GetGlobal, &vec![symbol.index]);
+                    let idx = symbol.index;
+
+                    self.emit(code::Op::GetGlobal, &vec![idx]);
                     self.compile_expression(expr)?;
                     self.emit(code::Op::Add, &vec![]);
 
-                    let symbol = self.symbol_table.define(ident.0.clone());
-                    self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+                    self.emit(code::Op::SetGlobal, &vec![idx]);
                 }
                 ast::Assign::MinusEq => {
                     let symbol = self
@@ -200,12 +260,13 @@ impl Compiler {
                         .resolve(&ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
-                    self.emit(code::Op::GetGlobal, &vec![symbol.index]);
+                    let idx = symbol.index;
+
+                    self.emit(code::Op::GetGlobal, &vec![idx]);
                     self.compile_expression(expr)?;
                     self.emit(code::Op::Sub, &vec![]);
 
-                    let symbol = self.symbol_table.define(ident.0.clone());
-                    self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+                    self.emit(code::Op::SetGlobal, &vec![idx]);
                 }
                 ast::Assign::MultiplyEq => {
                     let symbol = self
@@ -213,12 +274,13 @@ impl Compiler {
                         .resolve(&ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
-                    self.emit(code::Op::GetGlobal, &vec![symbol.index]);
+                    let idx = symbol.index;
+
+                    self.emit(code::Op::GetGlobal, &vec![idx]);
                     self.compile_expression(expr)?;
                     self.emit(code::Op::Mul, &vec![]);
 
-                    let symbol = self.symbol_table.define(ident.0.clone());
-                    self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+                    self.emit(code::Op::SetGlobal, &vec![idx]);
                 }
                 ast::Assign::DivideEq => {
                     let symbol = self
@@ -226,12 +288,13 @@ impl Compiler {
                         .resolve(&ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
-                    self.emit(code::Op::GetGlobal, &vec![symbol.index]);
+                    let idx = symbol.index;
+
+                    self.emit(code::Op::GetGlobal, &vec![idx]);
                     self.compile_expression(expr)?;
                     self.emit(code::Op::Div, &vec![]);
 
-                    let symbol = self.symbol_table.define(ident.0.clone());
-                    self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+                    self.emit(code::Op::SetGlobal, &vec![idx]);
                 }
                 ast::Assign::ModEq => {
                     let symbol = self
@@ -239,12 +302,13 @@ impl Compiler {
                         .resolve(&ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
-                    self.emit(code::Op::GetGlobal, &vec![symbol.index]);
+                    let idx = symbol.index;
+
+                    self.emit(code::Op::GetGlobal, &vec![idx]);
                     self.compile_expression(expr)?;
                     self.emit(code::Op::Mod, &vec![]);
 
-                    let symbol = self.symbol_table.define(ident.0.clone());
-                    self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+                    self.emit(code::Op::SetGlobal, &vec![idx]);
                 }
             },
             ast::Expression::Array(elems) => {
@@ -319,9 +383,34 @@ impl Compiler {
         let new_instruction = code::make(op, &vec![operand]);
 
         new_instruction
-            .into_iter()
+            .iter()
             .enumerate()
-            .for_each(|(idx, d)| self.instructions[pos + idx] = d)
+            .for_each(|(idx, d)| self.instructions[pos + idx] = *d)
+    }
+
+    fn change_op(&mut self, from: code::Op, to: code::Op, operands: &Vec<usize>) {
+        let new_instruction = code::make(to, operands);
+
+        let mut idxs = vec![];
+        let mut i = 0;
+
+        while i < self.instructions.len() {
+            let op: u8 = *self.instructions.get(i).unwrap();
+            let op: code::Op = unsafe { std::mem::transmute(op) };
+
+            if op == from {
+                idxs.push(i)
+            }
+            let offset: usize = op.operand_widths().iter().sum();
+            i += 1 + offset;
+        }
+
+        idxs.iter().for_each(|pos| {
+            new_instruction
+                .iter()
+                .enumerate()
+                .for_each(|(idx, d)| self.instructions[pos + idx] = *d)
+        })
     }
 }
 
@@ -466,6 +555,37 @@ mod test {
     }
 
     #[test]
+    fn change_op_should_work() {
+        let tests = [(
+            "1 + 2",
+            vec![
+                code::make(code::Op::Const, &vec![0]),
+                code::make(code::Op::Const, &vec![1]),
+                code::make(code::Op::Sub, &vec![]),
+                code::make(code::Op::Pop, &vec![]),
+            ],
+        )];
+
+        tests.into_iter().for_each(|test| {
+            let program = parser::Parser::new(lexer::Lexer::new(test.0))
+                .parse_program()
+                .unwrap();
+            let mut compiler = Compiler::new();
+            compiler.compile(&program).unwrap();
+
+            compiler.change_op(code::Op::Add, code::Op::Sub, &vec![]);
+
+            let bytecode = compiler.bytecode();
+            let res = concat_instructions(test.1);
+            assert_eq!(
+                res, bytecode.instructions,
+                "expect {}, got {} instead",
+                res, bytecode.instructions
+            );
+        })
+    }
+
+    #[test]
     fn compile_array_should_work() {
         let tests = [
             (
@@ -537,5 +657,59 @@ mod test {
         ];
 
         tests.into_iter().for_each(|test| compile(test.0, test.1))
+    }
+
+    #[test]
+    fn compile_for_loop_should_work() {
+        let tests = [(
+            "let a = 1; for (a<10) {a+=2}; 3333",
+            vec![
+                // 0000
+                code::make(code::Op::Const, &vec![0]),
+                // 0003
+                code::make(code::Op::SetGlobal, &vec![0]),
+                // 0006
+                code::make(code::Op::Const, &vec![1]),
+                // 0009
+                code::make(code::Op::GetGlobal, &vec![0]),
+                // 0012
+                code::make(code::Op::Gt, &vec![]),
+                // 0013
+                code::make(code::Op::JumpNotTruthy, &vec![29]),
+                // 0016
+                code::make(code::Op::GetGlobal, &vec![0]),
+                // 0019
+                code::make(code::Op::Const, &vec![2]),
+                // 0022
+                code::make(code::Op::Add, &vec![]),
+                // 0023
+                code::make(code::Op::SetGlobal, &vec![0]),
+                // 0026
+                code::make(code::Op::Jump, &vec![6]),
+                // 0029
+                code::make(code::Op::Const, &vec![3]),
+                // 0032
+                code::make(code::Op::Pop, &vec![]),
+            ],
+        )];
+
+        tests.into_iter().for_each(|test| compile(test.0, test.1))
+    }
+
+    #[test]
+    fn compile_break_continue_should_fail() {
+        let tests = [
+            ("break;", anyhow!("Break is only allowed in for loop")),
+            ("continue;", anyhow!("Continue is only allowed in for loop")),
+        ];
+
+        tests.into_iter().for_each(|test| {
+            let program = parser::Parser::new(lexer::Lexer::new(test.0))
+                .parse_program()
+                .unwrap();
+            let mut compiler = Compiler::new();
+            let bytecode = compiler.compile(&program);
+            assert!(bytecode.is_err_and(|x| x.to_string() == test.1.to_string()));
+        })
     }
 }

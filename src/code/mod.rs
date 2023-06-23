@@ -120,6 +120,8 @@ pub enum Op {
     Array,
     Hash,
     Index,
+    Break,
+    Continue,
     Pop,
 }
 
@@ -170,6 +172,8 @@ impl Display for Op {
             Op::Array => "OpArray",
             Op::Hash => "OpHash",
             Op::Index => "OpIndex",
+            Op::Break => "Break",
+            Op::Continue => "Continue",
         };
         f.write_str(s)
     }
@@ -203,6 +207,8 @@ impl Op {
             Op::Array => vec![2],
             Op::Hash => vec![2],
             Op::Index => vec![],
+            Op::Break => vec![2],
+            Op::Continue => vec![2],
         }
     }
 }

@@ -175,8 +175,8 @@ impl VM {
                     let pos = code::read_u16(&self.instructions[ip..]);
                     ip += 2;
 
-                    let cond = self.pop().unwrap();
-                    if !<object::Object as Into<bool>>::into(cond) {
+                    let cond: bool = self.pop().unwrap().into();
+                    if !cond {
                         ip = pos
                     }
                 }
@@ -189,7 +189,11 @@ impl VM {
                     ip += 2;
 
                     let val = self.pop().unwrap();
-                    self.global.insert(pos, val);
+                    if pos >= self.global.len() {
+                        self.global.insert(pos, val)
+                    } else {
+                        self.global[pos] = val
+                    }
                 }
                 code::Op::GetGlobal => {
                     let pos = code::read_u16(&self.instructions[ip..]);
@@ -246,6 +250,7 @@ impl VM {
                         _ => unreachable!(),
                     }
                 }
+                _ => unreachable!(),
             }
         }
     }
@@ -264,8 +269,9 @@ mod test {
         let mut compiler = Compiler::new();
         let bytecode = compiler.compile(&program).unwrap();
         println!("{}", bytecode.instructions);
+        println!("const {:?}", bytecode.consts);
 
-        let mut vm = VM::new(compiler.bytecode());
+        let mut vm = VM::new(bytecode);
         vm.run();
         println!("vm global: {:?}", vm.global);
         println!("vm stack: {:?}", vm.stack);
@@ -383,5 +389,32 @@ mod test {
             ("let hash = {1: 2}; hash[1]", Some(object::Object::Int(2))),
         ];
         tests.into_iter().for_each(|test| run(test.0, test.1))
+    }
+
+    #[test]
+    fn vm_for_loop() {
+        let tests = [
+            (
+                "let a = 1; for (a<6) {a+=2}; a",
+                Some(object::Object::Int(7)),
+            ),
+            (
+                "let i = 10; for (i>0) {i-=1}; i",
+                Some(object::Object::Int(0)),
+            ),
+            (
+                "let i = 2; let sum = 0; for (i>0) {sum+=i; i-=1}; sum",
+                Some(object::Object::Int(3)),
+            ),
+            (
+                "let i = 3; let sum = 0; for (i>0) {if(i==2) {break;} sum+=i; i-=1}; sum",
+                Some(object::Object::Int(3)),
+            ),
+            (
+                "let i = 3; let sum = 0; for (i>0) {if(i==2) {i-=1; continue;} sum+=i; i-=1}; sum",
+                Some(object::Object::Int(4)),
+            ),
+        ];
+        tests.into_iter().for_each(|test| run(test.0, test.1));
     }
 }
