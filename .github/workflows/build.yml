@@ -33,6 +33,6 @@ jobs:
       - name: Check code format
         run: cargo fmt -- --check
       - name: Check the package for errors
-        run: cargo check --all
+        run: cargo check --all --all-features
       - name: Execute rust tests
         run: cargo nextest run --all-features
