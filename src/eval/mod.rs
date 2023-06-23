@@ -276,7 +276,7 @@ impl Evaluator {
         } else {
             alternative
                 .as_ref()
-                .inspect(|alternative| rv = self.eval_block_statements(alternative));
+                .map(|alternative| rv = self.eval_block_statements(alternative));
         }
 
         rv

@@ -4,16 +4,17 @@ use crate::{ast, code};
 
 use crate::eval::object;
 
+use self::scope::CompilationScope;
 use self::symbol_table::SymbolTable;
 
+mod scope;
 mod symbol_table;
 
 #[derive(Debug, Default)]
 pub struct Compiler {
-    instructions: code::Instructions,
     consts: Vec<object::Object>,
-    last_instruction: Option<EmittedInstruction>,
-    prev_instruction: Option<EmittedInstruction>,
+    scopes: Vec<CompilationScope>,
+    scope_idx: usize,
     symbol_table: SymbolTable,
 }
 
@@ -37,7 +38,11 @@ impl EmittedInstruction {
 
 impl Compiler {
     pub fn new() -> Self {
-        Self::default()
+        let main_scope = CompilationScope::default();
+        Self {
+            scopes: vec![main_scope],
+            ..Self::default()
+        }
     }
 
     pub fn compile(&mut self, program: &ast::Program) -> Result<Bytecode> {
@@ -47,8 +52,8 @@ impl Compiler {
 
         // check invalid opcode
         let mut i = 0;
-        while i < self.instructions.len() {
-            let op: u8 = *self.instructions.get(i).unwrap();
+        while i < self.current_instructions().len() {
+            let op: u8 = *self.current_instructions().get(i).unwrap();
             let op: code::Op = unsafe { std::mem::transmute(op) };
 
             if op == code::Op::Break || op == code::Op::Continue {
@@ -86,6 +91,10 @@ impl Compiler {
 
                 let symbol = self.symbol_table.define(ident.0.clone());
                 self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+            }
+            ast::Statement::Return(expr) => {
+                self.compile_expression(expr)?;
+                self.emit(code::Op::ReturnValue, &vec![]);
             }
             // do not really need Break/Continue opcode, but we still have
             // some placeholder opcode and it will be replaced with `Jump`
@@ -162,7 +171,7 @@ impl Compiler {
 
                 let jump_pos = self.emit(code::Op::Jump, &vec![9999]);
 
-                let mut after_pos = self.instructions.len();
+                let mut after_pos = self.current_instructions().len();
                 self.change_operand(pos, after_pos);
 
                 if alternative.is_none() {
@@ -174,14 +183,14 @@ impl Compiler {
                         self.remove_last();
                     }
                 }
-                after_pos = self.instructions.len();
+                after_pos = self.current_instructions().len();
                 self.change_operand(jump_pos, after_pos);
             }
             ast::Expression::For {
                 condition,
                 consequence,
             } => {
-                let start = self.instructions.len();
+                let start = self.current_instructions().len();
                 self.compile_expression(condition)?;
 
                 let pos = self.emit(code::Op::JumpNotTruthy, &vec![9999]);
@@ -197,7 +206,7 @@ impl Compiler {
                 // go back to the start
                 self.emit(code::Op::Jump, &vec![start]);
 
-                let after_pos = self.instructions.len();
+                let after_pos = self.current_instructions().len();
                 self.change_operand(pos, after_pos);
                 self.change_op(code::Op::Break, code::Op::Jump, &vec![after_pos]);
             }
@@ -331,14 +340,26 @@ impl Compiler {
                 self.compile_expression(&idx)?;
                 self.emit(code::Op::Index, &vec![]);
             }
+            ast::Expression::Func { params, body } => {
+                self.enter_scope();
+                self.compile_statements(body)?;
+
+                if self.last_instruction_is(code::Op::Pop) {
+                    self.replace_last_op(code::Op::ReturnValue)
+                }
+                let ins = self.leave_scope();
+
+                let operand = self.add_const(object::Object::CompiledFunction(ins));
+                self.emit(code::Op::Const, &vec![operand]);
+            }
             _ => panic!("unknown expr: {}", expr),
         }
         Ok(())
     }
 
-    pub fn bytecode(&self) -> Bytecode {
+    pub fn bytecode(&mut self) -> Bytecode {
         Bytecode {
-            instructions: self.instructions.clone(),
+            instructions: self.current_instructions().clone(),
             consts: self.consts.clone(),
         }
     }
@@ -357,35 +378,79 @@ impl Compiler {
     }
 
     fn set_last_instruction(&mut self, op: code::Op, pos: usize) {
-        self.prev_instruction = self.last_instruction.take();
-        self.last_instruction = Some(EmittedInstruction::new(op, pos));
+        self.scopes[self.scope_idx].prev = self.scopes[self.scope_idx].last.take();
+        self.scopes[self.scope_idx].last = Some(EmittedInstruction::new(op, pos));
     }
 
     fn last_instruction_is(&mut self, op: code::Op) -> bool {
-        self.last_instruction.as_ref().is_some_and(|i| i.op == op)
+        self.scopes[self.scope_idx]
+            .last
+            .as_ref()
+            .is_some_and(|i| i.op == op)
     }
 
     fn remove_last(&mut self) {
-        self.last_instruction.as_ref().inspect(|ins| {
-            *self.instructions = self.instructions[..ins.pos].into();
-        });
-        self.last_instruction = self.prev_instruction.take();
+        self.scopes[self.scope_idx]
+            .last
+            .clone()
+            .map(|ins| self.scopes[self.scope_idx].instructions.truncate(ins.pos));
+
+        self.scopes[self.scope_idx].last = self.scopes[self.scope_idx].prev.take();
+    }
+
+    fn current_instructions(&mut self) -> &mut code::Instructions {
+        &mut self.scopes[self.scope_idx].instructions
     }
 
     fn add_instruction(&mut self, ins: code::Instructions) -> usize {
-        let pos = self.instructions.len();
-        self.instructions.extend_from_slice(ins.as_slice());
+        let pos = self.current_instructions().len();
+
+        self.current_instructions()
+            .extend_from_slice(ins.as_slice());
+
         pos
     }
 
+    fn enter_scope(&mut self) {
+        let scope = CompilationScope::default();
+
+        self.scopes.push(scope);
+        self.scope_idx += 1;
+    }
+
+    fn leave_scope(&mut self) -> code::Instructions {
+        let ins = self.current_instructions().clone();
+
+        self.scopes.pop();
+        self.scope_idx -= 1;
+
+        ins
+    }
+
     fn change_operand(&mut self, pos: usize, operand: usize) {
-        let op: code::Op = unsafe { std::mem::transmute(self.instructions[pos]) };
+        let op: code::Op = unsafe { std::mem::transmute(self.current_instructions()[pos]) };
         let new_instruction = code::make(op, &vec![operand]);
 
         new_instruction
             .iter()
             .enumerate()
-            .for_each(|(idx, d)| self.instructions[pos + idx] = *d)
+            .for_each(|(idx, d)| self.current_instructions()[pos + idx] = *d)
+    }
+
+    fn replace_last_op(&mut self, to: code::Op) {
+        let last = self.scopes[self.scope_idx].last.clone().unwrap().pos;
+
+        let new_instruction = code::make(code::Op::ReturnValue, &vec![]);
+
+        new_instruction
+            .iter()
+            .enumerate()
+            .for_each(|(idx, d)| self.current_instructions()[last + idx] = *d);
+
+        self.scopes[self.scope_idx]
+            .last
+            .as_mut()
+            .map(|x| x.op = code::Op::ReturnValue);
     }
 
     fn change_op(&mut self, from: code::Op, to: code::Op, operands: &Vec<usize>) {
@@ -394,8 +459,8 @@ impl Compiler {
         let mut idxs = vec![];
         let mut i = 0;
 
-        while i < self.instructions.len() {
-            let op: u8 = *self.instructions.get(i).unwrap();
+        while i < self.current_instructions().len() {
+            let op: u8 = *self.current_instructions().get(i).unwrap();
             let op: code::Op = unsafe { std::mem::transmute(op) };
 
             if op == from {
@@ -409,7 +474,7 @@ impl Compiler {
             new_instruction
                 .iter()
                 .enumerate()
-                .for_each(|(idx, d)| self.instructions[pos + idx] = *d)
+                .for_each(|(idx, d)| self.current_instructions()[pos + idx] = *d)
         })
     }
 }
@@ -751,5 +816,66 @@ mod test {
             let bytecode = compiler.compile(&program);
             assert!(bytecode.is_err_and(|x| x.to_string() == test.1.to_string()));
         })
+    }
+
+    #[test]
+    fn compile_fn_should_work() {
+        let tests = [
+            (
+                "fn() { return 1+2 }",
+                vec![
+                    code::make(code::Op::Const, &vec![2]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![
+                    object::Object::Int(1),
+                    object::Object::Int(2),
+                    object::Object::CompiledFunction(concat_instructions(vec![
+                        code::make(code::Op::Const, &vec![0]),
+                        code::make(code::Op::Const, &vec![1]),
+                        code::make(code::Op::Add, &vec![]),
+                        code::make(code::Op::ReturnValue, &vec![]),
+                    ])),
+                ],
+            ),
+            (
+                "fn() { 1+2 }",
+                vec![
+                    code::make(code::Op::Const, &vec![2]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![
+                    object::Object::Int(1),
+                    object::Object::Int(2),
+                    object::Object::CompiledFunction(concat_instructions(vec![
+                        code::make(code::Op::Const, &vec![0]),
+                        code::make(code::Op::Const, &vec![1]),
+                        code::make(code::Op::Add, &vec![]),
+                        code::make(code::Op::ReturnValue, &vec![]),
+                    ])),
+                ],
+            ),
+            (
+                "fn() { 1;2 }",
+                vec![
+                    code::make(code::Op::Const, &vec![2]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![
+                    object::Object::Int(1),
+                    object::Object::Int(2),
+                    object::Object::CompiledFunction(concat_instructions(vec![
+                        code::make(code::Op::Const, &vec![0]),
+                        code::make(code::Op::Pop, &vec![]),
+                        code::make(code::Op::Const, &vec![1]),
+                        code::make(code::Op::ReturnValue, &vec![]),
+                    ])),
+                ],
+            ),
+        ];
+
+        tests
+            .into_iter()
+            .for_each(|test| compile(test.0, test.1, test.2))
     }
 }

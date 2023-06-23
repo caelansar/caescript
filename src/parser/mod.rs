@@ -597,8 +597,6 @@ impl<'a> Parser<'a> {
 
         let expr = self.parse_expression(Precedence::Lowest)?;
 
-        self.next_token();
-
         if self.next_token_is(&token::Token::SemiColon) {
             self.next_token();
         }

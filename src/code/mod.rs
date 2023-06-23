@@ -122,6 +122,9 @@ pub enum Op {
     Index,
     Break,
     Continue,
+    Call,
+    ReturnValue,
+    Return,
     Pop,
 }
 
@@ -174,6 +177,9 @@ impl Display for Op {
             Op::Index => "OpIndex",
             Op::Break => "Break",
             Op::Continue => "Continue",
+            Op::Call => "OpCall",
+            Op::ReturnValue => "OpReturnValue",
+            Op::Return => "OpReturn",
         };
         f.write_str(s)
     }
@@ -209,6 +215,9 @@ impl Op {
             Op::Index => vec![],
             Op::Break => vec![2],
             Op::Continue => vec![2],
+            Op::Call => vec![],
+            Op::ReturnValue => vec![],
+            Op::Return => vec![],
         }
     }
 }

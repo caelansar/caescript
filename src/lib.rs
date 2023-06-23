@@ -1,5 +1,3 @@
-#![feature(result_option_inspect)]
-
 pub mod ast;
 #[cfg(feature = "vm")]
 pub mod code;

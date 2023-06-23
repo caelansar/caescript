@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::ast;
+use crate::{ast, code};
 
 use super::env::Environment;
 use crate::arithmetic_operator;
@@ -69,6 +69,7 @@ pub enum Object {
     Hash(HashMap<Object, Object>),
     Builtin(fn(Vec<Object>) -> Object),
     Error(String),
+    CompiledFunction(code::Instructions),
     Null,
 }
 
@@ -138,6 +139,9 @@ impl Display for Object {
                     }
                 }
                 write!(f, "fn({}) {{  }}", result)
+            }
+            Object::CompiledFunction(_) => {
+                write!(f, "compiled_fn(..) {{  }}")
             }
         }
     }
