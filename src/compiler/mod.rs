@@ -423,7 +423,7 @@ mod test {
 
     use super::*;
 
-    fn compile(input: &str, instructions: Vec<Instructions>) {
+    fn compile(input: &str, instructions: Vec<Instructions>, consts: Vec<object::Object>) {
         let program = parser::Parser::new(lexer::Lexer::new(input))
             .parse_program()
             .unwrap();
@@ -432,9 +432,14 @@ mod test {
         let res = concat_instructions(instructions);
         assert_eq!(
             res, bytecode.instructions,
-            "test {} expect {}, got {} instead",
+            "test {} expect instructions to be {}, got {} instead",
             input, res, bytecode.instructions
         );
+        assert_eq!(
+            consts, bytecode.consts,
+            "test {} expect consts to be {:?}, got {:?} instead",
+            input, consts, bytecode.instructions
+        )
     }
 
     #[test]
@@ -516,7 +521,9 @@ mod test {
             ),
         ];
 
-        tests.into_iter().for_each(|test| compile(test.0, test.1))
+        tests
+            .into_iter()
+            .for_each(|test| compile(test.0, test.1, test.2))
     }
 
     #[test]
@@ -594,6 +601,7 @@ mod test {
                     code::make(code::Op::Array, &vec![0]),
                     code::make(code::Op::Pop, &vec![]),
                 ],
+                vec![],
             ),
             (
                 "[1,2,3]",
@@ -603,6 +611,11 @@ mod test {
                     code::make(code::Op::Const, &vec![2]),
                     code::make(code::Op::Array, &vec![3]),
                     code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![
+                    object::Object::Int(1),
+                    object::Object::Int(2),
+                    object::Object::Int(3),
                 ],
             ),
             (
@@ -616,10 +629,18 @@ mod test {
                     code::make(code::Op::Array, &vec![3]),
                     code::make(code::Op::Pop, &vec![]),
                 ],
+                vec![
+                    object::Object::Int(1),
+                    object::Object::Int(2),
+                    object::Object::Int(1),
+                    object::Object::Int(2),
+                ],
             ),
         ];
 
-        tests.into_iter().for_each(|test| compile(test.0, test.1))
+        tests
+            .into_iter()
+            .for_each(|test| compile(test.0, test.1, test.2))
     }
 
     #[test]
@@ -631,6 +652,7 @@ mod test {
                     code::make(code::Op::Hash, &vec![0]),
                     code::make(code::Op::Pop, &vec![]),
                 ],
+                vec![],
             ),
             (
                 "{1: 2}",
@@ -640,6 +662,7 @@ mod test {
                     code::make(code::Op::Hash, &vec![2]),
                     code::make(code::Op::Pop, &vec![]),
                 ],
+                vec![object::Object::Int(1), object::Object::Int(2)],
             ),
             (
                 "{1: 2, 4: 1+2}",
@@ -653,10 +676,19 @@ mod test {
                     code::make(code::Op::Hash, &vec![4]),
                     code::make(code::Op::Pop, &vec![]),
                 ],
+                vec![
+                    object::Object::Int(1),
+                    object::Object::Int(2),
+                    object::Object::Int(4),
+                    object::Object::Int(1),
+                    object::Object::Int(2),
+                ],
             ),
         ];
 
-        tests.into_iter().for_each(|test| compile(test.0, test.1))
+        tests
+            .into_iter()
+            .for_each(|test| compile(test.0, test.1, test.2))
     }
 
     #[test]
@@ -691,9 +723,17 @@ mod test {
                 // 0032
                 code::make(code::Op::Pop, &vec![]),
             ],
+            vec![
+                object::Object::Int(1),
+                object::Object::Int(10),
+                object::Object::Int(2),
+                object::Object::Int(3333),
+            ],
         )];
 
-        tests.into_iter().for_each(|test| compile(test.0, test.1))
+        tests
+            .into_iter()
+            .for_each(|test| compile(test.0, test.1, test.2))
     }
 
     #[test]
