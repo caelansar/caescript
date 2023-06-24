@@ -2,14 +2,18 @@ use crate::{code, compiler, eval::object};
 
 const STACK_SIZE: usize = 2048;
 const GLOBAL_SIZE: usize = 65535;
+const MAX_FRAME: usize = 1024;
+
+mod frame;
 
 // VM is a stack-based Virtual Machine
 pub struct VM {
     consts: Vec<object::Object>,
-    instructions: code::Instructions,
     stack: Vec<object::Object>,
     sp: usize, // stack pointer
     global: Vec<object::Object>,
+    frames: Vec<frame::Frame>,
+    frame_idx: usize,
 }
 
 impl VM {
@@ -17,13 +21,34 @@ impl VM {
         let stack = Vec::with_capacity(STACK_SIZE);
         let global = Vec::with_capacity(GLOBAL_SIZE);
 
+        let main_fn = bytecode.instructions;
+        let main_frame = frame::Frame::new(main_fn);
+
+        let mut frames = Vec::with_capacity(MAX_FRAME);
+        frames.insert(0, main_frame);
+
         Self {
             consts: bytecode.consts,
-            instructions: bytecode.instructions,
             stack,
             global,
             sp: 0,
+            frames,
+            frame_idx: 1,
         }
+    }
+
+    fn current_frame(&mut self) -> &mut frame::Frame {
+        self.frames.get_mut(self.frame_idx - 1).unwrap()
+    }
+
+    fn push_frame(&mut self, frame: frame::Frame) {
+        self.frames.insert(self.frame_idx, frame);
+        self.frame_idx += 1;
+    }
+
+    fn pop_frame(&mut self) -> Option<frame::Frame> {
+        self.frame_idx -= 1;
+        self.frames.pop()
     }
 
     fn peek(&self) -> Option<object::Object> {
@@ -57,15 +82,16 @@ impl VM {
     }
 
     pub fn run(&mut self) {
-        let mut ip = 0; // instruction pointer
-        while ip < self.instructions.len() {
-            let op = unsafe { std::mem::transmute(self.instructions[ip]) };
+        while self.current_frame().ip < self.current_frame().instructions().len() {
+            let mut ip = self.current_frame().ip;
+            let op = unsafe { std::mem::transmute(self.current_frame().instructions()[ip]) };
 
+            self.current_frame().ip += 1;
             ip += 1;
             match op {
                 code::Op::Const => {
-                    let const_idx = code::read_u16(&self.instructions[ip..]);
-                    ip += 2;
+                    let const_idx = code::read_u16(&self.current_frame().instructions()[ip..]);
+                    self.current_frame().ip += 2;
                     self.push(self.consts[const_idx].clone());
                 }
                 code::Op::Add => {
@@ -172,21 +198,22 @@ impl VM {
                     }
                 }
                 code::Op::JumpNotTruthy => {
-                    let pos = code::read_u16(&self.instructions[ip..]);
-                    ip += 2;
+                    let pos = code::read_u16(&self.current_frame().instructions()[ip..]);
+                    self.current_frame().ip += 2;
 
                     let cond: bool = self.pop().unwrap().into();
                     if !cond {
-                        ip = pos
+                        self.current_frame().ip = pos
                     }
                 }
                 code::Op::Jump => {
-                    ip = code::read_u16(&self.instructions[ip..]);
+                    self.current_frame().ip =
+                        code::read_u16(&self.current_frame().instructions()[ip..]);
                 }
                 code::Op::Null => self.push(object::Object::Null),
                 code::Op::SetGlobal => {
-                    let pos = code::read_u16(&self.instructions[ip..]);
-                    ip += 2;
+                    let pos = code::read_u16(&self.current_frame().instructions()[ip..]);
+                    self.current_frame().ip += 2;
 
                     let val = self.pop().unwrap();
                     if pos >= self.global.len() {
@@ -196,15 +223,15 @@ impl VM {
                     }
                 }
                 code::Op::GetGlobal => {
-                    let pos = code::read_u16(&self.instructions[ip..]);
-                    ip += 2;
+                    let pos = code::read_u16(&self.current_frame().instructions()[ip..]);
+                    self.current_frame().ip += 2;
 
                     let val = self.global.get(pos);
                     self.push(val.unwrap().clone());
                 }
                 code::Op::Array => {
-                    let len = code::read_u16(&self.instructions[ip..]);
-                    ip += 2;
+                    let len = code::read_u16(&self.current_frame().instructions()[ip..]);
+                    self.current_frame().ip += 2;
 
                     let mut elems = Vec::with_capacity(len);
                     (self.sp - len..self.sp).into_iter().for_each(|idx| {
@@ -215,8 +242,8 @@ impl VM {
                     self.push(object::Object::Array(elems));
                 }
                 code::Op::Hash => {
-                    let len = code::read_u16(&self.instructions[ip..]);
-                    ip += 2;
+                    let len = code::read_u16(&self.current_frame().instructions()[ip..]);
+                    self.current_frame().ip += 2;
 
                     let mut elems = Vec::with_capacity(len);
                     (self.sp - len..self.sp)
@@ -249,6 +276,27 @@ impl VM {
                         ),
                         _ => unreachable!(),
                     }
+                }
+                code::Op::Call => {
+                    let func = self.stack.get(self.sp - 1);
+                    if let object::Object::CompiledFunction(ins) = func.expect("empty func") {
+                        let frame = frame::Frame::new(ins.clone());
+                        self.push_frame(frame);
+                    }
+                }
+                code::Op::ReturnValue => {
+                    let rv = self.pop().unwrap();
+
+                    self.pop_frame();
+                    self.pop();
+
+                    self.push(rv);
+                }
+                code::Op::Return => {
+                    self.pop_frame();
+                    self.pop();
+
+                    self.push(object::Object::Null);
                 }
                 _ => unreachable!(),
             }
@@ -392,7 +440,7 @@ mod test {
     }
 
     #[test]
-    fn vm_for_loop() {
+    fn vm_for_loop_should_work() {
         let tests = [
             (
                 "let a = 1; for (a<6) {a+=2}; a",
@@ -413,6 +461,27 @@ mod test {
             (
                 "let i = 3; let sum = 0; for (i>0) {if(i==2) {i-=1; continue;} sum+=i; i-=1}; sum",
                 Some(object::Object::Int(4)),
+            ),
+        ];
+        tests.into_iter().for_each(|test| run(test.0, test.1));
+    }
+
+    #[test]
+    fn vm_func_should_work() {
+        let tests = [
+            ("fn() {1+2}()", Some(object::Object::Int(3))),
+            ("fn add() {1+2}; add()", Some(object::Object::Int(3))),
+            ("let add = fn () {1+2}; add()", Some(object::Object::Int(3))),
+            ("let empty = fn () {}; empty()", Some(object::Object::Null)),
+            ("fn empty() {}; empty()", Some(object::Object::Null)),
+            ("fn() {}()", Some(object::Object::Null)),
+            (
+                "let one = fn() {1}; let two = fn() {one()}; let three = fn() {two()}; three()",
+                Some(object::Object::Int(1)),
+            ),
+            (
+                "let r = fn() {1}; let r1 = fn() {r}; r1()()",
+                Some(object::Object::Int(1)),
             ),
         ];
         tests.into_iter().for_each(|test| run(test.0, test.1));

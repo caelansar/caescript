@@ -105,7 +105,16 @@ impl Compiler {
             ast::Statement::Continue => {
                 self.emit(code::Op::Continue, &vec![9999]);
             }
-            _ => todo!(),
+            ast::Statement::Function(ident, params, body) => {
+                // assamble a func expr manually
+                self.compile_expression(&ast::Expression::Func {
+                    params: params.clone(),
+                    body: body.clone(),
+                })?;
+
+                let symbol = self.symbol_table.define(ident.0.clone());
+                self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+            }
         }
         Ok(())
     }
