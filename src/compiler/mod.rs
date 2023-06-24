@@ -356,7 +356,11 @@ impl Compiler {
                 let operand = self.add_const(object::Object::CompiledFunction(ins));
                 self.emit(code::Op::Const, &vec![operand]);
             }
-            _ => panic!("unknown expr: {}", expr),
+            ast::Expression::Call { func, args } => {
+                self.compile_expression(func)?;
+
+                self.emit(code::Op::Call, &vec![]);
+            }
         }
         Ok(())
     }
@@ -885,6 +889,24 @@ mod test {
                 vec![object::Object::CompiledFunction(concat_instructions(vec![
                     code::make(code::Op::Return, &vec![]),
                 ]))],
+            ),
+            (
+                "fn() { 1;2 }()",
+                vec![
+                    code::make(code::Op::Const, &vec![2]),
+                    code::make(code::Op::Call, &vec![]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![
+                    object::Object::Int(1),
+                    object::Object::Int(2),
+                    object::Object::CompiledFunction(concat_instructions(vec![
+                        code::make(code::Op::Const, &vec![0]),
+                        code::make(code::Op::Pop, &vec![]),
+                        code::make(code::Op::Const, &vec![1]),
+                        code::make(code::Op::ReturnValue, &vec![]),
+                    ])),
+                ],
             ),
         ];
 
