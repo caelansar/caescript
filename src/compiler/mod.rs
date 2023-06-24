@@ -347,6 +347,10 @@ impl Compiler {
                 if self.last_instruction_is(code::Op::Pop) {
                     self.replace_last_op(code::Op::ReturnValue)
                 }
+                if !self.last_instruction_is(code::Op::ReturnValue) {
+                    self.emit(code::Op::Return, &vec![]);
+                }
+
                 let ins = self.leave_scope();
 
                 let operand = self.add_const(object::Object::CompiledFunction(ins));
@@ -871,6 +875,16 @@ mod test {
                         code::make(code::Op::ReturnValue, &vec![]),
                     ])),
                 ],
+            ),
+            (
+                "fn() {}",
+                vec![
+                    code::make(code::Op::Const, &vec![0]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![object::Object::CompiledFunction(concat_instructions(vec![
+                    code::make(code::Op::Return, &vec![]),
+                ]))],
             ),
         ];
 
