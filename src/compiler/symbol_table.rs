@@ -47,12 +47,12 @@ impl SymbolTable {
     }
 
     pub(super) fn resolve(&self, name: &str) -> Option<Symbol> {
-        match self.store.get(name).map(|x| x.clone()) {
-            Some(s) => Some(s),
+        match self.store.get(name) {
+            Some(s) => Some(s.clone()),
             None => self
                 .outer
                 .as_ref()
-                .and_then(|outer| outer.borrow_mut().resolve(name).map(|v| v.clone())),
+                .and_then(|outer| outer.as_ref().borrow().resolve(name)),
         }
     }
 

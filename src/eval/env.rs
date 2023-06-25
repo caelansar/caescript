@@ -29,12 +29,12 @@ impl Environment {
     }
 
     pub fn get(&self, name: impl Borrow<str>) -> Option<Object> {
-        match self.store.get(name.borrow()).map(|v| v.clone()) {
-            Some(obj) => Some(obj),
+        match self.store.get(name.borrow()) {
+            Some(obj) => Some(obj.clone()),
             None => self
                 .outer
                 .as_ref()
-                .and_then(|outer| outer.borrow_mut().get(name.borrow()).map(|v| v.clone())),
+                .and_then(|outer| outer.borrow_mut().get(name.borrow())),
         }
     }
 
