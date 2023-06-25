@@ -117,6 +117,8 @@ pub enum Op {
     Null,
     SetGlobal,
     GetGlobal,
+    SetLocal,
+    GetLocal,
     Array,
     Hash,
     Index,
@@ -171,7 +173,9 @@ impl Display for Op {
             Op::And => "OpAnd",
             Op::Or => "OpOr",
             Op::SetGlobal => "OpSetGlobal",
+            Op::SetLocal => "OpSetLocal",
             Op::GetGlobal => "OpGetGlobal",
+            Op::GetLocal => "OpGetLocal",
             Op::Array => "OpArray",
             Op::Hash => "OpHash",
             Op::Index => "OpIndex",
@@ -218,6 +222,8 @@ impl Op {
             Op::Call => vec![],
             Op::ReturnValue => vec![],
             Op::Return => vec![],
+            Op::SetLocal => vec![1],
+            Op::GetLocal => vec![1],
         }
     }
 }

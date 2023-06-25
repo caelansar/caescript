@@ -5,7 +5,7 @@ use crate::{ast, code};
 use crate::eval::object;
 
 use self::scope::CompilationScope;
-use self::symbol_table::SymbolTable;
+use self::symbol_table::{Scope, SymbolTable};
 
 mod scope;
 mod symbol_table;
@@ -90,7 +90,10 @@ impl Compiler {
                 self.compile_expression(expr)?;
 
                 let symbol = self.symbol_table.define(ident.0.clone());
-                self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+                match symbol.scope {
+                    Scope::Global => self.emit(code::Op::SetGlobal, &vec![symbol.index]),
+                    Scope::Local => self.emit(code::Op::SetLocal, &vec![symbol.index]),
+                };
             }
             ast::Statement::Return(expr) => {
                 self.compile_expression(expr)?;
@@ -150,7 +153,10 @@ impl Compiler {
                     .symbol_table
                     .resolve(&ident)
                     .ok_or(anyhow!("undefined variable {}", &ident.0))?;
-                self.emit(code::Op::GetGlobal, &vec![symbol.index]);
+                match symbol.scope {
+                    Scope::Global => self.emit(code::Op::GetGlobal, &vec![symbol.index]),
+                    Scope::Local => self.emit(code::Op::GetLocal, &vec![symbol.index]),
+                };
             }
             ast::Expression::Prefix(prefix, expr) => {
                 self.compile_expression(expr)?;
@@ -433,6 +439,7 @@ impl Compiler {
 
         self.scopes.push(scope);
         self.scope_idx += 1;
+        self.symbol_table = SymbolTable::enclosed(self.symbol_table.clone());
     }
 
     fn leave_scope(&mut self) -> code::Instructions {
@@ -440,6 +447,7 @@ impl Compiler {
 
         self.scopes.pop();
         self.scope_idx -= 1;
+        self.symbol_table = self.symbol_table.outer.clone().unwrap().take();
 
         ins
     }
@@ -520,7 +528,7 @@ mod test {
         assert_eq!(
             consts, bytecode.consts,
             "test {} expect consts to be {:?}, got {:?} instead",
-            input, consts, bytecode.instructions
+            input, consts, bytecode.consts
         )
     }
 
@@ -913,6 +921,22 @@ mod test {
                         code::make(code::Op::Const, &vec![0]),
                         code::make(code::Op::Pop, &vec![]),
                         code::make(code::Op::Const, &vec![1]),
+                        code::make(code::Op::ReturnValue, &vec![]),
+                    ])),
+                ],
+            ),
+            (
+                "fn() { let a = 1; a }",
+                vec![
+                    code::make(code::Op::Const, &vec![1]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![
+                    object::Object::Int(1),
+                    object::Object::CompiledFunction(concat_instructions(vec![
+                        code::make(code::Op::Const, &vec![0]),
+                        code::make(code::Op::SetLocal, &vec![0]),
+                        code::make(code::Op::GetLocal, &vec![0]),
                         code::make(code::Op::ReturnValue, &vec![]),
                     ])),
                 ],
