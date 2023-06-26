@@ -69,7 +69,7 @@ pub enum Object {
     Hash(HashMap<Object, Object>),
     Builtin(fn(Vec<Object>) -> Object),
     Error(String),
-    CompiledFunction(code::Instructions),
+    CompiledFunction(code::Instructions, usize),
     Null,
 }
 
@@ -140,7 +140,7 @@ impl Display for Object {
                 }
                 write!(f, "fn({}) {{  }}", result)
             }
-            Object::CompiledFunction(_) => {
+            Object::CompiledFunction(_, _) => {
                 write!(f, "compiled_fn(..) {{  }}")
             }
         }

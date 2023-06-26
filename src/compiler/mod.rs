@@ -366,9 +366,10 @@ impl Compiler {
                     self.emit(code::Op::Return, &vec![]);
                 }
 
+                let num_local = self.symbol_table.count;
                 let ins = self.leave_scope();
 
-                let operand = self.add_const(object::Object::CompiledFunction(ins));
+                let operand = self.add_const(object::Object::CompiledFunction(ins, num_local));
                 self.emit(code::Op::Const, &vec![operand]);
             }
             ast::Expression::Call { func, args } => {
@@ -855,12 +856,15 @@ mod test {
                 vec![
                     object::Object::Int(1),
                     object::Object::Int(2),
-                    object::Object::CompiledFunction(concat_instructions(vec![
-                        code::make(code::Op::Const, &vec![0]),
-                        code::make(code::Op::Const, &vec![1]),
-                        code::make(code::Op::Add, &vec![]),
-                        code::make(code::Op::ReturnValue, &vec![]),
-                    ])),
+                    object::Object::CompiledFunction(
+                        concat_instructions(vec![
+                            code::make(code::Op::Const, &vec![0]),
+                            code::make(code::Op::Const, &vec![1]),
+                            code::make(code::Op::Add, &vec![]),
+                            code::make(code::Op::ReturnValue, &vec![]),
+                        ]),
+                        0,
+                    ),
                 ],
             ),
             (
@@ -872,12 +876,15 @@ mod test {
                 vec![
                     object::Object::Int(1),
                     object::Object::Int(2),
-                    object::Object::CompiledFunction(concat_instructions(vec![
-                        code::make(code::Op::Const, &vec![0]),
-                        code::make(code::Op::Const, &vec![1]),
-                        code::make(code::Op::Add, &vec![]),
-                        code::make(code::Op::ReturnValue, &vec![]),
-                    ])),
+                    object::Object::CompiledFunction(
+                        concat_instructions(vec![
+                            code::make(code::Op::Const, &vec![0]),
+                            code::make(code::Op::Const, &vec![1]),
+                            code::make(code::Op::Add, &vec![]),
+                            code::make(code::Op::ReturnValue, &vec![]),
+                        ]),
+                        0,
+                    ),
                 ],
             ),
             (
@@ -889,12 +896,15 @@ mod test {
                 vec![
                     object::Object::Int(1),
                     object::Object::Int(2),
-                    object::Object::CompiledFunction(concat_instructions(vec![
-                        code::make(code::Op::Const, &vec![0]),
-                        code::make(code::Op::Pop, &vec![]),
-                        code::make(code::Op::Const, &vec![1]),
-                        code::make(code::Op::ReturnValue, &vec![]),
-                    ])),
+                    object::Object::CompiledFunction(
+                        concat_instructions(vec![
+                            code::make(code::Op::Const, &vec![0]),
+                            code::make(code::Op::Pop, &vec![]),
+                            code::make(code::Op::Const, &vec![1]),
+                            code::make(code::Op::ReturnValue, &vec![]),
+                        ]),
+                        0,
+                    ),
                 ],
             ),
             (
@@ -903,9 +913,10 @@ mod test {
                     code::make(code::Op::Const, &vec![0]),
                     code::make(code::Op::Pop, &vec![]),
                 ],
-                vec![object::Object::CompiledFunction(concat_instructions(vec![
-                    code::make(code::Op::Return, &vec![]),
-                ]))],
+                vec![object::Object::CompiledFunction(
+                    concat_instructions(vec![code::make(code::Op::Return, &vec![])]),
+                    0,
+                )],
             ),
             (
                 "fn() { 1;2 }()",
@@ -917,12 +928,15 @@ mod test {
                 vec![
                     object::Object::Int(1),
                     object::Object::Int(2),
-                    object::Object::CompiledFunction(concat_instructions(vec![
-                        code::make(code::Op::Const, &vec![0]),
-                        code::make(code::Op::Pop, &vec![]),
-                        code::make(code::Op::Const, &vec![1]),
-                        code::make(code::Op::ReturnValue, &vec![]),
-                    ])),
+                    object::Object::CompiledFunction(
+                        concat_instructions(vec![
+                            code::make(code::Op::Const, &vec![0]),
+                            code::make(code::Op::Pop, &vec![]),
+                            code::make(code::Op::Const, &vec![1]),
+                            code::make(code::Op::ReturnValue, &vec![]),
+                        ]),
+                        0,
+                    ),
                 ],
             ),
             (
@@ -933,12 +947,15 @@ mod test {
                 ],
                 vec![
                     object::Object::Int(1),
-                    object::Object::CompiledFunction(concat_instructions(vec![
-                        code::make(code::Op::Const, &vec![0]),
-                        code::make(code::Op::SetLocal, &vec![0]),
-                        code::make(code::Op::GetLocal, &vec![0]),
-                        code::make(code::Op::ReturnValue, &vec![]),
-                    ])),
+                    object::Object::CompiledFunction(
+                        concat_instructions(vec![
+                            code::make(code::Op::Const, &vec![0]),
+                            code::make(code::Op::SetLocal, &vec![0]),
+                            code::make(code::Op::GetLocal, &vec![0]),
+                            code::make(code::Op::ReturnValue, &vec![]),
+                        ]),
+                        1,
+                    ),
                 ],
             ),
         ];

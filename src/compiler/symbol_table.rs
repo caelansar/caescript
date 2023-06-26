@@ -30,7 +30,7 @@ impl Symbol {
 pub struct SymbolTable {
     store: HashMap<String, Symbol>,
     pub outer: Option<Rc<RefCell<SymbolTable>>>,
-    count: usize,
+    pub count: usize,
 }
 
 impl SymbolTable {

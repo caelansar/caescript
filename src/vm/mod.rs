@@ -22,7 +22,7 @@ impl VM {
         let global = Vec::with_capacity(GLOBAL_SIZE);
 
         let main_fn = bytecode.instructions;
-        let main_frame = frame::Frame::new(main_fn);
+        let main_frame = frame::Frame::new(main_fn, 0);
 
         let mut frames = Vec::with_capacity(MAX_FRAME);
         frames.insert(0, main_frame);
@@ -222,11 +222,33 @@ impl VM {
                         self.global[pos] = val
                     }
                 }
+                code::Op::SetLocal => {
+                    let pos = self.current_frame().instructions()[ip] as usize;
+                    self.current_frame().ip += 1;
+
+                    let val = self.pop().unwrap();
+                    let frame = self.current_frame();
+                    let idx = frame.bp + pos;
+                    if idx >= self.stack.len() {
+                        self.stack.insert(idx, val)
+                    } else {
+                        self.stack[idx] = val
+                    }
+                }
                 code::Op::GetGlobal => {
                     let pos = code::read_u16(&self.current_frame().instructions()[ip..]);
                     self.current_frame().ip += 2;
 
                     let val = self.global.get(pos);
+                    self.push(val.unwrap().clone());
+                }
+                code::Op::GetLocal => {
+                    let pos = self.current_frame().instructions()[ip] as usize;
+                    self.current_frame().ip += 1;
+
+                    let frame = self.current_frame();
+                    let idx = frame.bp + pos;
+                    let val = self.stack.get(idx);
                     self.push(val.unwrap().clone());
                 }
                 code::Op::Array => {
@@ -279,22 +301,25 @@ impl VM {
                 }
                 code::Op::Call => {
                     let func = self.stack.get(self.sp - 1);
-                    if let object::Object::CompiledFunction(ins) = func.expect("empty func") {
-                        let frame = frame::Frame::new(ins.clone());
+                    if let object::Object::CompiledFunction(ins, num_local) =
+                        func.expect(&format!("not a func {:?}", func))
+                    {
+                        let frame = frame::Frame::new(ins.clone(), self.sp);
+                        self.sp = frame.bp + num_local;
                         self.push_frame(frame);
                     }
                 }
                 code::Op::ReturnValue => {
                     let rv = self.pop().unwrap();
 
-                    self.pop_frame();
-                    self.pop();
+                    let frame = self.pop_frame();
+                    self.sp = frame.unwrap().bp - 1;
 
                     self.push(rv);
                 }
                 code::Op::Return => {
-                    self.pop_frame();
-                    self.pop();
+                    let frame = self.pop_frame();
+                    self.sp = frame.unwrap().bp - 1;
 
                     self.push(object::Object::Null);
                 }
@@ -467,7 +492,7 @@ mod test {
     }
 
     #[test]
-    fn vm_func_should_work() {
+    fn vm_fn_should_work() {
         let tests = [
             ("fn() {1+2}()", Some(object::Object::Int(3))),
             ("fn add() {1+2}; add()", Some(object::Object::Int(3))),
