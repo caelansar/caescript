@@ -448,7 +448,13 @@ impl Compiler {
 
         self.scopes.pop();
         self.scope_idx -= 1;
-        self.symbol_table = self.symbol_table.outer.clone().unwrap().take();
+
+        self.symbol_table = self
+            .symbol_table
+            .outer
+            .as_ref()
+            .and_then(|outer| Some(outer.as_ref().clone()))
+            .expect("top-level scope");
 
         ins
     }

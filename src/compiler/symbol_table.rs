@@ -29,7 +29,7 @@ impl Symbol {
 #[derive(Debug, Default, Clone)]
 pub struct SymbolTable {
     store: HashMap<String, Symbol>,
-    pub outer: Option<Rc<RefCell<SymbolTable>>>,
+    pub outer: Option<Box<SymbolTable>>,
     pub count: usize,
 }
 
@@ -52,13 +52,13 @@ impl SymbolTable {
             None => self
                 .outer
                 .as_ref()
-                .and_then(|outer| outer.as_ref().borrow().resolve(name)),
+                .and_then(|outer| outer.as_ref().resolve(name)),
         }
     }
 
     pub fn enclosed(outer: Self) -> Self {
         Self {
-            outer: Some(Rc::new(RefCell::new(outer))),
+            outer: Some(Box::new(outer)),
             ..Self::default()
         }
     }
