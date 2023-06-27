@@ -3,8 +3,8 @@ use crate::code;
 #[derive(Debug)]
 pub struct Frame {
     func: code::Instructions,
-    pub ip: usize,
-    pub bp: usize,
+    pub ip: usize, // instruction pointer
+    pub bp: usize, // base pointer
 }
 
 impl Frame {

@@ -18,7 +18,8 @@ pub struct VM {
 
 impl VM {
     pub fn new(bytecode: compiler::Bytecode) -> Self {
-        let stack = Vec::with_capacity(STACK_SIZE);
+        // this initialization is reuqired, because the stack is not linear growth
+        let stack = vec![object::Object::Null; GLOBAL_SIZE];
         let global = Vec::with_capacity(GLOBAL_SIZE);
 
         let main_fn = bytecode.instructions;
@@ -64,11 +65,7 @@ impl VM {
             panic!("stack overflow")
         }
 
-        if self.stack.len() > self.sp {
-            self.stack[self.sp] = obj
-        } else {
-            self.stack.push(obj);
-        }
+        self.stack[self.sp] = obj;
         self.sp += 1;
     }
 
@@ -341,13 +338,18 @@ mod test {
             .unwrap();
         let mut compiler = Compiler::new();
         let bytecode = compiler.compile(&program).unwrap();
+
         println!("{}", bytecode.instructions);
-        println!("const {:?}", bytecode.consts);
+        bytecode
+            .consts
+            .iter()
+            .for_each(|c| println!("const: {}", c));
+        // println!("const {:?}", bytecode.consts);
 
         let mut vm = VM::new(bytecode);
         vm.run();
+
         println!("vm global: {:?}", vm.global);
-        println!("vm stack: {:?}", vm.stack);
 
         assert_eq!(
             expect,
@@ -507,6 +509,32 @@ mod test {
             (
                 "let r = fn() {1}; let r1 = fn() {r}; r1()()",
                 Some(object::Object::Int(1)),
+            ),
+            (
+                r#"
+                let f = fn() {
+                    let a = 1;
+                    let b = 2;
+                    a + b
+                }
+                f()
+                "#,
+                Some(object::Object::Int(3)),
+            ),
+            (
+                r#"
+                let global = 10;
+                let f1 = fn() {
+                    let a = 1;
+                    global + a
+                };
+                let f2 = fn() {
+                    let a = 2;
+                    global + a
+                };
+                f1() + f2()
+                "#,
+                Some(object::Object::Int(23)),
             ),
         ];
         tests.into_iter().for_each(|test| run(test.0, test.1));

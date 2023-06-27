@@ -140,8 +140,8 @@ impl Display for Object {
                 }
                 write!(f, "fn({}) {{  }}", result)
             }
-            Object::CompiledFunction(_, _) => {
-                write!(f, "compiled_fn(..) {{  }}")
+            Object::CompiledFunction(ins, _) => {
+                write!(f, "compiled_fn({})", ins.to_string())
             }
         }
     }
