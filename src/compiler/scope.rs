@@ -5,6 +5,7 @@ pub(super) struct CompilationScope {
     pub(super) instructions: code::Instructions,
     pub(super) last: Option<EmittedInstruction>,
     pub(super) prev: Option<EmittedInstruction>,
+    pub(super) is_loop: bool,
 }
 
 #[derive(Debug, Clone)]

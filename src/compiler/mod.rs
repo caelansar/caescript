@@ -38,19 +38,6 @@ impl Compiler {
             self.compile_statement(stmt)?
         }
 
-        // check invalid opcode
-        let mut i = 0;
-        while i < self.current_instructions().len() {
-            let op: u8 = *self.current_instructions().get(i).unwrap();
-            let op: code::Op = unsafe { std::mem::transmute(op) };
-
-            if op == code::Op::Break || op == code::Op::Continue {
-                Err(anyhow!("{} is only allowed in for loop", op))?
-            }
-            let offset: usize = op.operand_widths().iter().sum();
-            i += 1 + offset;
-        }
-
         Ok(self.bytecode())
     }
 
@@ -91,9 +78,15 @@ impl Compiler {
             // some placeholder opcode and it will be replaced with `Jump`
             // during compiling for loop expression
             ast::Statement::Break => {
+                if !self.is_in_loop() {
+                    return Err(anyhow!("Break is only allowed in for loop"));
+                }
                 self.emit(code::Op::Break, &vec![9999]);
             }
             ast::Statement::Continue => {
+                if !self.is_in_loop() {
+                    return Err(anyhow!("Continue is only allowed in for loop"));
+                }
                 self.emit(code::Op::Continue, &vec![9999]);
             }
             ast::Statement::Function(ident, params, body) => {
@@ -197,7 +190,10 @@ impl Compiler {
                 self.compile_expression(condition)?;
 
                 let pos = self.emit(code::Op::JumpNotTruthy, &vec![9999]);
+
+                self.enter_loop();
                 self.compile_statements(consequence)?;
+                self.leave_loop();
 
                 // evict redundant `Pop`
                 if self.last_instruction_is(code::Op::Pop) {
@@ -438,6 +434,18 @@ impl Compiler {
         self.scopes.push(scope);
         self.scope_idx += 1;
         self.symbol_table = SymbolTable::enclosed(self.symbol_table.clone());
+    }
+
+    fn enter_loop(&mut self) {
+        self.scopes[self.scope_idx].is_loop = true;
+    }
+
+    fn leave_loop(&mut self) {
+        self.scopes[self.scope_idx].is_loop = false;
+    }
+
+    fn is_in_loop(&mut self) -> bool {
+        self.scopes[self.scope_idx].is_loop
     }
 
     fn leave_scope(&mut self) -> code::Instructions {
