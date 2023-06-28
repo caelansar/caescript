@@ -4,7 +4,7 @@ use crate::{ast, code};
 
 use crate::eval::object;
 
-use self::scope::CompilationScope;
+use self::scope::{CompilationScope, EmittedInstruction};
 use self::symbol_table::{Scope, SymbolTable};
 
 mod scope;
@@ -22,18 +22,6 @@ pub struct Compiler {
 pub struct Bytecode {
     pub instructions: code::Instructions,
     pub consts: Vec<object::Object>,
-}
-
-#[derive(Debug, Clone)]
-pub struct EmittedInstruction {
-    op: code::Op,
-    pos: usize,
-}
-
-impl EmittedInstruction {
-    fn new(op: code::Op, pos: usize) -> Self {
-        Self { op, pos }
-    }
 }
 
 impl Compiler {
@@ -270,13 +258,12 @@ impl Compiler {
                         .resolve(&ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
-                    let idx = symbol.index;
+                    self.emit_get(&symbol);
 
-                    self.emit(code::Op::GetGlobal, &vec![idx]);
                     self.compile_expression(expr)?;
                     self.emit(code::Op::Add, &vec![]);
 
-                    self.emit(code::Op::SetGlobal, &vec![idx]);
+                    self.emit_set(&symbol);
                 }
                 ast::Assign::MinusEq => {
                     let symbol = self
@@ -284,13 +271,12 @@ impl Compiler {
                         .resolve(&ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
-                    let idx = symbol.index;
+                    self.emit_get(&symbol);
 
-                    self.emit(code::Op::GetGlobal, &vec![idx]);
                     self.compile_expression(expr)?;
                     self.emit(code::Op::Sub, &vec![]);
 
-                    self.emit(code::Op::SetGlobal, &vec![idx]);
+                    self.emit_set(&symbol);
                 }
                 ast::Assign::MultiplyEq => {
                     let symbol = self
@@ -298,13 +284,12 @@ impl Compiler {
                         .resolve(&ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
-                    let idx = symbol.index;
+                    self.emit_get(&symbol);
 
-                    self.emit(code::Op::GetGlobal, &vec![idx]);
                     self.compile_expression(expr)?;
                     self.emit(code::Op::Mul, &vec![]);
 
-                    self.emit(code::Op::SetGlobal, &vec![idx]);
+                    self.emit_set(&symbol);
                 }
                 ast::Assign::DivideEq => {
                     let symbol = self
@@ -312,13 +297,12 @@ impl Compiler {
                         .resolve(&ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
-                    let idx = symbol.index;
+                    self.emit_get(&symbol);
 
-                    self.emit(code::Op::GetGlobal, &vec![idx]);
                     self.compile_expression(expr)?;
                     self.emit(code::Op::Div, &vec![]);
 
-                    self.emit(code::Op::SetGlobal, &vec![idx]);
+                    self.emit_set(&symbol);
                 }
                 ast::Assign::ModEq => {
                     let symbol = self
@@ -326,13 +310,12 @@ impl Compiler {
                         .resolve(&ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
-                    let idx = symbol.index;
+                    self.emit_get(&symbol);
 
-                    self.emit(code::Op::GetGlobal, &vec![idx]);
                     self.compile_expression(expr)?;
                     self.emit(code::Op::Mod, &vec![]);
 
-                    self.emit(code::Op::SetGlobal, &vec![idx]);
+                    self.emit_set(&symbol);
                 }
             },
             ast::Expression::Array(elems) => {
@@ -399,6 +382,20 @@ impl Compiler {
 
         self.set_last_instruction(op, pos);
         pos
+    }
+
+    fn emit_get(&mut self, symbol: &symbol_table::Symbol) {
+        match symbol.scope {
+            Scope::Global => self.emit(code::Op::GetGlobal, &vec![symbol.index]),
+            Scope::Local => self.emit(code::Op::GetLocal, &vec![symbol.index]),
+        };
+    }
+
+    fn emit_set(&mut self, symbol: &symbol_table::Symbol) {
+        match symbol.scope {
+            Scope::Global => self.emit(code::Op::SetGlobal, &vec![symbol.index]),
+            Scope::Local => self.emit(code::Op::SetLocal, &vec![symbol.index]),
+        };
     }
 
     fn set_last_instruction(&mut self, op: code::Op, pos: usize) {

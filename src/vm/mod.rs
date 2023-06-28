@@ -536,6 +536,61 @@ mod test {
                 "#,
                 Some(object::Object::Int(23)),
             ),
+            (
+                r#"
+                let f = fn() {
+                    let a = 1;
+                    a += 2;
+                    a
+                }
+                f()
+                "#,
+                Some(object::Object::Int(3)),
+            ),
+            (
+                r#"
+                let f = fn() {
+                    let a = 1;
+                    a -= 2;
+                    a
+                }
+                f()
+                "#,
+                Some(object::Object::Int(-1)),
+            ),
+            (
+                r#"
+                let f = fn() {
+                    let a = 1;
+                    a *= 2;
+                    a
+                }
+                f()
+                "#,
+                Some(object::Object::Int(2)),
+            ),
+            (
+                r#"
+                let f = fn() {
+                    let a = 2;
+                    a /= 2;
+                    a
+                }
+                f()
+                "#,
+                Some(object::Object::Int(1)),
+            ),
+            (
+                r#"
+                let f = fn() {
+                    let a = 2;
+                    a %= 2;
+                    a
+                }
+                f()
+                "#,
+                Some(object::Object::Int(0)),
+            ),
         ];
         tests.into_iter().for_each(|test| run(test.0, test.1));
     }
