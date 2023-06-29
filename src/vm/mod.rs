@@ -591,6 +591,16 @@ mod test {
                 "#,
                 Some(object::Object::Int(0)),
             ),
+            (
+                r#"
+                let f = fn() {
+                    let f1 = fn() {1};
+                    f1
+                }
+                f()()
+                "#,
+                Some(object::Object::Int(1)),
+            ),
         ];
         tests.into_iter().for_each(|test| run(test.0, test.1));
     }
