@@ -336,6 +336,11 @@ impl Compiler {
             }
             ast::Expression::Func { params, body } => {
                 self.enter_scope();
+
+                params.iter().for_each(|param| {
+                    self.symbol_table.define(param.0.clone());
+                });
+
                 self.compile_statements(body)?;
 
                 if self.last_instruction_is(code::Op::Pop) {
@@ -354,7 +359,11 @@ impl Compiler {
             ast::Expression::Call { func, args } => {
                 self.compile_expression(func)?;
 
-                self.emit(code::Op::Call, &vec![]);
+                args.iter()
+                    .try_for_each(|arg| self.compile_expression(arg))?;
+
+                println!("args {}", args.len());
+                self.emit(code::Op::Call, &vec![args.len()]);
             }
         }
         Ok(())
@@ -933,7 +942,7 @@ mod test {
                 "fn() { 1;2 }()",
                 vec![
                     code::make(code::Op::Const, &vec![2]),
-                    code::make(code::Op::Call, &vec![]),
+                    code::make(code::Op::Call, &vec![0]),
                     code::make(code::Op::Pop, &vec![]),
                 ],
                 vec![
@@ -967,6 +976,41 @@ mod test {
                         ]),
                         1,
                     ),
+                ],
+            ),
+            (
+                "fn(a) {  }(1)",
+                vec![
+                    code::make(code::Op::Const, &vec![0]),
+                    code::make(code::Op::Const, &vec![1]),
+                    code::make(code::Op::Call, &vec![1]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![
+                    object::Object::CompiledFunction(
+                        concat_instructions(vec![code::make(code::Op::Return, &vec![])]),
+                        1,
+                    ),
+                    object::Object::Int(1),
+                ],
+            ),
+            (
+                "fn(a) { a }(1)",
+                vec![
+                    code::make(code::Op::Const, &vec![0]),
+                    code::make(code::Op::Const, &vec![1]),
+                    code::make(code::Op::Call, &vec![1]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![
+                    object::Object::CompiledFunction(
+                        concat_instructions(vec![
+                            code::make(code::Op::GetLocal, &vec![0]),
+                            code::make(code::Op::ReturnValue, &vec![]),
+                        ]),
+                        1,
+                    ),
+                    object::Object::Int(1),
                 ],
             ),
         ];

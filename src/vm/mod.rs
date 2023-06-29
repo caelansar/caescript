@@ -297,6 +297,8 @@ impl VM {
                     }
                 }
                 code::Op::Call => {
+                    self.current_frame().ip += 1;
+
                     let func = self.stack.get(self.sp - 1);
                     if let object::Object::CompiledFunction(ins, num_local) =
                         func.expect(&format!("not a func {:?}", func))

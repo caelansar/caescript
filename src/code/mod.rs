@@ -219,7 +219,7 @@ impl Op {
             Op::Index => vec![],
             Op::Break => vec![2],
             Op::Continue => vec![2],
-            Op::Call => vec![],
+            Op::Call => vec![1],
             Op::ReturnValue => vec![],
             Op::Return => vec![],
             Op::SetLocal => vec![1],
