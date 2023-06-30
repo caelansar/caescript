@@ -494,10 +494,7 @@ impl Compiler {
             .enumerate()
             .for_each(|(idx, d)| self.current_instructions()[last + idx] = *d);
 
-        self.scopes[self.scope_idx]
-            .last
-            .as_mut()
-            .map(|x| x.op = code::Op::ReturnValue);
+        self.scopes[self.scope_idx].last.as_mut().map(|x| x.op = to);
     }
 
     fn change_op(&mut self, from: code::Op, to: code::Op, operands: &Vec<usize>) {
