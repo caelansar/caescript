@@ -297,13 +297,15 @@ impl VM {
                     }
                 }
                 code::Op::Call => {
+                    let num_args = self.current_frame().instructions()[ip] as usize;
                     self.current_frame().ip += 1;
 
-                    let func = self.stack.get(self.sp - 1);
-                    if let object::Object::CompiledFunction(ins, num_local) =
+                    let func = self.stack.get(self.sp - 1 - num_args);
+                    if let object::Object::CompiledFunction(ins, num_local, num_params) =
                         func.expect(&format!("not a func {:?}", func))
                     {
-                        let frame = frame::Frame::new(ins.clone(), self.sp);
+                        assert!(*num_params == num_args, "wrong number of argument");
+                        let frame = frame::Frame::new(ins.clone(), self.sp - num_args);
                         self.sp = frame.bp + num_local;
                         self.push_frame(frame);
                     }
@@ -602,6 +604,29 @@ mod test {
                 f()()
                 "#,
                 Some(object::Object::Int(1)),
+            ),
+            (
+                r#"
+                let sum = fn(a, b) {
+                    a + b
+                }
+                sum(1,2)
+                "#,
+                Some(object::Object::Int(3)),
+            ),
+            (
+                r#"
+                let global = 10;
+                let sum = fn(a, b) {
+                    let c = a + b;
+                    c + global
+                }
+                fn outer() {
+                    sum(1,2) + sum(3,4) + global
+                }
+                outer() + global
+                "#,
+                Some(object::Object::Int(50)),
             ),
         ];
         tests.into_iter().for_each(|test| run(test.0, test.1));

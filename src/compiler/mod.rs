@@ -65,10 +65,7 @@ impl Compiler {
                 self.compile_expression(expr)?;
 
                 let symbol = self.symbol_table.define(ident.0.clone());
-                match symbol.scope {
-                    Scope::Global => self.emit(code::Op::SetGlobal, &vec![symbol.index]),
-                    Scope::Local => self.emit(code::Op::SetLocal, &vec![symbol.index]),
-                };
+                self.emit_set(&symbol);
             }
             ast::Statement::Return(expr) => {
                 self.compile_expression(expr)?;
@@ -97,7 +94,7 @@ impl Compiler {
                 })?;
 
                 let symbol = self.symbol_table.define(ident.0.clone());
-                self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+                self.emit_set(&symbol);
             }
         }
         Ok(())
@@ -353,7 +350,11 @@ impl Compiler {
                 let num_local = self.symbol_table.count;
                 let ins = self.leave_scope();
 
-                let operand = self.add_const(object::Object::CompiledFunction(ins, num_local));
+                let operand = self.add_const(object::Object::CompiledFunction(
+                    ins,
+                    num_local,
+                    params.len(),
+                ));
                 self.emit(code::Op::Const, &vec![operand]);
             }
             ast::Expression::Call { func, args } => {
@@ -884,6 +885,7 @@ mod test {
                             code::make(code::Op::ReturnValue, &vec![]),
                         ]),
                         0,
+                        0,
                     ),
                 ],
             ),
@@ -903,6 +905,7 @@ mod test {
                             code::make(code::Op::Add, &vec![]),
                             code::make(code::Op::ReturnValue, &vec![]),
                         ]),
+                        0,
                         0,
                     ),
                 ],
@@ -924,6 +927,7 @@ mod test {
                             code::make(code::Op::ReturnValue, &vec![]),
                         ]),
                         0,
+                        0,
                     ),
                 ],
             ),
@@ -935,6 +939,7 @@ mod test {
                 ],
                 vec![object::Object::CompiledFunction(
                     concat_instructions(vec![code::make(code::Op::Return, &vec![])]),
+                    0,
                     0,
                 )],
             ),
@@ -956,6 +961,7 @@ mod test {
                             code::make(code::Op::ReturnValue, &vec![]),
                         ]),
                         0,
+                        0,
                     ),
                 ],
             ),
@@ -975,6 +981,7 @@ mod test {
                             code::make(code::Op::ReturnValue, &vec![]),
                         ]),
                         1,
+                        0,
                     ),
                 ],
             ),
@@ -989,6 +996,7 @@ mod test {
                 vec![
                     object::Object::CompiledFunction(
                         concat_instructions(vec![code::make(code::Op::Return, &vec![])]),
+                        1,
                         1,
                     ),
                     object::Object::Int(1),
@@ -1008,6 +1016,7 @@ mod test {
                             code::make(code::Op::GetLocal, &vec![0]),
                             code::make(code::Op::ReturnValue, &vec![]),
                         ]),
+                        1,
                         1,
                     ),
                     object::Object::Int(1),
