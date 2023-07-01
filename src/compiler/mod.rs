@@ -29,6 +29,7 @@ impl Compiler {
         let main_scope = CompilationScope::default();
         Self {
             scopes: vec![main_scope],
+            symbol_table: SymbolTable::new(),
             ..Self::default()
         }
     }
@@ -131,10 +132,7 @@ impl Compiler {
                     .symbol_table
                     .resolve(&ident)
                     .ok_or(anyhow!("undefined variable {}", &ident.0))?;
-                match symbol.scope {
-                    Scope::Global => self.emit(code::Op::GetGlobal, &vec![symbol.index]),
-                    Scope::Local => self.emit(code::Op::GetLocal, &vec![symbol.index]),
-                };
+                self.emit_get(&symbol);
             }
             ast::Expression::Prefix(prefix, expr) => {
                 self.compile_expression(expr)?;
@@ -394,6 +392,7 @@ impl Compiler {
         match symbol.scope {
             Scope::Global => self.emit(code::Op::GetGlobal, &vec![symbol.index]),
             Scope::Local => self.emit(code::Op::GetLocal, &vec![symbol.index]),
+            Scope::Builtin => self.emit(code::Op::GetBuiltin, &vec![symbol.index]),
         };
     }
 
@@ -401,6 +400,7 @@ impl Compiler {
         match symbol.scope {
             Scope::Global => self.emit(code::Op::SetGlobal, &vec![symbol.index]),
             Scope::Local => self.emit(code::Op::SetLocal, &vec![symbol.index]),
+            _ => unreachable!(),
         };
     }
 
@@ -1020,6 +1020,24 @@ mod test {
                 ],
             ),
         ];
+
+        tests
+            .into_iter()
+            .for_each(|test| compile(test.0, test.1, test.2))
+    }
+
+    #[test]
+    fn compile_builtin_fn_should_work() {
+        let tests = [(
+            r#"len("1")"#,
+            vec![
+                code::make(code::Op::GetBuiltin, &vec![0]),
+                code::make(code::Op::Const, &vec![0]),
+                code::make(code::Op::Call, &vec![1]),
+                code::make(code::Op::Pop, &vec![]),
+            ],
+            vec![object::Object::String("1".into())],
+        )];
 
         tests
             .into_iter()

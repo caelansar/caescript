@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 
+use crate::eval::{builtin, object};
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(super) enum Scope {
     Global,
     Local,
+    Builtin,
 }
 
 #[derive(Debug, Clone)]
@@ -34,6 +37,18 @@ pub struct SymbolTable {
 }
 
 impl SymbolTable {
+    pub(super) fn new() -> Self {
+        let mut symbol_table = Self::default();
+
+        builtin::Builtin::iterator()
+            .enumerate()
+            .for_each(|(idx, builtin)| {
+                symbol_table.define_builtin(idx, builtin.to_string());
+            });
+
+        symbol_table
+    }
+
     pub(super) fn define(&mut self, name: String) -> Symbol {
         let mut scope = Scope::Global;
         if self.outer.is_some() {
@@ -42,6 +57,13 @@ impl SymbolTable {
         let symbol = Symbol::new(name.clone(), scope, self.count);
         self.store.insert(name, symbol.clone());
         self.count += 1;
+
+        symbol
+    }
+
+    pub(super) fn define_builtin(&mut self, idx: usize, name: String) -> Symbol {
+        let symbol = Symbol::new(name.clone(), Scope::Builtin, idx);
+        self.store.insert(name, symbol.clone());
 
         symbol
     }

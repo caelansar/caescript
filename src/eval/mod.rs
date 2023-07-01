@@ -233,7 +233,7 @@ impl Evaluator {
             .collect();
         let (params, ref body, env) = match func {
             Object::Function(params, body, env) => (params, body, env),
-            Object::Builtin(f) => return Some(f(args)),
+            Object::Builtin(f) => return Some(f.call(args)),
             _ => {
                 println!("{}", func);
                 todo!()

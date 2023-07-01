@@ -7,7 +7,7 @@ use std::{
 
 use crate::{ast, code};
 
-use super::env::Environment;
+use super::{builtin, env::Environment};
 use crate::arithmetic_operator;
 
 pub const BOOL_OBJ_TRUE: Object = Object::Bool(true);
@@ -67,7 +67,7 @@ pub enum Object {
     ),
     Array(Vec<Object>),
     Hash(HashMap<Object, Object>),
-    Builtin(fn(Vec<Object>) -> Object),
+    Builtin(builtin::Builtin),
     Error(String),
     CompiledFunction(code::Instructions, usize, usize),
     Null,

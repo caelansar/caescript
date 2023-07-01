@@ -1,4 +1,7 @@
-use crate::{code, compiler, eval::object};
+use crate::{
+    code, compiler,
+    eval::{builtin, object},
+};
 
 const STACK_SIZE: usize = 2048;
 const GLOBAL_SIZE: usize = 65535;
@@ -301,14 +304,33 @@ impl VM {
                     self.current_frame().ip += 1;
 
                     let func = self.stack.get(self.sp - 1 - num_args);
-                    if let object::Object::CompiledFunction(ins, num_local, num_params) =
-                        func.expect(&format!("not a func {:?}", func))
-                    {
-                        assert!(*num_params == num_args, "wrong number of argument");
-                        let frame = frame::Frame::new(ins.clone(), self.sp - num_args);
-                        self.sp = frame.bp + num_local;
-                        self.push_frame(frame);
+                    match func {
+                        None => panic!("func not found"),
+                        Some(object::Object::CompiledFunction(ins, num_local, num_params)) => {
+                            assert!(*num_params == num_args, "wrong number of argument");
+                            let frame = frame::Frame::new(ins.clone(), self.sp - num_args);
+                            self.sp = frame.bp + num_local;
+                            self.push_frame(frame);
+                        }
+                        Some(object::Object::Builtin(builtin)) => {
+                            let args = &self.stack[self.sp - num_args..self.sp];
+                            self.push(builtin.call(Vec::from(args)))
+                        }
+                        _ => unreachable!(),
                     }
+                }
+                code::Op::GetBuiltin => {
+                    let builtin_idx = self.current_frame().instructions()[ip] as usize;
+                    self.current_frame().ip += 1;
+
+                    let builtin = builtin::Builtin::iterator()
+                        .enumerate()
+                        .find(|(idx, _)| *idx == builtin_idx)
+                        .map(|x| x.1);
+
+                    self.push(object::Object::Builtin(
+                        builtin.expect("builtin function not found"),
+                    ));
                 }
                 code::Op::ReturnValue => {
                     let rv = self.pop().unwrap();
@@ -628,6 +650,16 @@ mod test {
                 "#,
                 Some(object::Object::Int(50)),
             ),
+        ];
+        tests.into_iter().for_each(|test| run(test.0, test.1));
+    }
+
+    #[test]
+    fn vm_built_fn_should_work() {
+        let tests = [
+            ("len([])", Some(object::Object::Int(0))),
+            (r#"len("1")"#, Some(object::Object::Int(1))),
+            (r#"len("123")"#, Some(object::Object::Int(3))),
         ];
         tests.into_iter().for_each(|test| run(test.0, test.1));
     }
