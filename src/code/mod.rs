@@ -128,6 +128,7 @@ pub enum Op {
     Call,
     ReturnValue,
     Return,
+    Closure,
     Pop,
 }
 
@@ -185,6 +186,7 @@ impl Display for Op {
             Op::Continue => unreachable!(),
             Op::Call => "OpCall",
             Op::ReturnValue => "OpReturnValue",
+            Op::Closure => "OpClosure",
             Op::Return => "OpReturn",
         };
         f.write_str(s)
@@ -227,6 +229,7 @@ impl Op {
             Op::SetLocal => vec![1],
             Op::GetLocal => vec![1],
             Op::GetBuiltin => vec![1],
+            Op::Closure => vec![2, 1],
         }
     }
 }
@@ -278,6 +281,11 @@ mod test {
                 ],
                 vec![Op::Add as u8, Op::Const as u8, 0, 0, Op::Const as u8, 0, 1],
                 "0000 OpAdd\n0001 OpConstant 0\n0004 OpConstant 1\n",
+            ),
+            (
+                vec![make(Op::Closure, &vec![0, 1])],
+                vec![Op::Closure as u8, 0, 0, 1],
+                "0000 OpClosure 0 1\n",
             ),
         ];
 

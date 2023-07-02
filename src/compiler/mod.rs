@@ -353,7 +353,7 @@ impl Compiler {
                     num_local,
                     params.len(),
                 ));
-                self.emit(code::Op::Const, &vec![operand]);
+                self.emit(code::Op::Closure, &vec![operand, 0]);
             }
             ast::Expression::Call { func, args } => {
                 self.compile_expression(func)?;
@@ -868,7 +868,7 @@ mod test {
             (
                 "fn() { return 1+2 }",
                 vec![
-                    code::make(code::Op::Const, &vec![2]),
+                    code::make(code::Op::Closure, &vec![2, 0]),
                     code::make(code::Op::Pop, &vec![]),
                 ],
                 vec![
@@ -889,7 +889,7 @@ mod test {
             (
                 "fn() { 1+2 }",
                 vec![
-                    code::make(code::Op::Const, &vec![2]),
+                    code::make(code::Op::Closure, &vec![2, 0]),
                     code::make(code::Op::Pop, &vec![]),
                 ],
                 vec![
@@ -910,7 +910,7 @@ mod test {
             (
                 "fn() { 1;2 }",
                 vec![
-                    code::make(code::Op::Const, &vec![2]),
+                    code::make(code::Op::Closure, &vec![2, 0]),
                     code::make(code::Op::Pop, &vec![]),
                 ],
                 vec![
@@ -931,7 +931,7 @@ mod test {
             (
                 "fn() {}",
                 vec![
-                    code::make(code::Op::Const, &vec![0]),
+                    code::make(code::Op::Closure, &vec![0, 0]),
                     code::make(code::Op::Pop, &vec![]),
                 ],
                 vec![object::Object::CompiledFunction(
@@ -943,7 +943,7 @@ mod test {
             (
                 "fn() { 1;2 }()",
                 vec![
-                    code::make(code::Op::Const, &vec![2]),
+                    code::make(code::Op::Closure, &vec![2, 0]),
                     code::make(code::Op::Call, &vec![0]),
                     code::make(code::Op::Pop, &vec![]),
                 ],
@@ -965,7 +965,7 @@ mod test {
             (
                 "fn() { let a = 1; a }",
                 vec![
-                    code::make(code::Op::Const, &vec![1]),
+                    code::make(code::Op::Closure, &vec![1, 0]),
                     code::make(code::Op::Pop, &vec![]),
                 ],
                 vec![
@@ -985,7 +985,7 @@ mod test {
             (
                 "fn(a) {  }(1)",
                 vec![
-                    code::make(code::Op::Const, &vec![0]),
+                    code::make(code::Op::Closure, &vec![0, 0]),
                     code::make(code::Op::Const, &vec![1]),
                     code::make(code::Op::Call, &vec![1]),
                     code::make(code::Op::Pop, &vec![]),
@@ -1002,7 +1002,7 @@ mod test {
             (
                 "fn(a) { a }(1)",
                 vec![
-                    code::make(code::Op::Const, &vec![0]),
+                    code::make(code::Op::Closure, &vec![0, 0]),
                     code::make(code::Op::Const, &vec![1]),
                     code::make(code::Op::Call, &vec![1]),
                     code::make(code::Op::Pop, &vec![]),

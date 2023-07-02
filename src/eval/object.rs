@@ -70,7 +70,25 @@ pub enum Object {
     Builtin(builtin::Builtin),
     Error(String),
     CompiledFunction(code::Instructions, usize, usize),
+    Closure(Closure),
     Null,
+}
+
+// A closure is an expression with free vairables. The real role
+// of free vairables depends on its referencing lexical environment
+// A free vairables is not a local vairable or a parameter and its
+// scope is within the enclosing function
+#[derive(Debug, PartialEq, Clone)]
+pub struct Closure {
+    pub func: CompiledFunction,
+    pub free: Vec<Object>,
+}
+
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
+pub struct CompiledFunction {
+    pub(crate) instructions: code::Instructions,
+    pub(crate) num_locals: usize,
+    pub(crate) num_params: usize,
 }
 
 impl From<Object> for bool {
@@ -142,6 +160,9 @@ impl Display for Object {
             }
             Object::CompiledFunction(ins, _, _) => {
                 write!(f, "compiled_fn({})", ins.to_string())
+            }
+            Object::Closure(_) => {
+                write!(f, "closure()")
             }
         }
     }

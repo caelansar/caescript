@@ -312,11 +312,23 @@ impl VM {
                             self.sp = frame.bp + num_local;
                             self.push_frame(frame);
                         }
+                        Some(object::Object::Closure(closure)) => {
+                            assert!(
+                                closure.func.num_params == num_args,
+                                "wrong number of argument"
+                            );
+                            let frame = frame::Frame::new(
+                                closure.func.instructions.clone(),
+                                self.sp - num_args,
+                            );
+                            self.sp = frame.bp + closure.func.num_locals;
+                            self.push_frame(frame);
+                        }
                         Some(object::Object::Builtin(builtin)) => {
                             let args = &self.stack[self.sp - num_args..self.sp];
                             self.push(builtin.call(Vec::from(args)))
                         }
-                        _ => unreachable!(),
+                        _ => panic!("not a function"),
                     }
                 }
                 code::Op::GetBuiltin => {
@@ -345,6 +357,25 @@ impl VM {
                     self.sp = frame.unwrap().bp - 1;
 
                     self.push(object::Object::Null);
+                }
+                code::Op::Closure => {
+                    let idx = code::read_u16(&self.current_frame().instructions()[ip..]);
+                    self.current_frame().ip += 3;
+
+                    if let Some(object::Object::CompiledFunction(ins, num_locals, num_params)) =
+                        self.consts.get(idx)
+                    {
+                        self.push(object::Object::Closure(object::Closure {
+                            func: object::CompiledFunction {
+                                instructions: ins.clone(),
+                                num_locals: *num_locals,
+                                num_params: *num_params,
+                            },
+                            free: vec![],
+                        }))
+                    } else {
+                        panic!("not a function");
+                    }
                 }
                 _ => unreachable!(),
             }
