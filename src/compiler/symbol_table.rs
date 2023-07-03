@@ -7,6 +7,7 @@ pub(super) enum Scope {
     Global,
     Local,
     Builtin,
+    Free,
 }
 
 #[derive(Debug, Clone)]
@@ -32,6 +33,7 @@ impl Symbol {
 #[derive(Debug, Default, Clone)]
 pub struct SymbolTable {
     store: HashMap<String, Symbol>,
+    pub(super) free: Vec<Symbol>,
     pub outer: Option<Box<SymbolTable>>,
     pub count: usize,
 }
@@ -68,13 +70,31 @@ impl SymbolTable {
         symbol
     }
 
-    pub(super) fn resolve(&self, name: &str) -> Option<Symbol> {
+    fn define_free(&mut self, free: Symbol) -> Symbol {
+        let name = free.name.clone();
+        self.free.push(free);
+
+        let symbol = Symbol::new(name.clone(), Scope::Free, self.free.len() - 1);
+        self.store.insert(name, symbol.clone());
+
+        symbol
+    }
+
+    pub(super) fn resolve(&mut self, name: &str) -> Option<Symbol> {
         match self.store.get(name) {
             Some(s) => Some(s.clone()),
-            None => self
-                .outer
-                .as_ref()
-                .and_then(|outer| outer.as_ref().resolve(name)),
+            None => {
+                let sym = self
+                    .outer
+                    .as_mut()
+                    .and_then(|outer| outer.as_mut().resolve(name))?;
+
+                if sym.scope == Scope::Global || sym.scope == Scope::Builtin {
+                    Some(sym)
+                } else {
+                    Some(self.define_free(sym))
+                }
+            }
         }
     }
 

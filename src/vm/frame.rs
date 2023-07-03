@@ -1,18 +1,18 @@
-use crate::code;
+use crate::{code, eval::object};
 
 #[derive(Debug)]
 pub struct Frame {
-    func: code::Instructions,
+    closure: object::Closure,
     pub ip: usize, // instruction pointer
     pub bp: usize, // base pointer
 }
 
 impl Frame {
-    pub fn new(func: code::Instructions, bp: usize) -> Self {
-        Self { func, bp, ip: 0 }
+    pub fn new(closure: object::Closure, bp: usize) -> Self {
+        Self { closure, bp, ip: 0 }
     }
 
     pub fn instructions(&self) -> &code::Instructions {
-        &self.func
+        &self.closure.func.instructions
     }
 }

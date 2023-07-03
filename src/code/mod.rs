@@ -129,6 +129,7 @@ pub enum Op {
     ReturnValue,
     Return,
     Closure,
+    GetFree,
     Pop,
 }
 
@@ -187,6 +188,7 @@ impl Display for Op {
             Op::Call => "OpCall",
             Op::ReturnValue => "OpReturnValue",
             Op::Closure => "OpClosure",
+            Op::GetFree => "OpGetFree",
             Op::Return => "OpReturn",
         };
         f.write_str(s)
@@ -230,6 +232,7 @@ impl Op {
             Op::GetLocal => vec![1],
             Op::GetBuiltin => vec![1],
             Op::Closure => vec![2, 1],
+            Op::GetFree => vec![1],
         }
     }
 }

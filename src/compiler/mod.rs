@@ -345,15 +345,18 @@ impl Compiler {
                     self.emit(code::Op::Return, &vec![]);
                 }
 
+                let free = self.symbol_table.free.clone();
                 let num_local = self.symbol_table.count;
                 let ins = self.leave_scope();
+
+                free.iter().for_each(|f| self.emit_get(f));
 
                 let operand = self.add_const(object::Object::CompiledFunction(
                     ins,
                     num_local,
                     params.len(),
                 ));
-                self.emit(code::Op::Closure, &vec![operand, 0]);
+                self.emit(code::Op::Closure, &vec![operand, free.len()]);
             }
             ast::Expression::Call { func, args } => {
                 self.compile_expression(func)?;
@@ -393,6 +396,7 @@ impl Compiler {
             Scope::Global => self.emit(code::Op::GetGlobal, &vec![symbol.index]),
             Scope::Local => self.emit(code::Op::GetLocal, &vec![symbol.index]),
             Scope::Builtin => self.emit(code::Op::GetBuiltin, &vec![symbol.index]),
+            Scope::Free => self.emit(code::Op::GetFree, &vec![symbol.index]),
         };
     }
 
@@ -1017,6 +1021,34 @@ mod test {
                         1,
                     ),
                     object::Object::Int(1),
+                ],
+            ),
+            (
+                r#"fn(a) { fn(b) {a + b} }"#,
+                vec![
+                    code::make(code::Op::Closure, &vec![1, 0]),
+                    code::make(code::Op::Pop, &vec![]),
+                ],
+                vec![
+                    object::Object::CompiledFunction(
+                        concat_instructions(vec![
+                            code::make(code::Op::GetFree, &vec![0]),
+                            code::make(code::Op::GetLocal, &vec![0]),
+                            code::make(code::Op::Add, &vec![]),
+                            code::make(code::Op::ReturnValue, &vec![]),
+                        ]),
+                        1,
+                        1,
+                    ),
+                    object::Object::CompiledFunction(
+                        concat_instructions(vec![
+                            code::make(code::Op::GetLocal, &vec![0]),
+                            code::make(code::Op::Closure, &vec![0, 1]),
+                            code::make(code::Op::ReturnValue, &vec![]),
+                        ]),
+                        1,
+                        1,
+                    ),
                 ],
             ),
         ];

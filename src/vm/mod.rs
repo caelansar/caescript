@@ -25,8 +25,18 @@ impl VM {
         let stack = vec![object::Object::Null; GLOBAL_SIZE];
         let global = Vec::with_capacity(GLOBAL_SIZE);
 
-        let main_fn = bytecode.instructions;
-        let main_frame = frame::Frame::new(main_fn, 0);
+        let ins = bytecode.instructions;
+        let main_frame = frame::Frame::new(
+            object::Closure {
+                func: object::CompiledFunction {
+                    instructions: ins,
+                    num_locals: 0,
+                    num_params: 0,
+                },
+                free: vec![],
+            },
+            0,
+        );
 
         let mut frames = Vec::with_capacity(MAX_FRAME);
         frames.insert(0, main_frame);
@@ -306,21 +316,12 @@ impl VM {
                     let func = self.stack.get(self.sp - 1 - num_args);
                     match func {
                         None => panic!("func not found"),
-                        Some(object::Object::CompiledFunction(ins, num_local, num_params)) => {
-                            assert!(*num_params == num_args, "wrong number of argument");
-                            let frame = frame::Frame::new(ins.clone(), self.sp - num_args);
-                            self.sp = frame.bp + num_local;
-                            self.push_frame(frame);
-                        }
                         Some(object::Object::Closure(closure)) => {
                             assert!(
                                 closure.func.num_params == num_args,
                                 "wrong number of argument"
                             );
-                            let frame = frame::Frame::new(
-                                closure.func.instructions.clone(),
-                                self.sp - num_args,
-                            );
+                            let frame = frame::Frame::new(closure.clone(), self.sp - num_args);
                             self.sp = frame.bp + closure.func.num_locals;
                             self.push_frame(frame);
                         }
