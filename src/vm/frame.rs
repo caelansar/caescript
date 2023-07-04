@@ -2,7 +2,7 @@ use crate::{code, eval::object};
 
 #[derive(Debug)]
 pub struct Frame {
-    closure: object::Closure,
+    pub closure: object::Closure,
     pub ip: usize, // instruction pointer
     pub bp: usize, // base pointer
 }

@@ -361,7 +361,15 @@ impl VM {
                 }
                 code::Op::Closure => {
                     let idx = code::read_u16(&self.current_frame().instructions()[ip..]);
+                    let free_num = self.current_frame().instructions()[ip + 2] as usize;
+                    dbg!(free_num);
                     self.current_frame().ip += 3;
+
+                    let mut free = vec![];
+                    (0..free_num).into_iter().for_each(|i| {
+                        let idx = self.sp - free_num + i;
+                        free.push(self.stack[idx].clone())
+                    });
 
                     if let Some(object::Object::CompiledFunction(ins, num_locals, num_params)) =
                         self.consts.get(idx)
@@ -372,11 +380,23 @@ impl VM {
                                 num_locals: *num_locals,
                                 num_params: *num_params,
                             },
-                            free: vec![],
+                            free,
                         }))
                     } else {
                         panic!("not a function");
                     }
+                }
+                code::Op::GetFree => {
+                    let free_idx = self.current_frame().instructions()[ip] as usize;
+                    let current_frame = self.current_frame();
+                    current_frame.ip += 1;
+
+                    current_frame
+                        .closure
+                        .free
+                        .clone()
+                        .get(free_idx)
+                        .map(|f| self.push(f.clone()));
                 }
                 _ => unreachable!(),
             }
@@ -681,6 +701,18 @@ mod test {
                 outer() + global
                 "#,
                 Some(object::Object::Int(50)),
+            ),
+            (
+                r#"fn(a) { fn(b) {a + b} }(1)(2)"#,
+                Some(object::Object::Int(3)),
+            ),
+            (
+                r#"let closure = fn(a) { fn(b) {a + b} }; closure(1)(2)"#,
+                Some(object::Object::Int(3)),
+            ),
+            (
+                r#"fn closure(a) { fn(b) {a + b} }; closure(1)(2)"#,
+                Some(object::Object::Int(3)),
             ),
         ];
         tests.into_iter().for_each(|test| run(test.0, test.1));
