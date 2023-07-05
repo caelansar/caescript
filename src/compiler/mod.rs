@@ -404,6 +404,7 @@ impl Compiler {
         match symbol.scope {
             Scope::Global => self.emit(code::Op::SetGlobal, &vec![symbol.index]),
             Scope::Local => self.emit(code::Op::SetLocal, &vec![symbol.index]),
+            Scope::Free => self.emit(code::Op::SetFree, &vec![symbol.index]),
             _ => unreachable!(),
         };
     }

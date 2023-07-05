@@ -250,6 +250,7 @@ impl VM {
                     self.current_frame().ip += 2;
 
                     let val = self.global.get(pos);
+                    // TODO:
                     self.push(val.unwrap().clone());
                 }
                 code::Op::GetLocal => {
@@ -391,12 +392,25 @@ impl VM {
                     let current_frame = self.current_frame();
                     current_frame.ip += 1;
 
+                    dbg!(&current_frame.closure);
+                    current_frame.closure.free.clone().get(free_idx).map(|f| {
+                        dbg!(f);
+                        self.push(f.clone())
+                    });
+                }
+                code::Op::SetFree => {
+                    let free_idx = self.current_frame().instructions()[ip] as usize;
+
+                    let val = self.pop().unwrap().clone();
+
+                    let current_frame = self.current_frame();
+                    current_frame.ip += 1;
+
                     current_frame
                         .closure
                         .free
-                        .clone()
-                        .get(free_idx)
-                        .map(|f| self.push(f.clone()));
+                        .get_mut(free_idx)
+                        .map(|f| *f = val);
                 }
                 _ => unreachable!(),
             }
@@ -712,6 +726,20 @@ mod test {
             ),
             (
                 r#"fn closure(a) { fn(b) {a + b} }; closure(1)(2)"#,
+                Some(object::Object::Int(3)),
+            ),
+            (
+                r#"
+                fn closure(){
+                    let x= 1;
+                    fn(){
+                        x+=2;
+                        x
+                    }
+                }
+                let c = closure();
+                c()
+                "#,
                 Some(object::Object::Int(3)),
             ),
         ];

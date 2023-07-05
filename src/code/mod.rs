@@ -129,6 +129,7 @@ pub enum Op {
     ReturnValue,
     Return,
     Closure,
+    SetFree,
     GetFree,
     Pop,
 }
@@ -189,6 +190,7 @@ impl Display for Op {
             Op::ReturnValue => "OpReturnValue",
             Op::Closure => "OpClosure",
             Op::GetFree => "OpGetFree",
+            Op::SetFree => "OpSetFree",
             Op::Return => "OpReturn",
         };
         f.write_str(s)
@@ -233,6 +235,7 @@ impl Op {
             Op::GetBuiltin => vec![1],
             Op::Closure => vec![2, 1],
             Op::GetFree => vec![1],
+            Op::SetFree => vec![1],
         }
     }
 }
