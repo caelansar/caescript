@@ -70,7 +70,10 @@ pub enum Object {
     Builtin(builtin::Builtin),
     Error(String),
     CompiledFunction(code::Instructions, usize, usize),
-    Closure(Closure),
+    // Make sure all closure refer to same free variables.
+    // If we juest clone `Closure`, the changes in free variables
+    // cannot be reflected in the next call
+    Closure(Rc<RefCell<Closure>>),
     Null,
 }
 
