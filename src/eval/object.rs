@@ -70,10 +70,7 @@ pub enum Object {
     Builtin(builtin::Builtin),
     Error(String),
     CompiledFunction(code::Instructions, usize, usize),
-    // Make sure all closure refer to same free variables.
-    // If we juest clone `Closure`, the changes in free variables
-    // cannot be reflected in the next call
-    Closure(Rc<RefCell<Closure>>),
+    Closure(Closure),
     Null,
 }
 
@@ -84,7 +81,10 @@ pub enum Object {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Closure {
     pub func: CompiledFunction,
-    pub free: Vec<Object>,
+    // Make sure all identical closurea refer to same free variables.
+    // If we just clone `Closure`, the changes in free variables
+    // cannot be reflected in the next call
+    pub free: Rc<RefCell<Vec<Object>>>,
 }
 
 #[derive(Debug, PartialEq, PartialOrd, Clone)]

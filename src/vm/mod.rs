@@ -29,14 +29,14 @@ impl VM {
 
         let ins = bytecode.instructions;
         let main_frame = frame::Frame::new(
-            Rc::new(RefCell::new(object::Closure {
+            object::Closure {
                 func: object::CompiledFunction {
                     instructions: ins,
                     num_locals: 0,
                     num_params: 0,
                 },
-                free: vec![],
-            })),
+                free: Rc::new(RefCell::new(vec![])),
+            },
             0,
         );
 
@@ -98,27 +98,15 @@ impl VM {
     }
 
     pub fn run(&mut self) {
-        while self.current_frame().ip
-            < self
-                .current_frame()
-                .borrow()
-                .func
-                .instructions
-                .as_slice()
-                .len()
-        {
+        while self.current_frame().ip < self.current_frame().instructions().len() {
             let mut ip = self.current_frame().ip;
-            let op = unsafe {
-                std::mem::transmute(self.current_frame().borrow().func.instructions.as_slice()[ip])
-            };
+            let op = unsafe { std::mem::transmute(self.current_frame().instructions()[ip]) };
 
             self.current_frame_mut().ip += 1;
             ip += 1;
             match op {
                 code::Op::Const => {
-                    let const_idx = code::read_u16(
-                        &self.current_frame().borrow().func.instructions.as_slice()[ip..],
-                    );
+                    let const_idx = code::read_u16(&self.current_frame().instructions()[ip..]);
                     self.current_frame_mut().ip += 2;
                     self.push(self.consts[const_idx].clone());
                 }
@@ -226,9 +214,7 @@ impl VM {
                     }
                 }
                 code::Op::JumpNotTruthy => {
-                    let pos = code::read_u16(
-                        &self.current_frame().borrow().func.instructions.as_slice()[ip..],
-                    );
+                    let pos = code::read_u16(&self.current_frame().instructions()[ip..]);
                     self.current_frame_mut().ip += 2;
 
                     let cond: bool = self.pop().unwrap().into();
@@ -237,16 +223,12 @@ impl VM {
                     }
                 }
                 code::Op::Jump => {
-                    let pos = code::read_u16(
-                        &self.current_frame().borrow().func.instructions.as_slice()[ip..],
-                    );
+                    let pos = code::read_u16(&self.current_frame().instructions()[ip..]);
                     self.current_frame_mut().ip = pos;
                 }
                 code::Op::Null => self.push(object::Object::Null),
                 code::Op::SetGlobal => {
-                    let pos = code::read_u16(
-                        &self.current_frame().borrow().func.instructions.as_slice()[ip..],
-                    );
+                    let pos = code::read_u16(&self.current_frame().instructions()[ip..]);
                     self.current_frame_mut().ip += 2;
 
                     let val = self.pop().unwrap();
@@ -257,8 +239,7 @@ impl VM {
                     }
                 }
                 code::Op::SetLocal => {
-                    let pos =
-                        self.current_frame().borrow().func.instructions.as_slice()[ip] as usize;
+                    let pos = self.current_frame().instructions()[ip] as usize;
                     self.current_frame_mut().ip += 1;
 
                     let val = self.pop().unwrap();
@@ -271,17 +252,14 @@ impl VM {
                     }
                 }
                 code::Op::GetGlobal => {
-                    let pos = code::read_u16(
-                        &self.current_frame().borrow().func.instructions.as_slice()[ip..],
-                    );
+                    let pos = code::read_u16(&self.current_frame().instructions()[ip..]);
                     self.current_frame_mut().ip += 2;
 
                     let val = self.global.get(pos);
                     self.push(val.unwrap().clone());
                 }
                 code::Op::GetLocal => {
-                    let pos =
-                        self.current_frame().borrow().func.instructions.as_slice()[ip] as usize;
+                    let pos = self.current_frame().instructions()[ip] as usize;
                     self.current_frame_mut().ip += 1;
 
                     let frame = self.current_frame_mut();
@@ -290,9 +268,7 @@ impl VM {
                     self.push(val.unwrap().clone());
                 }
                 code::Op::Array => {
-                    let len = code::read_u16(
-                        &self.current_frame().borrow().func.instructions.as_slice()[ip..],
-                    );
+                    let len = code::read_u16(&self.current_frame().instructions()[ip..]);
                     self.current_frame_mut().ip += 2;
 
                     let mut elems = Vec::with_capacity(len);
@@ -304,9 +280,7 @@ impl VM {
                     self.push(object::Object::Array(elems));
                 }
                 code::Op::Hash => {
-                    let len = code::read_u16(
-                        &self.current_frame().borrow().func.instructions.as_slice()[ip..],
-                    );
+                    let len = code::read_u16(&self.current_frame().instructions()[ip..]);
                     self.current_frame_mut().ip += 2;
 
                     let mut elems = Vec::with_capacity(len);
@@ -342,8 +316,7 @@ impl VM {
                     }
                 }
                 code::Op::Call => {
-                    let num_args =
-                        self.current_frame().borrow().func.instructions.as_slice()[ip] as usize;
+                    let num_args = self.current_frame().instructions()[ip] as usize;
                     self.current_frame_mut().ip += 1;
 
                     let func = self.stack.get(self.sp - 1 - num_args);
@@ -351,11 +324,11 @@ impl VM {
                         None => panic!("func not found"),
                         Some(object::Object::Closure(closure)) => {
                             assert!(
-                                closure.borrow().func.num_params == num_args,
+                                closure.func.num_params == num_args,
                                 "wrong number of argument"
                             );
-                            let frame = frame::Frame::new(Rc::clone(closure), self.sp - num_args);
-                            self.sp = frame.bp + closure.borrow().func.num_locals;
+                            let frame = frame::Frame::new(closure.clone(), self.sp - num_args);
+                            self.sp = frame.bp + closure.func.num_locals;
                             self.push_frame(frame);
                         }
                         Some(object::Object::Builtin(builtin)) => {
@@ -366,8 +339,7 @@ impl VM {
                     }
                 }
                 code::Op::GetBuiltin => {
-                    let builtin_idx =
-                        self.current_frame().borrow().func.instructions.as_slice()[ip] as usize;
+                    let builtin_idx = self.current_frame().instructions()[ip] as usize;
                     self.current_frame_mut().ip += 1;
 
                     let builtin = builtin::Builtin::iterator()
@@ -394,11 +366,8 @@ impl VM {
                     self.push(object::Object::Null);
                 }
                 code::Op::Closure => {
-                    let idx = code::read_u16(
-                        &self.current_frame().borrow().func.instructions.as_slice()[ip..],
-                    );
-                    let free_num =
-                        self.current_frame().borrow().func.instructions.as_slice()[ip + 2] as usize;
+                    let idx = code::read_u16(&self.current_frame().instructions()[ip..]);
+                    let free_num = self.current_frame().instructions()[ip + 2] as usize;
                     dbg!(free_num);
                     self.current_frame_mut().ip += 3;
 
@@ -411,35 +380,31 @@ impl VM {
                     if let Some(object::Object::CompiledFunction(ins, num_locals, num_params)) =
                         self.consts.get(idx)
                     {
-                        self.push(object::Object::Closure(Rc::new(RefCell::new(
-                            object::Closure {
-                                func: object::CompiledFunction {
-                                    instructions: ins.clone(),
-                                    num_locals: *num_locals,
-                                    num_params: *num_params,
-                                },
-                                free,
+                        self.push(object::Object::Closure(object::Closure {
+                            func: object::CompiledFunction {
+                                instructions: ins.clone(),
+                                num_locals: *num_locals,
+                                num_params: *num_params,
                             },
-                        ))))
+                            free: Rc::new(RefCell::new(free)),
+                        }))
                     } else {
                         panic!("not a function");
                     }
                 }
                 code::Op::GetFree => {
-                    let free_idx =
-                        self.current_frame().borrow().func.instructions.as_slice()[ip] as usize;
+                    let free_idx = self.current_frame().instructions()[ip] as usize;
                     let current_frame = self.current_frame_mut();
                     current_frame.ip += 1;
 
                     let closure = current_frame.closure.clone();
-                    let closure = closure.borrow();
 
-                    let obj = closure.free.get(free_idx).unwrap();
+                    let free = closure.free.borrow();
+                    let obj = free.get(free_idx).unwrap();
                     self.push(obj.clone())
                 }
                 code::Op::SetFree => {
-                    let free_idx =
-                        self.current_frame().borrow().func.instructions.as_slice()[ip] as usize;
+                    let free_idx = self.current_frame().instructions()[ip] as usize;
 
                     let val = self.pop().unwrap().clone();
 
@@ -448,8 +413,8 @@ impl VM {
 
                     current_frame
                         .closure
-                        .borrow_mut()
                         .free
+                        .borrow_mut()
                         .get_mut(free_idx)
                         .map(|f| *f = val);
                 }
