@@ -8,17 +8,17 @@ use self::scope::{CompilationScope, EmittedInstruction};
 use self::symbol_table::{Scope, SymbolTable};
 
 mod scope;
-mod symbol_table;
+pub mod symbol_table;
 
 #[derive(Debug, Default)]
 pub struct Compiler {
     consts: Vec<object::Object>,
     scopes: Vec<CompilationScope>,
     scope_idx: usize,
-    symbol_table: SymbolTable,
+    pub symbol_table: SymbolTable,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Bytecode {
     pub instructions: code::Instructions,
     pub consts: Vec<object::Object>,
@@ -30,6 +30,16 @@ impl Compiler {
         Self {
             scopes: vec![main_scope],
             symbol_table: SymbolTable::new(),
+            ..Self::default()
+        }
+    }
+
+    pub fn new_with_state(symbol_table: SymbolTable, consts: Vec<object::Object>) -> Self {
+        let main_scope = CompilationScope::default();
+        Self {
+            scopes: vec![main_scope],
+            symbol_table,
+            consts,
             ..Self::default()
         }
     }
@@ -364,7 +374,6 @@ impl Compiler {
                 args.iter()
                     .try_for_each(|arg| self.compile_expression(arg))?;
 
-                println!("args {}", args.len());
                 self.emit(code::Op::Call, &vec![args.len()]);
             }
         }

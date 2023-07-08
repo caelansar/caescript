@@ -39,7 +39,7 @@ pub struct SymbolTable {
 }
 
 impl SymbolTable {
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let mut symbol_table = Self::default();
 
         builtin::Builtin::iterator()

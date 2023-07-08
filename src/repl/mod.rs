@@ -1,35 +1,40 @@
-use std::{
-    cell::RefCell,
-    io::{self, Write},
-    rc::Rc,
-};
+use std::io;
 
-use crate::{
-    eval::{env::Environment, Evaluator},
-    lexer, parser,
-};
+use crate::{compiler, lexer, parser, vm};
 
-pub fn repl() -> io::Result<()> {
-    let env = Environment::new();
-    let mut evaluator = Evaluator::new(Rc::new(RefCell::new(env)));
+pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::Result<()> {
+    let mut constants = vec![];
+    let mut global = vec![];
+    let mut symbol_table = compiler::symbol_table::SymbolTable::new();
 
     loop {
-        print!(">>> ");
-        let mut input = String::new();
-        let _ = io::stdout().flush();
-        let size = io::stdin().read_line(&mut input)?;
+        writer.write(b">>> ")?;
+        writer.flush()?;
 
-        let lexer = lexer::Lexer::new(&input);
-        let mut parser = parser::Parser::new(lexer);
-        let program = parser.parse_program().unwrap();
-
-        let obj = evaluator.eval(&program);
-
+        let mut line = String::new();
+        let size = reader.read_line(&mut line)?;
         if size == 1 {
             break;
         }
+
+        let lexer = lexer::Lexer::new(&line);
+        let mut parser = parser::Parser::new(lexer);
+        let program = parser.parse_program().unwrap();
+
+        let mut compiler =
+            compiler::Compiler::new_with_state(symbol_table.clone(), constants.clone());
+        let bytecode = compiler.compile(&program).unwrap();
+        let mut vm = vm::VM::new_with_global(bytecode.clone(), global.clone());
+        vm.run();
+
+        global = vm.global.clone();
+        symbol_table = compiler.symbol_table;
+        constants = bytecode.consts;
+
+        let obj = vm.last_popped();
+
         if let Some(obj) = obj {
-            println!("< {}", obj);
+            write!(writer, "< {}\n", obj)?;
         }
     }
     println!("exit");

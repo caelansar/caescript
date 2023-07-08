@@ -16,7 +16,7 @@ pub struct VM {
     consts: Vec<object::Object>,
     stack: Vec<object::Object>,
     sp: usize, // stack pointer
-    global: Vec<object::Object>,
+    pub global: Vec<object::Object>,
     frames: Vec<frame::Frame>,
     frame_idx: usize,
 }
@@ -51,6 +51,14 @@ impl VM {
             frames,
             frame_idx: 1,
         }
+    }
+
+    pub fn new_with_global(byteorder: compiler::Bytecode, global: Vec<object::Object>) -> Self {
+        let mut vm = Self::new(byteorder);
+        if global.len() > 0 {
+            vm.global = global;
+        }
+        vm
     }
 
     fn current_frame_mut(&mut self) -> &mut frame::Frame {
@@ -93,7 +101,7 @@ impl VM {
         self.stack.get(self.sp).map(|x| x.clone())
     }
 
-    fn last_popped(&self) -> Option<object::Object> {
+    pub fn last_popped(&self) -> Option<object::Object> {
         self.stack.get(self.sp).map(|x| x.clone())
     }
 
