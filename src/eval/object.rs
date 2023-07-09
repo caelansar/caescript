@@ -69,7 +69,7 @@ pub enum Object {
     Hash(HashMap<Object, Object>),
     Builtin(builtin::Builtin),
     Error(String),
-    CompiledFunction(code::Instructions, usize, usize),
+    CompiledFunction(code::Instructions, usize, usize), // (fn, num_locals, num_params)
     Closure(Closure),
     Null,
 }

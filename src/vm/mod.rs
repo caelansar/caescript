@@ -426,6 +426,10 @@ impl VM {
                         .get_mut(free_idx)
                         .map(|f| *f = val);
                 }
+                code::Op::GetCurrentClosure => {
+                    let closure = self.current_frame().closure.clone();
+                    self.push(object::Object::Closure(closure));
+                }
                 _ => unreachable!(),
             }
         }
@@ -797,6 +801,32 @@ mod test {
             ("len([])", Some(object::Object::Int(0))),
             (r#"len("1")"#, Some(object::Object::Int(1))),
             (r#"len("123")"#, Some(object::Object::Int(3))),
+        ];
+        tests.into_iter().for_each(|test| run(test.0, test.1));
+    }
+
+    #[test]
+    fn vm_resursive_fn_should_work() {
+        let tests = [
+            (
+                r#"
+                let recursion = fn(x) { if (x==0) { 0 } else { recursion(x-1) } };
+                recursion(1)
+             "#,
+                Some(object::Object::Int(0)),
+            ),
+            (
+                r#"
+                fn wrapper() {
+                    fn recursion(x) {
+                        if (x==0) { 1 } else { recursion(x-1) }
+                    }
+                    recursion(10)
+                };
+                wrapper()
+             "#,
+                Some(object::Object::Int(1)),
+            ),
         ];
         tests.into_iter().for_each(|test| run(test.0, test.1));
     }

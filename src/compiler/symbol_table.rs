@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::eval::{builtin, object};
+use crate::eval::builtin;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(super) enum Scope {
@@ -8,6 +8,7 @@ pub(super) enum Scope {
     Local,
     Builtin,
     Free,
+    Function,
 }
 
 #[derive(Debug, Clone)]
@@ -75,6 +76,13 @@ impl SymbolTable {
         self.free.push(free);
 
         let symbol = Symbol::new(name.clone(), Scope::Free, self.free.len() - 1);
+        self.store.insert(name, symbol.clone());
+
+        symbol
+    }
+
+    pub(super) fn define_function(&mut self, name: String) -> Symbol {
+        let symbol = Symbol::new(name.clone(), Scope::Function, 0);
         self.store.insert(name, symbol.clone());
 
         symbol

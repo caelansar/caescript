@@ -399,7 +399,11 @@ impl<'a> Parser<'a> {
 
         let body = self.parse_block_statemnt();
 
-        Some(ast::Expression::Func { params, body })
+        Some(ast::Expression::Func {
+            name: None,
+            params,
+            body,
+        })
     }
 
     #[inline]
@@ -620,7 +624,14 @@ impl<'a> Parser<'a> {
 
         self.next_token();
 
-        let expr = self.parse_expression(Precedence::Lowest)?;
+        let mut expr = self.parse_expression(Precedence::Lowest)?;
+        if let ast::Expression::Func { name, params, body } = expr {
+            expr = ast::Expression::Func {
+                name: Some(identifier.0.clone()),
+                params,
+                body,
+            }
+        }
 
         if self.next_token_is(&token::Token::SemiColon) {
             self.next_token();
@@ -969,18 +980,21 @@ mod test {
             program,
             ast::BlockStatement(vec![
                 ast::Statement::Expression(ast::Expression::Func {
+                    name: None,
                     params: Vec::new(),
                     body: ast::BlockStatement(vec![ast::Statement::Expression(
                         ast::Expression::Literal(ast::Literal::Int(1))
                     )]),
                 }),
                 ast::Statement::Expression(ast::Expression::Func {
+                    name: None,
                     params: vec![ast::Ident("x".to_string())],
                     body: ast::BlockStatement(vec![ast::Statement::Expression(
                         ast::Expression::Ident(ast::Ident("x".to_string()))
                     )]),
                 }),
                 ast::Statement::Expression(ast::Expression::Func {
+                    name: None,
                     params: vec![ast::Ident("x".to_string()), ast::Ident("y".to_string())],
                     body: ast::BlockStatement(vec![ast::Statement::Expression(
                         ast::Expression::Infix(

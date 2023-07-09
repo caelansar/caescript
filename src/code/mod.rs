@@ -131,6 +131,7 @@ pub enum Op {
     Closure,
     SetFree,
     GetFree,
+    GetCurrentClosure,
     Pop,
 }
 
@@ -192,6 +193,7 @@ impl Display for Op {
             Op::GetFree => "OpGetFree",
             Op::SetFree => "OpSetFree",
             Op::Return => "OpReturn",
+            Op::GetCurrentClosure => "OpGetCurrentClosure",
         };
         f.write_str(s)
     }
@@ -236,6 +238,7 @@ impl Op {
             Op::Closure => vec![2, 1],
             Op::GetFree => vec![1],
             Op::SetFree => vec![1],
+            Op::GetCurrentClosure => vec![],
         }
     }
 }

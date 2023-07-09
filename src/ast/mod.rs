@@ -158,6 +158,7 @@ pub enum Expression {
         alternative: Option<BlockStatement>,
     },
     Func {
+        name: Option<String>,
         params: Vec<Ident>,
         body: BlockStatement,
     },
@@ -232,7 +233,7 @@ impl Display for Expression {
 
                 f.write_str(&out)
             }
-            Expression::Func { params, body } => {
+            Expression::Func { name, params, body } => {
                 let mut out = String::new();
 
                 out.push_str("fn ");

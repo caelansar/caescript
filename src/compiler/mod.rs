@@ -100,6 +100,7 @@ impl Compiler {
             ast::Statement::Function(ident, params, body) => {
                 // assamble a func expr manually
                 self.compile_expression(&ast::Expression::Func {
+                    name: Some(ident.0.clone()),
                     params: params.clone(),
                     body: body.clone(),
                 })?;
@@ -339,8 +340,11 @@ impl Compiler {
                 self.compile_expression(&idx)?;
                 self.emit(code::Op::Index, &vec![]);
             }
-            ast::Expression::Func { params, body } => {
+            ast::Expression::Func { name, params, body } => {
                 self.enter_scope();
+
+                name.as_ref()
+                    .map(|name| self.symbol_table.define_function(name.clone()));
 
                 params.iter().for_each(|param| {
                     self.symbol_table.define(param.0.clone());
@@ -406,6 +410,7 @@ impl Compiler {
             Scope::Local => self.emit(code::Op::GetLocal, &vec![symbol.index]),
             Scope::Builtin => self.emit(code::Op::GetBuiltin, &vec![symbol.index]),
             Scope::Free => self.emit(code::Op::GetFree, &vec![symbol.index]),
+            Scope::Function => self.emit(code::Op::GetCurrentClosure, &vec![symbol.index]),
         };
     }
 
@@ -1079,6 +1084,44 @@ mod test {
                 code::make(code::Op::Pop, &vec![]),
             ],
             vec![object::Object::String("1".into())],
+        )];
+
+        tests
+            .into_iter()
+            .for_each(|test| compile(test.0, test.1, test.2))
+    }
+
+    #[test]
+    fn compile_recursive_fn_should_work() {
+        let tests = [(
+            r#"
+            let recursion = fn(x) { recursion(x-1) };
+            recursion(1)
+            "#,
+            vec![
+                code::make(code::Op::Closure, &vec![1, 0]),
+                code::make(code::Op::SetGlobal, &vec![0]),
+                code::make(code::Op::GetGlobal, &vec![0]),
+                code::make(code::Op::Const, &vec![2]),
+                code::make(code::Op::Call, &vec![1]),
+                code::make(code::Op::Pop, &vec![]),
+            ],
+            vec![
+                object::Object::Int(1),
+                object::Object::CompiledFunction(
+                    concat_instructions(vec![
+                        code::make(code::Op::GetCurrentClosure, &vec![]),
+                        code::make(code::Op::GetLocal, &vec![0]),
+                        code::make(code::Op::Const, &vec![0]),
+                        code::make(code::Op::Sub, &vec![]),
+                        code::make(code::Op::Call, &vec![1]),
+                        code::make(code::Op::ReturnValue, &vec![]),
+                    ]),
+                    1,
+                    1,
+                ),
+                object::Object::Int(1),
+            ],
         )];
 
         tests
