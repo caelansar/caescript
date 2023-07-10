@@ -65,6 +65,7 @@ impl SymbolTable {
     }
 
     pub(super) fn define_builtin(&mut self, idx: usize, name: String) -> Symbol {
+        assert!(name.len() > 0);
         let symbol = Symbol::new(name.clone(), Scope::Builtin, idx);
         self.store.insert(name, symbol.clone());
 

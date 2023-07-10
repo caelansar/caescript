@@ -1,13 +1,15 @@
 use std::{collections::HashMap, fmt::Display};
 
-use crate::map;
-
 use super::object::Object;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Builtin {
     Len,
     Puts,
+    Push,
+    First,
+    Last,
+    Rest,
 }
 
 impl Display for Builtin {
@@ -15,28 +17,46 @@ impl Display for Builtin {
         match self {
             Self::Len => f.write_str("len"),
             Self::Puts => f.write_str("puts"),
+            Self::Push => f.write_str("push"),
+            Self::First => f.write_str("first"),
+            Self::Last => f.write_str("last"),
+            Self::Rest => f.write_str("rest"),
         }
     }
 }
 
 impl Builtin {
     pub fn iterator() -> impl Iterator<Item = Self> {
-        [Self::Len, Self::Puts].iter().copied()
+        [
+            Self::Len,
+            Self::Puts,
+            Self::Push,
+            Self::First,
+            Self::Last,
+            Self::Rest,
+        ]
+        .iter()
+        .copied()
     }
 
     pub fn call(&self, args: Vec<Object>) -> Object {
         match self {
             Builtin::Len => len(args),
             Builtin::Puts => puts(args),
+            Builtin::Push => push(args),
+            Builtin::First => first(args),
+            Builtin::Last => last(args),
+            Builtin::Rest => rest(args),
         }
     }
 }
 
 pub fn new_builtins() -> HashMap<String, Object> {
-    map! {
-        String::from("len") => Object::Builtin(Builtin::Len),
-        String::from("puts")=> Object::Builtin(Builtin::Puts)
-    }
+    let mut map = HashMap::new();
+    Builtin::iterator().for_each(|builtin| {
+        map.insert(builtin.to_string(), Object::Builtin(builtin));
+    });
+    map
 }
 
 fn len(args: Vec<Object>) -> Object {
@@ -44,11 +64,75 @@ fn len(args: Vec<Object>) -> Object {
         Object::String(s) => Object::Int(s.0.len() as i64),
         Object::Array(a) => Object::Int(a.len() as i64),
         Object::Hash(h) => Object::Int(h.len() as i64),
-        _ => todo!(),
+        _ => unreachable!(),
     }
 }
 
 fn puts(args: Vec<Object>) -> Object {
     args.iter().for_each(|a| println!("{}", a.to_string()));
     Object::Null
+}
+
+fn push(args: Vec<Object>) -> Object {
+    if args.len() != 2 {
+        return Object::Error(format!("invalid args number: {:?}", args));
+    }
+
+    let mut args = args.clone();
+    let obj = args.pop().unwrap();
+    let arr = args.pop().unwrap();
+
+    if let Object::Array(mut arr) = arr {
+        arr.push(obj);
+        Object::Array(arr)
+    } else {
+        Object::Error("not array type".into())
+    }
+}
+
+fn first(args: Vec<Object>) -> Object {
+    if args.len() != 1 {
+        return Object::Error(format!("invalid args number: {:?}", args));
+    }
+
+    let mut args = args.clone();
+    let arr = args.pop().unwrap();
+
+    if let Object::Array(arr) = arr {
+        arr.first().map(|x| x.clone()).unwrap_or(Object::Null)
+    } else {
+        Object::Error("not array type".into())
+    }
+}
+
+fn last(args: Vec<Object>) -> Object {
+    if args.len() != 1 {
+        return Object::Error("invalid args number".into());
+    }
+
+    let mut args = args.clone();
+    let arr = args.pop().unwrap();
+
+    if let Object::Array(arr) = arr {
+        arr.last().map(|x| x.clone()).unwrap_or(Object::Null)
+    } else {
+        Object::Error("not array type".into())
+    }
+}
+
+fn rest(args: Vec<Object>) -> Object {
+    if args.len() != 1 {
+        return Object::Error("invalid args number".into());
+    }
+
+    let mut args = args.clone();
+    let arr = args.pop().unwrap();
+
+    if let Object::Array(arr) = arr {
+        arr.split_first()
+            .map(|(_, x)| Object::Array(Vec::from(x.clone())))
+            .unwrap_or(Object::Null)
+    } else {
+        Object::Error("not array type".into())
+    }
 }

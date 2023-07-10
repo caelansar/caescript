@@ -341,9 +341,10 @@ impl VM {
                         }
                         Some(object::Object::Builtin(builtin)) => {
                             let args = &self.stack[self.sp - num_args..self.sp];
-                            self.push(builtin.call(Vec::from(args)))
+                            self.sp = self.sp - num_args - 1;
+                            self.push(builtin.call(Vec::from(args)));
                         }
-                        _ => panic!("not a function"),
+                        _ => panic!("{} not a function", func.unwrap()),
                     }
                 }
                 code::Op::GetBuiltin => {
@@ -801,6 +802,51 @@ mod test {
             ("len([])", Some(object::Object::Int(0))),
             (r#"len("1")"#, Some(object::Object::Int(1))),
             (r#"len("123")"#, Some(object::Object::Int(3))),
+            (
+                r#"push([1,2], 4)"#,
+                Some(object::Object::Array(vec![
+                    object::Object::Int(1),
+                    object::Object::Int(2),
+                    object::Object::Int(4),
+                ])),
+            ),
+            (r#"first([1,2])"#, Some(object::Object::Int(1))),
+            (r#"last([1,2])"#, Some(object::Object::Int(2))),
+            (
+                r#"rest([1,2,3])"#,
+                Some(object::Object::Array(vec![
+                    object::Object::Int(2),
+                    object::Object::Int(3),
+                ])),
+            ),
+            (r#"rest([1])"#, Some(object::Object::Array(vec![]))),
+            (
+                r#"push([1,2], first([3,4]))"#,
+                Some(object::Object::Array(vec![
+                    object::Object::Int(1),
+                    object::Object::Int(2),
+                    object::Object::Int(3),
+                ])),
+            ),
+            (
+                r#"
+                let map = fn(arr, f) {
+                    let iter = fn(arr, accumlated) {
+                       if (len(arr) == 0 ) {
+                            accumlated
+                       } else {
+                            iter(rest(arr), push(accumlated, f(first(arr))))
+                       }
+                    };
+                    iter(arr, [])
+                }
+                map([1,2], fn(x) {x*2})
+                "#,
+                Some(object::Object::Array(vec![
+                    object::Object::Int(2),
+                    object::Object::Int(4),
+                ])),
+            ),
         ];
         tests.into_iter().for_each(|test| run(test.0, test.1));
     }
