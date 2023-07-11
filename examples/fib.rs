@@ -1,0 +1,63 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::thread;
+use std::time::Instant;
+
+use caescript::{
+    compiler::Compiler,
+    eval::{env::Environment, object::Object, Evaluator},
+    lexer,
+    parser::Parser,
+    vm::VM,
+};
+
+fn main() {
+    let input = r#"
+        fn fib(x) {
+            if (x==1 || x==2) {
+                1
+            } else {
+                fib(x-1) + fib(x-2)
+            }
+        }
+        fib(35)
+        "#;
+
+    let jh1 = thread::spawn(|| elapsed(input, "eval", eval_run));
+    let jh2 = thread::spawn(|| elapsed(input, "vm", vm_run));
+    jh1.join().unwrap();
+    jh2.join().unwrap();
+}
+
+fn elapsed(input: &str, engine: &str, f: fn(&str) -> Object) {
+    let start = Instant::now();
+    let data = f(input);
+    let duration = start.elapsed();
+    println!("engine: {}, res: {}, elapsed: {:?}", engine, data, duration)
+}
+
+fn eval_run(input: &str) -> Object {
+    let lexer = lexer::Lexer::new(input);
+    let mut parser = Parser::new(lexer);
+
+    let program = parser.parse_program().unwrap();
+
+    let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
+
+    evaluator.eval(&program).unwrap()
+}
+
+fn vm_run(input: &str) -> Object {
+    let lexer = lexer::Lexer::new(input);
+    let mut parser = Parser::new(lexer);
+
+    let program = parser.parse_program().unwrap();
+
+    let mut compiler = Compiler::new();
+    let bytecode = compiler.compile(&program).unwrap();
+
+    let mut vm = VM::new(bytecode);
+    vm.run();
+
+    vm.last_popped().unwrap()
+}
