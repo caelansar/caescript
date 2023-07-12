@@ -3,12 +3,13 @@ use std::rc::Rc;
 use std::thread;
 use std::time::Instant;
 
+#[cfg(feature = "vm")]
+use caescript::{compiler::Compiler, vm::VM};
+
 use caescript::{
-    compiler::Compiler,
     eval::{env::Environment, object::Object, Evaluator},
     lexer,
     parser::Parser,
-    vm::VM,
 };
 
 fn main() {
@@ -24,8 +25,10 @@ fn main() {
         "#;
 
     let jh1 = thread::spawn(|| elapsed(input, "eval", eval_run));
+    #[cfg(feature = "vm")]
     let jh2 = thread::spawn(|| elapsed(input, "vm", vm_run));
     jh1.join().unwrap();
+    #[cfg(feature = "vm")]
     jh2.join().unwrap();
 }
 
@@ -47,6 +50,7 @@ fn eval_run(input: &str) -> Object {
     evaluator.eval(&program).unwrap()
 }
 
+#[cfg(feature = "vm")]
 fn vm_run(input: &str) -> Object {
     let lexer = lexer::Lexer::new(input);
     let mut parser = Parser::new(lexer);
