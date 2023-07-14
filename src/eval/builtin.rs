@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, sync::OnceLock};
 
 use super::object::Object;
 
@@ -10,6 +10,48 @@ pub enum Builtin {
     First,
     Last,
     Rest,
+}
+
+pub static BUILTINS: OnceLock<Vec<(String, BuiltinFn)>> = OnceLock::new();
+
+pub type BuiltinFn = fn(Vec<Object>) -> Object;
+
+pub fn default_builtins() -> Vec<(String, BuiltinFn)> {
+    let mut builtins: Vec<(String, BuiltinFn)> = Vec::new();
+
+    builtins.push((Builtin::Len.to_string(), len));
+    builtins.push((Builtin::Puts.to_string(), puts));
+    builtins.push((Builtin::Push.to_string(), push));
+    builtins.push((Builtin::First.to_string(), first));
+    builtins.push((Builtin::Last.to_string(), last));
+    builtins.push((Builtin::Rest.to_string(), rest));
+
+    builtins
+}
+
+pub fn update_builtins(key: String, f: BuiltinFn) -> Vec<(String, BuiltinFn)> {
+    let mut builtins = default_builtins();
+
+    builtins
+        .iter_mut()
+        .filter(|x| x.0 == key)
+        .for_each(|x| x.1 = f);
+
+    builtins
+}
+
+impl From<String> for Builtin {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "len" => Self::Len,
+            "puts" => Self::Puts,
+            "push" => Self::Push,
+            "first" => Self::First,
+            "last" => Self::Last,
+            "rest" => Self::Rest,
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Display for Builtin {
@@ -40,14 +82,13 @@ impl Builtin {
     }
 
     pub fn call(&self, args: Vec<Object>) -> Object {
-        match self {
-            Builtin::Len => len(args),
-            Builtin::Puts => puts(args),
-            Builtin::Push => push(args),
-            Builtin::First => first(args),
-            Builtin::Last => last(args),
-            Builtin::Rest => rest(args),
-        }
+        BUILTINS
+            .get()
+            .unwrap()
+            .iter()
+            .find(|x| x.0 == self.to_string())
+            .map(|f| f.1(args.clone()))
+            .unwrap()
     }
 }
 

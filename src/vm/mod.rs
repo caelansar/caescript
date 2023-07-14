@@ -351,14 +351,15 @@ impl VM {
                     let builtin_idx = self.current_frame().instructions()[ip] as usize;
                     self.current_frame_mut().ip += 1;
 
-                    let builtin = builtin::Builtin::iterator()
-                        .enumerate()
-                        .find(|(idx, _)| *idx == builtin_idx)
-                        .map(|x| x.1);
+                    let builtin = builtin::BUILTINS
+                        .get()
+                        .unwrap()
+                        .get(builtin_idx)
+                        .unwrap()
+                        .0
+                        .clone();
 
-                    self.push(object::Object::Builtin(
-                        builtin.expect("builtin function not found"),
-                    ));
+                    self.push(object::Object::Builtin(builtin.into()));
                 }
                 code::Op::ReturnValue => {
                     let rv = self.pop().unwrap();

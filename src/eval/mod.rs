@@ -56,6 +56,7 @@ impl Evaluator {
                 .eval_expression(&ret)
                 .map(|x| Object::Return(Box::new(x))),
             ast::Statement::Function(ast::Ident(ident), params, body) => {
+                println!("wowo");
                 let val = Object::Function(params.clone(), body.clone(), self.env.clone());
                 self.env.borrow_mut().set(ident.clone(), val);
                 None
@@ -202,13 +203,17 @@ impl Evaluator {
                 consequence,
             } => self.eval_for_expression(condition, consequence),
             ast::Expression::Ident(ast::Ident(ident)) => self.eval_identifier(ident),
-            ast::Expression::Func { name, params, body } => Some(Object::Function(
-                params.clone(),
-                body.clone(),
-                self.env.clone(),
-            )),
+            ast::Expression::Func { name, params, body } => {
+                dbg!("create func");
+                Some(Object::Function(
+                    params.clone(),
+                    body.clone(),
+                    self.env.clone(),
+                ))
+            }
             ast::Expression::Call { func, args } => {
                 if let Some(obj) = self.eval_expression(func) {
+                    println!("call");
                     self.eval_function_call(obj, args)
                 } else {
                     None

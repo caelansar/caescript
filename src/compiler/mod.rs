@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 
 use crate::{ast, code};
 
-use crate::eval::object;
+use crate::eval::{builtin, object};
 
 use self::scope::{CompilationScope, EmittedInstruction};
 use self::symbol_table::{Scope, SymbolTable};
@@ -30,6 +30,15 @@ impl Compiler {
         Self {
             scopes: vec![main_scope],
             symbol_table: SymbolTable::new(),
+            ..Self::default()
+        }
+    }
+
+    pub fn new_with_builtins(f: impl FnOnce() -> Vec<(String, builtin::BuiltinFn)>) -> Self {
+        let main_scope = CompilationScope::default();
+        Self {
+            scopes: vec![main_scope],
+            symbol_table: SymbolTable::new_with_builtins(f),
             ..Self::default()
         }
     }

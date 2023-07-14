@@ -41,13 +41,19 @@ pub struct SymbolTable {
 
 impl SymbolTable {
     pub(crate) fn new() -> Self {
+        Self::new_with_builtins(|| builtin::default_builtins())
+    }
+
+    pub(crate) fn new_with_builtins(f: impl FnOnce() -> Vec<(String, builtin::BuiltinFn)>) -> Self {
         let mut symbol_table = Self::default();
 
-        builtin::Builtin::iterator()
-            .enumerate()
-            .for_each(|(idx, builtin)| {
-                symbol_table.define_builtin(idx, builtin.to_string());
+        builtin::BUILTINS.get_or_init(f);
+
+        builtin::BUILTINS.get().map(|builtin| {
+            builtin.iter().enumerate().for_each(|(idx, builtin)| {
+                symbol_table.define_builtin(idx, builtin.0.clone());
             });
+        });
 
         symbol_table
     }
