@@ -213,7 +213,6 @@ impl Evaluator {
             }
             ast::Expression::Call { func, args } => {
                 if let Some(obj) = self.eval_expression(func) {
-                    println!("call");
                     self.eval_function_call(obj, args)
                 } else {
                     None

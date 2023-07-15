@@ -23,7 +23,13 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
 
         let mut compiler =
             compiler::Compiler::new_with_state(symbol_table.clone(), constants.clone());
-        let bytecode = compiler.compile(&program).unwrap();
+        let bytecode = match compiler.compile(&program) {
+            Ok(bytecode) => bytecode,
+            Err(err) => {
+                write!(writer, "\x1b[41mcompile error: {}\x1b[0m\n", err);
+                continue;
+            }
+        };
         let mut vm = vm::VM::new_with_global(bytecode.clone(), global.clone());
         vm.run();
 

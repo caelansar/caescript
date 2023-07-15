@@ -93,6 +93,8 @@ impl Builtin {
 }
 
 pub fn new_builtins() -> HashMap<String, Object> {
+    BUILTINS.get_or_init(|| default_builtins());
+
     let mut map = HashMap::new();
     Builtin::iterator().for_each(|builtin| {
         map.insert(builtin.to_string(), Object::Builtin(builtin));
