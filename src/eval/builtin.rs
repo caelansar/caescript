@@ -93,7 +93,13 @@ impl Builtin {
 }
 
 pub fn new_builtins() -> HashMap<String, Object> {
-    BUILTINS.get_or_init(|| default_builtins());
+    new_custom_builtins(|| default_builtins())
+}
+
+pub fn new_custom_builtins(
+    f: impl FnOnce() -> Vec<(String, BuiltinFn)>,
+) -> HashMap<String, Object> {
+    BUILTINS.get_or_init(f);
 
     let mut map = HashMap::new();
     Builtin::iterator().for_each(|builtin| {
