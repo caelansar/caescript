@@ -1,8 +1,8 @@
-use crate::code;
+use crate::{code, eval::object};
 
 #[derive(Debug, Default, Clone)]
 pub(super) struct CompilationScope {
-    pub(super) instructions: code::Instructions,
+    pub(super) instructions: object::Instructions,
     pub(super) last: Option<EmittedInstruction>,
     pub(super) prev: Option<EmittedInstruction>,
     pub(super) is_loop: bool,

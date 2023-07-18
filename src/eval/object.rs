@@ -5,13 +5,16 @@ use std::{
     rc::Rc,
 };
 
-use crate::{ast, code};
+use crate::ast;
 
 use super::{builtin, env::Environment};
 use crate::arithmetic_operator;
 
 pub const BOOL_OBJ_TRUE: Object = Object::Bool(true);
 pub const BOOL_OBJ_FALSE: Object = Object::Bool(false);
+
+#[derive(Debug, PartialEq, PartialOrd, Clone, Default)]
+pub struct Instructions(pub Vec<u8>);
 
 #[derive(PartialEq, Clone, PartialOrd)]
 pub struct CString(pub String);
@@ -69,7 +72,7 @@ pub enum Object {
     Hash(HashMap<Object, Object>),
     Builtin(builtin::Builtin),
     Error(String),
-    CompiledFunction(code::Instructions, usize, usize), // (fn, num_locals, num_params)
+    CompiledFunction(Instructions, usize, usize), // (fn, num_locals, num_params)
     Closure(Closure),
     Null,
 }
@@ -89,7 +92,7 @@ pub struct Closure {
 
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub struct CompiledFunction {
-    pub(crate) instructions: code::Instructions,
+    pub(crate) instructions: Instructions,
     pub(crate) num_locals: usize,
     pub(crate) num_params: usize,
 }
@@ -161,8 +164,8 @@ impl Display for Object {
                 }
                 write!(f, "fn({}) {{  }}", result)
             }
-            Object::CompiledFunction(ins, _, _) => {
-                write!(f, "compiled_fn({})", ins.to_string())
+            Object::CompiledFunction(_, _, _) => {
+                write!(f, "compiled_fn()")
             }
             Object::Closure(_) => {
                 write!(f, "closure()")

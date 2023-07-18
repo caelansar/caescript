@@ -1,11 +1,16 @@
 use std::io;
 
-use crate::{compiler, lexer, parser, vm};
+use crate::{lexer, parser};
 
+#[cfg(feature = "vm")]
 pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::Result<()> {
+    use crate::{compiler, vm};
+
     let mut constants = vec![];
     let mut global = vec![];
     let mut symbol_table = compiler::symbol_table::SymbolTable::new();
+
+    writer.write(b"engine: vm\n")?;
 
     loop {
         writer.write(b">>> ")?;
@@ -43,6 +48,41 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
             write!(writer, "< {}\n", obj)?;
         }
     }
-    println!("exit");
+    writer.write(b"exit\n")?;
+    Ok(())
+}
+
+#[cfg(not(feature = "vm"))]
+pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::Result<()> {
+    use std::{cell::RefCell, rc::Rc};
+
+    use crate::eval::{env::Environment, Evaluator};
+
+    let env = Environment::new();
+    let mut evaluator = Evaluator::new(Rc::new(RefCell::new(env)));
+
+    writer.write(b"engine: interpreter\n")?;
+
+    loop {
+        writer.write(b">>> ")?;
+        writer.flush()?;
+
+        let mut input = String::new();
+        let size = reader.read_line(&mut input)?;
+
+        let lexer = lexer::Lexer::new(&input);
+        let mut parser = parser::Parser::new(lexer);
+        let program = parser.parse_program().unwrap();
+
+        let obj = evaluator.eval(&program);
+
+        if size == 1 {
+            break;
+        }
+        if let Some(obj) = obj {
+            write!(writer, "< {}\n", obj)?;
+        }
+    }
+    writer.write(b"exit\n")?;
     Ok(())
 }

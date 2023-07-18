@@ -12,7 +12,7 @@ impl Frame {
         Self { closure, bp, ip: 0 }
     }
 
-    pub fn instructions(&self) -> &code::Instructions {
+    pub fn instructions(&self) -> &object::Instructions {
         &self.closure.func.instructions
     }
 }

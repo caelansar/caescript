@@ -20,7 +20,7 @@ pub struct Compiler {
 
 #[derive(Debug, Clone)]
 pub struct Bytecode {
-    pub instructions: code::Instructions,
+    pub instructions: object::Instructions,
     pub consts: Vec<object::Object>,
 }
 
@@ -453,11 +453,11 @@ impl Compiler {
         self.scopes[self.scope_idx].last = self.scopes[self.scope_idx].prev.take();
     }
 
-    fn current_instructions(&mut self) -> &mut code::Instructions {
+    fn current_instructions(&mut self) -> &mut object::Instructions {
         &mut self.scopes[self.scope_idx].instructions
     }
 
-    fn add_instruction(&mut self, ins: code::Instructions) -> usize {
+    fn add_instruction(&mut self, ins: object::Instructions) -> usize {
         let pos = self.current_instructions().len();
 
         self.current_instructions()
@@ -486,7 +486,7 @@ impl Compiler {
         self.scopes[self.scope_idx].is_loop
     }
 
-    fn leave_scope(&mut self) -> code::Instructions {
+    fn leave_scope(&mut self) -> object::Instructions {
         let ins = self.current_instructions().clone();
 
         self.scopes.pop();
@@ -553,10 +553,7 @@ impl Compiler {
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        code::{concat_instructions, Instructions},
-        lexer, parser,
-    };
+    use crate::{code::concat_instructions, eval::object::Instructions, lexer, parser};
 
     use super::*;
 

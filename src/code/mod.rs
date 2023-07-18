@@ -6,10 +6,7 @@ use std::{
 
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
 
-use crate::ast;
-
-#[derive(Debug, PartialEq, PartialOrd, Clone, Default)]
-pub struct Instructions(pub Vec<u8>);
+use crate::{ast, eval::object::Instructions};
 
 impl DerefMut for Instructions {
     fn deref_mut(&mut self) -> &mut Self::Target {
