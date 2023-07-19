@@ -1,4 +1,4 @@
-use caescript::eval::{env::Environment, object::Object, Evaluator};
+use caescript::eval::{env::Environment, Evaluator};
 #[cfg(feature = "vm")]
 use caescript::{compiler::Compiler, vm::VM};
 use std::{cell::RefCell, env, fs, io, process::exit, rc::Rc};
@@ -24,12 +24,8 @@ fn main() {
 
     match args[1].as_str() {
         #[cfg(feature = "vm")]
-        "vm" => {
-            vm_run(content.as_str());
-        }
-        "eval" => {
-            eval_run(content.as_str());
-        }
+        "vm" => vm_run(content.as_str()),
+        "eval" => eval_run(content.as_str()),
         arg => {
             println!("unknown arg '{}'", arg);
             exit(1)
@@ -38,7 +34,7 @@ fn main() {
 }
 
 #[cfg(feature = "vm")]
-fn vm_run(input: &str) -> Object {
+fn vm_run(input: &str) {
     let lexer = lexer::Lexer::new(input);
     let mut parser = parser::Parser::new(lexer);
 
@@ -50,10 +46,10 @@ fn vm_run(input: &str) -> Object {
     let mut vm = VM::new(bytecode);
     vm.run();
 
-    vm.last_popped().unwrap()
+    println!("{}", vm.last_popped().unwrap())
 }
 
-fn eval_run(input: &str) -> Object {
+fn eval_run(input: &str) {
     let lexer = lexer::Lexer::new(input);
     let mut parser = parser::Parser::new(lexer);
 
@@ -61,5 +57,5 @@ fn eval_run(input: &str) -> Object {
 
     let mut evaluator = Evaluator::new(Rc::new(RefCell::new(Environment::new())));
 
-    evaluator.eval(&program).unwrap()
+    println!("{}", evaluator.eval(&program).unwrap())
 }

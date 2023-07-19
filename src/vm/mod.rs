@@ -378,7 +378,6 @@ impl VM {
                 code::Op::Closure => {
                     let idx = code::read_u16(&self.current_frame().instructions()[ip..]);
                     let free_num = self.current_frame().instructions()[ip + 2] as usize;
-                    dbg!(free_num);
                     self.current_frame_mut().ip += 3;
 
                     let mut free = vec![];
