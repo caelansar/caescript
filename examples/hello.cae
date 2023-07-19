@@ -1,1 +1,7 @@
-puts("hello world!")
+puts("hello world!");
+
+fn hello_world() {
+    "hello world!"
+}
+
+hello_world()

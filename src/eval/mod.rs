@@ -56,7 +56,6 @@ impl Evaluator {
                 .eval_expression(&ret)
                 .map(|x| Object::Return(Box::new(x))),
             ast::Statement::Function(ast::Ident(ident), params, body) => {
-                println!("wowo");
                 let val = Object::Function(params.clone(), body.clone(), self.env.clone());
                 self.env.borrow_mut().set(ident.clone(), val);
                 None

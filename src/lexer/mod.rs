@@ -53,9 +53,13 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn is_identifier(ch: char) -> bool {
+        ch.is_alphabetic() || ch == '_'
+    }
+
     fn read_identifier(&mut self) -> String {
         let pos = self.pos;
-        while self.ch.map(|c| c.is_alphanumeric()).is_some_and(|t| t) {
+        while self.ch.map(|c| Self::is_identifier(c)).is_some_and(|t| t) {
             self.read_char();
         }
         return self.input[pos..self.pos].to_string();
@@ -188,7 +192,7 @@ impl<'a> Lexer<'a> {
                     Token::from_str(token.to_string().as_str()).unwrap()
                 }
                 _ => {
-                    if token.is_alphabetic() {
+                    if Self::is_identifier(token) {
                         let literal = self.read_identifier();
                         let typ = lookup_ident(literal.clone());
                         return typ;
