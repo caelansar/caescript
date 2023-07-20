@@ -236,7 +236,7 @@ impl Display for Expression {
             Expression::Func { name, params, body } => {
                 let mut out = String::new();
 
-                out.push_str("fn ");
+                out.push_str(&format!("fn {}", name.as_ref().unwrap_or(&"".to_string())));
                 out.push_str("(");
                 out.push_str(
                     params

@@ -202,7 +202,7 @@ impl Evaluator {
                 consequence,
             } => self.eval_for_expression(condition, consequence),
             ast::Expression::Ident(ast::Ident(ident)) => self.eval_identifier(ident),
-            ast::Expression::Func { name, params, body } => {
+            ast::Expression::Func { name: _, params, body } => {
                 dbg!("create func");
                 Some(Object::Function(
                     params.clone(),
