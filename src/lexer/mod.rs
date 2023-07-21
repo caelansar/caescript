@@ -54,7 +54,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn is_identifier(ch: char) -> bool {
-        ch.is_alphabetic() || ch == '_'
+        ch.is_alphanumeric() || ch == '_'
     }
 
     fn read_identifier(&mut self) -> String {
@@ -192,7 +192,7 @@ impl<'a> Lexer<'a> {
                     Token::from_str(token.to_string().as_str()).unwrap()
                 }
                 _ => {
-                    if Self::is_identifier(token) {
+                    if token.is_alphabetic() {
                         let literal = self.read_identifier();
                         let typ = lookup_ident(literal.clone());
                         return typ;
