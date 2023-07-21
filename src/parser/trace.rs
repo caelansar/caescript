@@ -1,3 +1,5 @@
+use std::sync::RwLock;
+
 pub(crate) struct ScopeCall<F: FnOnce()> {
     pub(crate) c: Option<F>,
 }
@@ -18,18 +20,18 @@ macro_rules! defer {
     };
 }
 
-static mut TRACE_LEVEL: i32 = 0;
+static TRACE_LEVEL: RwLock<i32> = RwLock::new(0);
 
 fn ident_level() -> String {
-    " ".repeat(unsafe { (TRACE_LEVEL - 1) as usize })
+    " ".repeat((*TRACE_LEVEL.read().unwrap() - 1) as usize)
 }
 
 fn inc_ident() {
-    unsafe { TRACE_LEVEL += 1 }
+    *TRACE_LEVEL.write().unwrap() += 1
 }
 
 fn dec_ident() {
-    unsafe { TRACE_LEVEL -= 1 }
+    *TRACE_LEVEL.write().unwrap() -= 1
 }
 
 pub fn trace(msg: &str) -> &str {

@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 pub mod ast;
 #[cfg(feature = "vm")]
 pub mod code;

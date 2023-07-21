@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use num_enum::TryFromPrimitive;
 
 use crate::{ast, code};
 
@@ -503,7 +504,7 @@ impl Compiler {
     }
 
     fn change_operand(&mut self, pos: usize, operand: usize) {
-        let op: code::Op = unsafe { std::mem::transmute(self.current_instructions()[pos]) };
+        let op = code::Op::try_from_primitive(self.current_instructions()[pos]).unwrap();
         let new_instruction = code::make(op, &vec![operand]);
 
         new_instruction
@@ -533,7 +534,7 @@ impl Compiler {
 
         while i < self.current_instructions().len() {
             let op: u8 = *self.current_instructions().get(i).unwrap();
-            let op: code::Op = unsafe { std::mem::transmute(op) };
+            let op = code::Op::try_from_primitive(op).unwrap();
 
             if op == from {
                 idxs.push(i)

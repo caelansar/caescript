@@ -625,7 +625,12 @@ impl<'a> Parser<'a> {
         self.next_token();
 
         let mut expr = self.parse_expression(Precedence::Lowest)?;
-        if let ast::Expression::Func { name: _, params, body } = expr {
+        if let ast::Expression::Func {
+            name: _,
+            params,
+            body,
+        } = expr
+        {
             expr = ast::Expression::Func {
                 name: Some(identifier.0.clone()),
                 params,

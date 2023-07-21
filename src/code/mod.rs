@@ -5,6 +5,7 @@ use std::{
 };
 
 use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 use crate::{ast, eval::object::Instructions};
 
@@ -39,7 +40,7 @@ impl Display for Instructions {
 
         while i < self.0.len() {
             let op: u8 = *self.0.get(i).unwrap();
-            let op = unsafe { std::mem::transmute(op) };
+            let op = Op::try_from_primitive(op).unwrap();
 
             let (operands, read) = read_operands(&op, &self.0[i + 1..]);
 
@@ -91,7 +92,7 @@ pub(crate) fn read_u16(slice: &[u8]) -> usize {
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive)]
 pub enum Op {
     Const,
     Add,

@@ -1,5 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
+use num_enum::TryFromPrimitive;
+
 use crate::{
     code, compiler,
     eval::{builtin, object},
@@ -108,7 +110,7 @@ impl VM {
     pub fn run(&mut self) {
         while self.current_frame().ip < self.current_frame().instructions().len() {
             let mut ip = self.current_frame().ip;
-            let op = unsafe { std::mem::transmute(self.current_frame().instructions()[ip]) };
+            let op = code::Op::try_from_primitive(self.current_frame().instructions()[ip]).unwrap();
 
             self.current_frame_mut().ip += 1;
             ip += 1;
