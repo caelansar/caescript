@@ -192,7 +192,7 @@ impl<'a> Lexer<'a> {
                     Token::from_str(token.to_string().as_str()).unwrap()
                 }
                 _ => {
-                    if token.is_alphabetic() {
+                    if token.is_alphabetic() || token == '_' {
                         let literal = self.read_identifier();
                         let typ = lookup_ident(literal.clone());
                         return typ;
@@ -243,8 +243,8 @@ mod test {
         } else {
             return false;
         }
-        let cc = "string";
-        let dd = 1.1;
+        let c_c = "string";
+        let _dd = 1.1;
         bb += 10;
         break - continue
         null
@@ -318,12 +318,12 @@ mod test {
             Token::SemiColon,
             Token::Rbrace,
             Token::Let,
-            Token::Ident("cc".to_string()),
+            Token::Ident("c_c".to_string()),
             Token::Assign,
             Token::String("string".to_string()),
             Token::SemiColon,
             Token::Let,
-            Token::Ident("dd".to_string()),
+            Token::Ident("_dd".to_string()),
             Token::Assign,
             Token::Float(1.1),
             Token::SemiColon,
