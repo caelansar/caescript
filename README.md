@@ -98,12 +98,19 @@ if (true) {
 
 #### For
 
+It supports `break`/`continue` in for loop block
+
 ```
-if (true) {
-  10;
-} else {
-  5;
+let sum = 0;
+let i = 5;
+for (i>0) {
+    if (i == 4) {
+        break;
+    }
+    sum += i;
+    i -= 1;
 }
+sum // 5
 ```
 
 #### Operators
