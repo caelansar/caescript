@@ -5,10 +5,9 @@ use std::{
     rc::Rc,
 };
 
-use crate::ast;
+use crate::{arithmetic_operator, arithmetic_operator_ref, ast};
 
 use super::{builtin, env::Environment};
-use crate::arithmetic_operator;
 
 pub const BOOL_OBJ_TRUE: Object = Object::Bool(true);
 pub const BOOL_OBJ_FALSE: Object = Object::Bool(false);
@@ -39,6 +38,14 @@ impl From<&str> for CString {
 
 impl std::ops::Add for CString {
     type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        CString(format!("{}{}", self, rhs))
+    }
+}
+
+impl std::ops::Add for &CString {
+    type Output = CString;
 
     fn add(self, rhs: Self) -> Self::Output {
         CString(format!("{}{}", self, rhs))
@@ -211,6 +218,46 @@ impl std::ops::Rem for Object {
 
     fn rem(self, rhs: Self) -> Self::Output {
         arithmetic_operator!(self, rhs, %, Int, Float)
+    }
+}
+
+impl std::ops::Add for &Object {
+    type Output = Object;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        arithmetic_operator_ref!(self, rhs, +, Int, Float, String)
+    }
+}
+
+impl std::ops::Sub for &Object {
+    type Output = Object;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        arithmetic_operator_ref!(self, rhs, -, Int, Float)
+    }
+}
+
+impl std::ops::Mul for &Object {
+    type Output = Object;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        arithmetic_operator_ref!(self, rhs, *, Int, Float)
+    }
+}
+
+impl std::ops::Div for &Object {
+    type Output = Object;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        arithmetic_operator_ref!(self, rhs, /, Int, Float)
+    }
+}
+
+impl std::ops::Rem for &Object {
+    type Output = Object;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        arithmetic_operator_ref!(self, rhs, %, Int, Float)
     }
 }
 

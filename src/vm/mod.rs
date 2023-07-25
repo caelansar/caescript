@@ -14,26 +14,26 @@ const MAX_FRAME: usize = 1024;
 mod frame;
 
 // VM is a stack-based Virtual Machine
-pub struct VM {
-    consts: Vec<object::Object>,
-    stack: Vec<object::Object>,
+pub struct VM<'a> {
+    consts: &'a Vec<Rc<object::Object>>,
+    stack: Vec<Rc<object::Object>>,
     sp: usize, // stack pointer
-    pub global: Vec<object::Object>,
+    pub global: Vec<Rc<object::Object>>,
     frames: Vec<frame::Frame>,
     frame_idx: usize,
 }
 
-impl VM {
-    pub fn new(bytecode: compiler::Bytecode) -> Self {
+impl<'a> VM<'a> {
+    pub fn new(bytecode: compiler::Bytecode<'a>) -> Self {
         // this initialization is reuqired, because the stack is not linear growth
-        let stack = vec![object::Object::Null; GLOBAL_SIZE];
+        let stack = vec![Rc::new(object::Object::Null); GLOBAL_SIZE];
         let global = Vec::with_capacity(GLOBAL_SIZE);
 
         let ins = bytecode.instructions;
         let main_frame = frame::Frame::new(
             object::Closure {
                 func: object::CompiledFunction {
-                    instructions: ins,
+                    instructions: ins.clone(),
                     num_locals: 0,
                     num_params: 0,
                 },
@@ -55,7 +55,10 @@ impl VM {
         }
     }
 
-    pub fn new_with_global(byteorder: compiler::Bytecode, global: Vec<object::Object>) -> Self {
+    pub fn new_with_global(
+        byteorder: compiler::Bytecode<'a>,
+        global: Vec<Rc<object::Object>>,
+    ) -> Self {
         let mut vm = Self::new(byteorder);
         if global.len() > 0 {
             vm.global = global;
@@ -81,7 +84,8 @@ impl VM {
         self.frames.pop()
     }
 
-    fn peek(&self) -> Option<object::Object> {
+    #[allow(dead_code)]
+    fn peek(&self) -> Option<Rc<object::Object>> {
         if self.sp == 0 {
             None
         } else {
@@ -89,7 +93,7 @@ impl VM {
         }
     }
 
-    fn push(&mut self, obj: object::Object) {
+    fn push(&mut self, obj: Rc<object::Object>) {
         if self.sp >= STACK_SIZE {
             panic!("stack overflow")
         }
@@ -98,12 +102,12 @@ impl VM {
         self.sp += 1;
     }
 
-    fn pop(&mut self) -> Option<object::Object> {
+    fn pop(&mut self) -> Option<Rc<object::Object>> {
         self.sp -= 1;
         self.stack.get(self.sp).map(|x| x.clone())
     }
 
-    pub fn last_popped(&self) -> Option<object::Object> {
+    pub fn last_popped(&self) -> Option<Rc<object::Object>> {
         self.stack.get(self.sp).map(|x| x.clone())
     }
 
@@ -123,52 +127,52 @@ impl VM {
                 code::Op::Add => {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
-                    self.push(l + r);
+                    self.push(Rc::new(l.as_ref() + r.as_ref()));
                 }
                 code::Op::Sub => {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
-                    self.push(l - r);
+                    self.push(Rc::new(l.as_ref() - r.as_ref()));
                 }
                 code::Op::Mul => {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
-                    self.push(l * r);
+                    self.push(Rc::new(l.as_ref() * r.as_ref()));
                 }
                 code::Op::Div => {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
-                    self.push(l / r);
+                    self.push(Rc::new(l.as_ref() / r.as_ref()));
                 }
                 code::Op::Mod => {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
-                    self.push(l % r);
+                    self.push(Rc::new(l.as_ref() % r.as_ref()));
                 }
                 code::Op::Pop => {
                     self.pop();
                 }
-                code::Op::False => self.push(object::Object::Bool(false)),
-                code::Op::True => self.push(object::Object::Bool(true)),
+                code::Op::False => self.push(Rc::new(object::BOOL_OBJ_FALSE)),
+                code::Op::True => self.push(Rc::new(object::BOOL_OBJ_TRUE)),
                 code::Op::Eq => {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
-                    self.push((l == r).into());
+                    self.push(Rc::new((l == r).into()));
                 }
                 code::Op::Ne => {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
-                    self.push((l != r).into());
+                    self.push(Rc::new((l != r).into()));
                 }
                 code::Op::Gt => {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
-                    match (l, r) {
+                    match (l.as_ref(), r.as_ref()) {
                         (object::Object::Int(l), object::Object::Int(r)) => {
-                            self.push((l > r).into());
+                            self.push(Rc::new((l > r).into()));
                         }
                         (object::Object::Float(l), object::Object::Float(r)) => {
-                            self.push((l > r).into());
+                            self.push(Rc::new((l > r).into()));
                         }
                         _ => todo!(),
                     }
@@ -176,30 +180,30 @@ impl VM {
                 code::Op::GtEq => {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
-                    match (l, r) {
+                    match (l.as_ref(), r.as_ref()) {
                         (object::Object::Int(l), object::Object::Int(r)) => {
-                            self.push((l >= r).into());
+                            self.push(Rc::new((l >= r).into()));
                         }
                         (object::Object::Float(l), object::Object::Float(r)) => {
-                            self.push((l >= r).into());
+                            self.push(Rc::new((l >= r).into()));
                         }
                         _ => todo!(),
                     }
                 }
                 code::Op::Minus => {
                     let operand = self.pop().unwrap();
-                    match operand {
-                        object::Object::Float(f) => self.push(object::Object::Float(-f)),
-                        object::Object::Int(i) => self.push(object::Object::Int(-i)),
+                    match *operand {
+                        object::Object::Float(f) => self.push(Rc::new(object::Object::Float(-f))),
+                        object::Object::Int(i) => self.push(Rc::new(object::Object::Int(-i))),
                         _ => todo!(),
                     }
                 }
                 code::Op::And => {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
-                    match (l, r) {
+                    match (l.as_ref(), r.as_ref()) {
                         (object::Object::Bool(l), object::Object::Bool(r)) => {
-                            self.push((l && r).into());
+                            self.push(Rc::new((*l && *r).into()));
                         }
                         _ => todo!(),
                     }
@@ -207,27 +211,27 @@ impl VM {
                 code::Op::Or => {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
-                    match (l, r) {
+                    match (l.as_ref(), r.as_ref()) {
                         (object::Object::Bool(l), object::Object::Bool(r)) => {
-                            self.push((l || r).into());
+                            self.push(Rc::new((*l || *r).into()));
                         }
                         _ => todo!(),
                     }
                 }
                 code::Op::Not => {
                     let operand = self.pop().unwrap();
-                    match operand {
-                        object::Object::Bool(false) => self.push(object::BOOL_OBJ_TRUE),
-                        object::Object::Bool(true) => self.push(object::BOOL_OBJ_FALSE),
-                        object::Object::Null => self.push(object::BOOL_OBJ_TRUE),
-                        _ => self.push(object::BOOL_OBJ_FALSE),
+                    match *operand {
+                        object::Object::Bool(false) => self.push(Rc::new(object::BOOL_OBJ_TRUE)),
+                        object::Object::Bool(true) => self.push(Rc::new(object::BOOL_OBJ_FALSE)),
+                        object::Object::Null => self.push(Rc::new(object::BOOL_OBJ_TRUE)),
+                        _ => self.push(Rc::new(object::BOOL_OBJ_FALSE)),
                     }
                 }
                 code::Op::JumpNotTruthy => {
                     let pos = code::read_u16(&self.current_frame().instructions()[ip..]);
                     self.current_frame_mut().ip += 2;
 
-                    let cond: bool = self.pop().unwrap().into();
+                    let cond: bool = self.pop().map(|x| x.as_ref().clone().into()).unwrap();
                     if !cond {
                         self.current_frame_mut().ip = pos
                     }
@@ -236,7 +240,7 @@ impl VM {
                     let pos = code::read_u16(&self.current_frame().instructions()[ip..]);
                     self.current_frame_mut().ip = pos;
                 }
-                code::Op::Null => self.push(object::Object::Null),
+                code::Op::Null => self.push(Rc::new(object::Object::Null)),
                 code::Op::SetGlobal => {
                     let pos = code::read_u16(&self.current_frame().instructions()[ip..]);
                     self.current_frame_mut().ip += 2;
@@ -283,11 +287,11 @@ impl VM {
 
                     let mut elems = Vec::with_capacity(len);
                     (self.sp - len..self.sp).into_iter().for_each(|idx| {
-                        elems.push(self.stack[idx].clone());
+                        elems.push(self.stack[idx].as_ref().clone());
                     });
 
                     self.sp -= len;
-                    self.push(object::Object::Array(elems));
+                    self.push(Rc::new(object::Object::Array(elems)));
                 }
                 code::Op::Hash => {
                     let len = code::read_u16(&self.current_frame().instructions()[ip..]);
@@ -298,30 +302,35 @@ impl VM {
                         .into_iter()
                         .step_by(2)
                         .for_each(|idx| {
-                            elems.push((self.stack[idx].clone(), self.stack[idx + 1].clone()));
+                            elems.push((
+                                self.stack[idx].as_ref().clone(),
+                                self.stack[idx + 1].as_ref().clone(),
+                            ));
                         });
 
                     self.sp -= len;
-                    self.push(object::Object::Hash(Iterator::collect(
+                    self.push(Rc::new(object::Object::Hash(Iterator::collect(
                         IntoIterator::into_iter(elems),
-                    )));
+                    ))));
                 }
                 code::Op::Index => {
                     let idx = self.pop().unwrap();
                     let expr = self.pop().unwrap();
 
-                    match (expr, idx) {
-                        (object::Object::Hash(hash), key) => self.push(
+                    match (expr.as_ref(), idx.as_ref()) {
+                        (object::Object::Hash(hash), key) => self.push(Rc::new(
                             hash.get(&key)
                                 .map(|x| x.clone())
                                 .unwrap_or(object::Object::Null),
-                        ),
-                        (object::Object::Array(array), object::Object::Int(i)) => self.push(
-                            array
-                                .get(i as usize)
-                                .map(|x| x.clone())
-                                .unwrap_or(object::Object::Null),
-                        ),
+                        )),
+                        (object::Object::Array(array), object::Object::Int(i)) => {
+                            self.push(Rc::new(
+                                array
+                                    .get(*i as usize)
+                                    .map(|x| x.clone())
+                                    .unwrap_or(object::Object::Null),
+                            ))
+                        }
                         _ => unreachable!(),
                     }
                 }
@@ -330,7 +339,7 @@ impl VM {
                     self.current_frame_mut().ip += 1;
 
                     let func = self.stack.get(self.sp - 1 - num_args);
-                    match func {
+                    match func.map(|x| x.clone()).as_deref() {
                         None => panic!("func not found"),
                         Some(object::Object::Closure(closure)) => {
                             assert!(
@@ -343,8 +352,12 @@ impl VM {
                         }
                         Some(object::Object::Builtin(builtin)) => {
                             let args = &self.stack[self.sp - num_args..self.sp];
+                            let args = args
+                                .iter()
+                                .map(|x| x.as_ref().clone())
+                                .collect::<Vec<object::Object>>();
                             self.sp = self.sp - num_args - 1;
-                            self.push(builtin.call(Vec::from(args)));
+                            self.push(Rc::new(builtin.call(args)));
                         }
                         _ => panic!("{} not a function", func.unwrap()),
                     }
@@ -361,7 +374,7 @@ impl VM {
                         .0
                         .clone();
 
-                    self.push(object::Object::Builtin(builtin.into()));
+                    self.push(Rc::new(object::Object::Builtin(builtin.into())));
                 }
                 code::Op::ReturnValue => {
                     let rv = self.pop().unwrap();
@@ -375,7 +388,7 @@ impl VM {
                     let frame = self.pop_frame();
                     self.sp = frame.unwrap().bp - 1;
 
-                    self.push(object::Object::Null);
+                    self.push(Rc::new(object::Object::Null));
                 }
                 code::Op::Closure => {
                     let idx = code::read_u16(&self.current_frame().instructions()[ip..]);
@@ -385,20 +398,20 @@ impl VM {
                     let mut free = vec![];
                     (0..free_num).into_iter().for_each(|i| {
                         let idx = self.sp - free_num + i;
-                        free.push(self.stack[idx].clone())
+                        free.push(self.stack[idx].as_ref().clone())
                     });
 
                     if let Some(object::Object::CompiledFunction(ins, num_locals, num_params)) =
-                        self.consts.get(idx)
+                        self.consts.get(idx).map(|x| x.clone()).as_deref()
                     {
-                        self.push(object::Object::Closure(object::Closure {
+                        self.push(Rc::new(object::Object::Closure(object::Closure {
                             func: object::CompiledFunction {
                                 instructions: ins.clone(),
                                 num_locals: *num_locals,
                                 num_params: *num_params,
                             },
                             free: Rc::new(RefCell::new(free)),
-                        }))
+                        })))
                     } else {
                         panic!("not a function");
                     }
@@ -412,7 +425,7 @@ impl VM {
 
                     let free = closure.free.borrow();
                     let obj = free.get(free_idx).unwrap();
-                    self.push(obj.clone())
+                    self.push(Rc::new(obj.clone()))
                 }
                 code::Op::SetFree => {
                     let free_idx = self.current_frame().instructions()[ip] as usize;
@@ -427,11 +440,11 @@ impl VM {
                         .free
                         .borrow_mut()
                         .get_mut(free_idx)
-                        .map(|f| *f = val);
+                        .map(|f| *f = val.as_ref().clone());
                 }
                 code::Op::GetCurrentClosure => {
                     let closure = self.current_frame().closure.clone();
-                    self.push(object::Object::Closure(closure));
+                    self.push(Rc::new(object::Object::Closure(closure)));
                 }
                 _ => unreachable!(),
             }
@@ -451,6 +464,8 @@ mod test {
             .unwrap();
         let mut compiler = Compiler::new();
         let bytecode = compiler.compile(&program).unwrap();
+
+        let expect = expect.map(|x| Rc::new(x));
 
         println!("{}", bytecode.instructions);
         bytecode

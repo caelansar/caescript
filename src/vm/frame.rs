@@ -1,4 +1,4 @@
-use crate::{code, eval::object};
+use crate::eval::object;
 
 #[derive(Debug, Clone)]
 pub struct Frame {

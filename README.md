@@ -48,10 +48,10 @@ $ ./caescript [vm/eval] examples/hello.cae
     - [Hashes](#hashes)
     - [Function](#function)
 - [Built-in Functions](#built-in-functions)
-    - [`puts(<arg1>, <arg2>, ...): void`](#putsarg1-arg2--void)
+    - [`puts(<arg1>, <arg2>, ...): Null`](#putsarg1-arg2--null)
     - [`len(<arg>): Intger`](#lenarg-intger)
-    - [`first(<arg>): any`](#firstarg-any)
-    - [`last(<arg>): any`](#lastarg-any)
+    - [`first(<arg>): Object`](#firstarg-object)
+    - [`last(<arg>): Object`](#lastarg-object)
     - [`rest(<arg>): Array`](#restarg-array)
     - [`push(<arg1>, <arg2>): Array`](#pusharg1-arg2-array)
 

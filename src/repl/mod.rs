@@ -31,18 +31,18 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
         let bytecode = match compiler.compile(&program) {
             Ok(bytecode) => bytecode,
             Err(err) => {
-                write!(writer, "\x1b[41mcompile error: {}\x1b[0m\n", err);
+                write!(writer, "\x1b[41mcompile error: {}\x1b[0m\n", err)?;
                 continue;
             }
         };
         let mut vm = vm::VM::new_with_global(bytecode.clone(), global.clone());
         vm.run();
 
-        global = vm.global.clone();
-        symbol_table = compiler.symbol_table;
-        constants = bytecode.consts;
-
         let obj = vm.last_popped();
+
+        global = vm.global.clone();
+        constants = bytecode.consts.to_vec();
+        symbol_table = compiler.symbol_table;
 
         if let Some(obj) = obj {
             write!(writer, "< {}\n", obj)?;

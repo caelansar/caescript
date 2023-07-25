@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use anyhow::{anyhow, Result};
 use num_enum::TryFromPrimitive;
 
@@ -13,16 +15,16 @@ pub mod symbol_table;
 
 #[derive(Debug, Default)]
 pub struct Compiler {
-    consts: Vec<object::Object>,
+    consts: Vec<Rc<object::Object>>,
     scopes: Vec<CompilationScope>,
     scope_idx: usize,
     pub symbol_table: SymbolTable,
 }
 
 #[derive(Debug, Clone)]
-pub struct Bytecode {
-    pub instructions: object::Instructions,
-    pub consts: Vec<object::Object>,
+pub struct Bytecode<'a> {
+    pub instructions: &'a object::Instructions,
+    pub consts: &'a Vec<Rc<object::Object>>,
 }
 
 impl Compiler {
@@ -44,7 +46,7 @@ impl Compiler {
         }
     }
 
-    pub fn new_with_state(symbol_table: SymbolTable, consts: Vec<object::Object>) -> Self {
+    pub fn new_with_state(symbol_table: SymbolTable, consts: Vec<Rc<object::Object>>) -> Self {
         let main_scope = CompilationScope::default();
         Self {
             scopes: vec![main_scope],
@@ -183,7 +185,7 @@ impl Compiler {
 
                 let jump_pos = self.emit(code::Op::Jump, &vec![9999]);
 
-                let mut after_pos = self.current_instructions().len();
+                let mut after_pos = self.current_instructions_mut().len();
                 self.change_operand(pos, after_pos);
 
                 if alternative.is_none() {
@@ -195,14 +197,14 @@ impl Compiler {
                         self.remove_last();
                     }
                 }
-                after_pos = self.current_instructions().len();
+                after_pos = self.current_instructions_mut().len();
                 self.change_operand(jump_pos, after_pos);
             }
             ast::Expression::For {
                 condition,
                 consequence,
             } => {
-                let start = self.current_instructions().len();
+                let start = self.current_instructions_mut().len();
                 self.compile_expression(condition)?;
 
                 let pos = self.emit(code::Op::JumpNotTruthy, &vec![9999]);
@@ -221,7 +223,7 @@ impl Compiler {
                 // go back to the start
                 self.emit(code::Op::Jump, &vec![start]);
 
-                let after_pos = self.current_instructions().len();
+                let after_pos = self.current_instructions_mut().len();
                 self.change_operand(pos, after_pos);
                 self.change_op(code::Op::Break, code::Op::Jump, &vec![after_pos]);
             }
@@ -394,15 +396,15 @@ impl Compiler {
         Ok(())
     }
 
-    pub fn bytecode(&mut self) -> Bytecode {
+    pub fn bytecode<'a>(&'a mut self) -> Bytecode<'a> {
         Bytecode {
-            instructions: self.current_instructions().clone(),
-            consts: self.consts.clone(),
+            instructions: self.current_instructions(),
+            consts: &self.consts,
         }
     }
 
     fn add_const(&mut self, obj: object::Object) -> usize {
-        self.consts.push(obj);
+        self.consts.push(Rc::new(obj));
         self.consts.len() - 1
     }
 
@@ -454,14 +456,18 @@ impl Compiler {
         self.scopes[self.scope_idx].last = self.scopes[self.scope_idx].prev.take();
     }
 
-    fn current_instructions(&mut self) -> &mut object::Instructions {
+    fn current_instructions_mut(&mut self) -> &mut object::Instructions {
         &mut self.scopes[self.scope_idx].instructions
     }
 
-    fn add_instruction(&mut self, ins: object::Instructions) -> usize {
-        let pos = self.current_instructions().len();
+    fn current_instructions(&self) -> &object::Instructions {
+        &self.scopes[self.scope_idx].instructions
+    }
 
-        self.current_instructions()
+    fn add_instruction(&mut self, ins: object::Instructions) -> usize {
+        let pos = self.current_instructions_mut().len();
+
+        self.current_instructions_mut()
             .extend_from_slice(ins.as_slice());
 
         pos
@@ -488,7 +494,7 @@ impl Compiler {
     }
 
     fn leave_scope(&mut self) -> object::Instructions {
-        let ins = self.current_instructions().clone();
+        let ins = self.current_instructions_mut().clone();
 
         self.scopes.pop();
         self.scope_idx -= 1;
@@ -504,13 +510,13 @@ impl Compiler {
     }
 
     fn change_operand(&mut self, pos: usize, operand: usize) {
-        let op = code::Op::try_from_primitive(self.current_instructions()[pos]).unwrap();
+        let op = code::Op::try_from_primitive(self.current_instructions_mut()[pos]).unwrap();
         let new_instruction = code::make(op, &vec![operand]);
 
         new_instruction
             .iter()
             .enumerate()
-            .for_each(|(idx, d)| self.current_instructions()[pos + idx] = *d)
+            .for_each(|(idx, d)| self.current_instructions_mut()[pos + idx] = *d)
     }
 
     fn replace_last_op(&mut self, to: code::Op) {
@@ -521,7 +527,7 @@ impl Compiler {
         new_instruction
             .iter()
             .enumerate()
-            .for_each(|(idx, d)| self.current_instructions()[last + idx] = *d);
+            .for_each(|(idx, d)| self.current_instructions_mut()[last + idx] = *d);
 
         self.scopes[self.scope_idx].last.as_mut().map(|x| x.op = to);
     }
@@ -532,8 +538,8 @@ impl Compiler {
         let mut idxs = vec![];
         let mut i = 0;
 
-        while i < self.current_instructions().len() {
-            let op: u8 = *self.current_instructions().get(i).unwrap();
+        while i < self.current_instructions_mut().len() {
+            let op: u8 = *self.current_instructions_mut().get(i).unwrap();
             let op = code::Op::try_from_primitive(op).unwrap();
 
             if op == from {
@@ -547,7 +553,7 @@ impl Compiler {
             new_instruction
                 .iter()
                 .enumerate()
-                .for_each(|(idx, d)| self.current_instructions()[pos + idx] = *d)
+                .for_each(|(idx, d)| self.current_instructions_mut()[pos + idx] = *d)
         })
     }
 }
@@ -559,6 +565,10 @@ mod test {
     use super::*;
 
     fn compile(input: &str, instructions: Vec<Instructions>, consts: Vec<object::Object>) {
+        let consts = consts
+            .into_iter()
+            .map(|x| Rc::new(x))
+            .collect::<Vec<Rc<object::Object>>>();
         let program = parser::Parser::new(lexer::Lexer::new(input))
             .parse_program()
             .unwrap();
@@ -566,12 +576,12 @@ mod test {
         let bytecode = compiler.compile(&program).unwrap();
         let res = concat_instructions(instructions);
         assert_eq!(
-            res, bytecode.instructions,
+            &res, bytecode.instructions,
             "test {} expect instructions to be {}, got {} instead",
             input, res, bytecode.instructions
         );
         assert_eq!(
-            consts, bytecode.consts,
+            &consts, bytecode.consts,
             "test {} expect consts to be {:?}, got {:?} instead",
             input, consts, bytecode.consts
         )
@@ -689,7 +699,7 @@ mod test {
             let bytecode = compiler.bytecode();
             let res = concat_instructions(test.1);
             assert_eq!(
-                res, bytecode.instructions,
+                &res, bytecode.instructions,
                 "expect {}, got {} instead",
                 res, bytecode.instructions
             );
@@ -720,7 +730,7 @@ mod test {
             let bytecode = compiler.bytecode();
             let res = concat_instructions(test.1);
             assert_eq!(
-                res, bytecode.instructions,
+                &res, bytecode.instructions,
                 "expect {}, got {} instead",
                 res, bytecode.instructions
             );
