@@ -147,7 +147,10 @@ impl Evaluator {
         let curr = match self.env.borrow().get(ident.as_str()) {
             Some(obj) => obj,
             None => {
-                return Some(Object::Error("vairable is not declared".into()));
+                return Some(Object::Error(format!(
+                    "undefined variable {}",
+                    ident.as_str()
+                )));
             }
         };
         let exp_val = match self.eval_expression(expr) {

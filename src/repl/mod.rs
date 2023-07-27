@@ -56,7 +56,7 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
 pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::Result<()> {
     use std::{cell::RefCell, rc::Rc};
 
-    use crate::eval::{env::Environment, Evaluator};
+    use crate::eval::{env::Environment, object, Evaluator};
 
     let env = Environment::new();
     let mut evaluator = Evaluator::new(Rc::new(RefCell::new(env)));
@@ -79,8 +79,10 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
         if size == 1 {
             break;
         }
-        if let Some(obj) = obj {
-            write!(writer, "< {}\n", obj)?;
+        match obj {
+            Some(object::Object::Error(err)) => write!(writer, "\x1b[41merror: {}\x1b[0m\n", err)?,
+            Some(obj) => write!(writer, "< {}\n", obj)?,
+            _ => {}
         }
     }
     writer.write(b"exit\n")?;
