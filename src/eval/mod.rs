@@ -240,6 +240,7 @@ impl Evaluator {
         let args: Vec<_> = args
             .iter()
             .map(|arg| self.eval_expression(arg).unwrap_or(Object::Null))
+            .map(|arg| Rc::new(arg))
             .collect();
         let (params, ref body, env) = match func {
             Object::Function(params, body, env) => (params, body, env),
@@ -263,7 +264,7 @@ impl Evaluator {
         params
             .iter()
             .zip(args)
-            .for_each(|(ast::Ident(param), arg)| call_env.set_self(param.clone(), arg));
+            .for_each(|(ast::Ident(param), arg)| call_env.set_self(param.clone(), (&*arg).clone()));
 
         self.env = Rc::new(RefCell::new(call_env));
         let rv = self.eval_block_statements(body);

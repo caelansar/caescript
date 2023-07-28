@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, sync::OnceLock};
+use std::{collections::HashMap, fmt::Display, rc::Rc, sync::OnceLock};
 
 use super::object::Object;
 
@@ -14,7 +14,7 @@ pub enum Builtin {
 
 pub static BUILTINS: OnceLock<Vec<(String, BuiltinFn)>> = OnceLock::new();
 
-pub type BuiltinFn = fn(Vec<Object>) -> Object;
+pub type BuiltinFn = fn(Vec<Rc<Object>>) -> Object;
 
 pub fn default_builtins() -> Vec<(String, BuiltinFn)> {
     let mut builtins: Vec<(String, BuiltinFn)> = Vec::new();
@@ -81,7 +81,7 @@ impl Builtin {
         .copied()
     }
 
-    pub fn call(&self, args: Vec<Object>) -> Object {
+    pub fn call(&self, args: Vec<Rc<Object>>) -> Object {
         BUILTINS
             .get()
             .unwrap()
@@ -108,8 +108,8 @@ pub fn new_custom_builtins(
     map
 }
 
-fn len(args: Vec<Object>) -> Object {
-    match &args[0] {
+fn len(args: Vec<Rc<Object>>) -> Object {
+    match &*args[0] {
         Object::String(s) => Object::Int(s.0.len() as i64),
         Object::Array(a) => Object::Int(a.len() as i64),
         Object::Hash(h) => Object::Int(h.len() as i64),
@@ -117,12 +117,12 @@ fn len(args: Vec<Object>) -> Object {
     }
 }
 
-fn puts(args: Vec<Object>) -> Object {
+fn puts(args: Vec<Rc<Object>>) -> Object {
     args.iter().for_each(|a| println!("{}", a.to_string()));
     Object::Null
 }
 
-fn push(args: Vec<Object>) -> Object {
+fn push(args: Vec<Rc<Object>>) -> Object {
     if args.len() != 2 {
         return Object::Error(format!("invalid args number: {:?}", args));
     }
@@ -131,15 +131,15 @@ fn push(args: Vec<Object>) -> Object {
     let obj = args.pop().unwrap();
     let arr = args.pop().unwrap();
 
-    if let Object::Array(mut arr) = arr {
-        arr.push(obj);
+    if let Object::Array(mut arr) = (&*arr).clone() {
+        arr.push((&*obj).clone());
         Object::Array(arr)
     } else {
         Object::Error("not array type".into())
     }
 }
 
-fn first(args: Vec<Object>) -> Object {
+fn first(args: Vec<Rc<Object>>) -> Object {
     if args.len() != 1 {
         return Object::Error(format!("invalid args number: {:?}", args));
     }
@@ -147,14 +147,14 @@ fn first(args: Vec<Object>) -> Object {
     let mut args = args.clone();
     let arr = args.pop().unwrap();
 
-    if let Object::Array(arr) = arr {
+    if let Object::Array(arr) = &*arr {
         arr.first().map(|x| x.clone()).unwrap_or(Object::Null)
     } else {
         Object::Error("not array type".into())
     }
 }
 
-fn last(args: Vec<Object>) -> Object {
+fn last(args: Vec<Rc<Object>>) -> Object {
     if args.len() != 1 {
         return Object::Error("invalid args number".into());
     }
@@ -162,14 +162,14 @@ fn last(args: Vec<Object>) -> Object {
     let mut args = args.clone();
     let arr = args.pop().unwrap();
 
-    if let Object::Array(arr) = arr {
+    if let Object::Array(arr) = &*arr {
         arr.last().map(|x| x.clone()).unwrap_or(Object::Null)
     } else {
         Object::Error("not array type".into())
     }
 }
 
-fn rest(args: Vec<Object>) -> Object {
+fn rest(args: Vec<Rc<Object>>) -> Object {
     if args.len() != 1 {
         return Object::Error("invalid args number".into());
     }
@@ -177,7 +177,7 @@ fn rest(args: Vec<Object>) -> Object {
     let mut args = args.clone();
     let arr = args.pop().unwrap();
 
-    if let Object::Array(arr) = arr {
+    if let Object::Array(arr) = &*arr {
         arr.split_first()
             .map(|(_, x)| Object::Array(Vec::from(x.clone())))
             .unwrap_or(Object::Null)

@@ -352,12 +352,8 @@ impl<'a> VM<'a> {
                         }
                         Some(object::Object::Builtin(builtin)) => {
                             let args = &self.stack[self.sp - num_args..self.sp];
-                            let args = args
-                                .iter()
-                                .map(|x| x.as_ref().clone())
-                                .collect::<Vec<object::Object>>();
                             self.sp = self.sp - num_args - 1;
-                            self.push(Rc::new(builtin.call(args)));
+                            self.push(Rc::new(builtin.call(args.to_vec())));
                         }
                         _ => panic!("{} not a function", func.unwrap()),
                     }
