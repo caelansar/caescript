@@ -233,7 +233,15 @@ impl Evaluator {
     }
 
     fn eval_identifier(&self, ident: &String) -> Option<Object> {
-        self.env.borrow().get(ident.clone())
+        Some(
+            self.env
+                .borrow()
+                .get(ident.clone())
+                .unwrap_or(Object::Error(format!(
+                    "undefined variable {}",
+                    ident.as_str()
+                ))),
+        )
     }
 
     fn eval_function_call(&mut self, func: Object, args: &Vec<ast::Expression>) -> Option<Object> {
