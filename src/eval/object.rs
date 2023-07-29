@@ -79,7 +79,7 @@ pub enum Object {
     Hash(HashMap<Object, Object>),
     Builtin(builtin::Builtin),
     Error(String),
-    CompiledFunction(Instructions, usize, usize), // (fn, num_locals, num_params)
+    CompiledFunction(Rc<Instructions>, usize, usize), // (fn, num_locals, num_params)
     Closure(Closure),
     Null,
 }
@@ -99,7 +99,7 @@ pub struct Closure {
 
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
 pub struct CompiledFunction {
-    pub(crate) instructions: Instructions,
+    pub(crate) instructions: Rc<Instructions>,
     pub(crate) num_locals: usize,
     pub(crate) num_params: usize,
 }

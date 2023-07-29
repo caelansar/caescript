@@ -33,7 +33,7 @@ impl<'a> VM<'a> {
         let main_frame = frame::Frame::new(
             object::Closure {
                 func: object::CompiledFunction {
-                    instructions: ins.clone(),
+                    instructions: Rc::new(ins.clone()),
                     num_locals: 0,
                     num_params: 0,
                 },

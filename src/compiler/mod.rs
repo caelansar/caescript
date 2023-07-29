@@ -378,7 +378,7 @@ impl Compiler {
                 free.iter().for_each(|f| self.emit_get(f));
 
                 let operand = self.add_const(object::Object::CompiledFunction(
-                    ins,
+                    Rc::new(ins),
                     num_local,
                     params.len(),
                 ));
@@ -576,7 +576,7 @@ mod test {
         let bytecode = compiler.compile(&program).unwrap();
         let res = concat_instructions(instructions);
         assert_eq!(
-            &res, bytecode.instructions,
+            &*res, bytecode.instructions,
             "test {} expect instructions to be {}, got {} instead",
             input, res, bytecode.instructions
         );
@@ -699,7 +699,7 @@ mod test {
             let bytecode = compiler.bytecode();
             let res = concat_instructions(test.1);
             assert_eq!(
-                &res, bytecode.instructions,
+                &*res, bytecode.instructions,
                 "expect {}, got {} instead",
                 res, bytecode.instructions
             );
@@ -730,7 +730,7 @@ mod test {
             let bytecode = compiler.bytecode();
             let res = concat_instructions(test.1);
             assert_eq!(
-                &res, bytecode.instructions,
+                &*res, bytecode.instructions,
                 "expect {}, got {} instead",
                 res, bytecode.instructions
             );

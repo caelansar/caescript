@@ -1,6 +1,7 @@
 use std::{
     fmt::Display,
     ops::{Deref, DerefMut},
+    rc::Rc,
     vec::IntoIter,
 };
 
@@ -259,8 +260,8 @@ pub fn make(op: Op, operands: &Vec<usize>) -> Instructions {
     Instructions(instruction)
 }
 
-pub(crate) fn concat_instructions(ins: Vec<Instructions>) -> Instructions {
-    Instructions(ins.into_iter().flatten().collect::<Vec<u8>>())
+pub(crate) fn concat_instructions(ins: Vec<Instructions>) -> Rc<Instructions> {
+    Rc::new(Instructions(ins.into_iter().flatten().collect::<Vec<u8>>()))
 }
 
 #[cfg(test)]
