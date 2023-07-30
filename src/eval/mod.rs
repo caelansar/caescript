@@ -236,7 +236,7 @@ impl Evaluator {
         Some(
             self.env
                 .borrow()
-                .get(ident.clone())
+                .get(ident.as_str())
                 .unwrap_or(Object::Error(format!(
                     "undefined variable {}",
                     ident.as_str()
@@ -352,7 +352,7 @@ impl Evaluator {
         lhs: Object,
         rhs: Object,
     ) -> Option<Object> {
-        match (lhs.clone(), rhs.clone()) {
+        match (&lhs, &rhs) {
             (Object::Int(l), Object::Int(r)) => match infix {
                 ast::Infix::Plus => Some(lhs + rhs),
                 ast::Infix::Minus => Some(lhs - rhs),
@@ -365,8 +365,8 @@ impl Evaluator {
                 ast::Infix::GtEq => Some((l >= r).into()),
                 ast::Infix::Lt => Some((l < r).into()),
                 ast::Infix::LtEq => Some((l <= r).into()),
-                ast::Infix::And => Some(Object::Int(r)),
-                ast::Infix::Or => Some(Object::Int(l)),
+                ast::Infix::And => Some(Object::Int(*r)),
+                ast::Infix::Or => Some(Object::Int(*l)),
             },
             (Object::Float(l), Object::Float(r)) => match infix {
                 ast::Infix::Plus => Some(lhs + rhs),
@@ -380,8 +380,8 @@ impl Evaluator {
                 ast::Infix::GtEq => Some(Object::Bool(l >= r)),
                 ast::Infix::Lt => Some(Object::Bool(l < r)),
                 ast::Infix::LtEq => Some(Object::Bool(l <= r)),
-                ast::Infix::And => Some(Object::Float(r)),
-                ast::Infix::Or => Some(Object::Float(l)),
+                ast::Infix::And => Some(Object::Float(*r)),
+                ast::Infix::Or => Some(Object::Float(*l)),
             },
             (Object::Bool(l), Object::Bool(r)) => match infix {
                 ast::Infix::Eq => Some(Object::Bool(l == r)),
@@ -401,16 +401,16 @@ impl Evaluator {
                 ast::Infix::GtEq => Some(Object::Bool(l >= r)),
                 ast::Infix::Lt => Some(Object::Bool(l < r)),
                 ast::Infix::LtEq => Some(Object::Bool(l <= r)),
-                ast::Infix::And => Some(Object::String(r)),
-                ast::Infix::Or => Some(Object::String(l)),
+                ast::Infix::And => Some(Object::String(r.clone())),
+                ast::Infix::Or => Some(Object::String(l.clone())),
                 _ => Some(Object::Error(format!(
                     "unsupported operator {} for {:?}",
                     infix,
-                    Object::String(r),
+                    Object::String(r.clone()),
                 ))),
             },
             (Object::Null, rhs) => match infix {
-                ast::Infix::Or => Some(rhs),
+                ast::Infix::Or => Some(rhs.clone()),
                 ast::Infix::And => Some(Object::Null),
                 _ => Some(Object::Error(format!(
                     "unsupported operator {} for {:?}",
@@ -437,9 +437,9 @@ impl Evaluator {
     #[inline(always)]
     fn eval_literal(&self, literal: &ast::Literal) -> Option<Object> {
         match literal {
-            ast::Literal::Int(i) => Some(Object::Int(i.clone())),
-            ast::Literal::Float(f) => Some(Object::Float(f.clone())),
-            ast::Literal::Bool(b) => Some(b.clone().into()),
+            ast::Literal::Int(i) => Some(Object::Int(*i)),
+            ast::Literal::Float(f) => Some(Object::Float(*f)),
+            ast::Literal::Bool(b) => Some((*b).into()),
             ast::Literal::String(s) => Some(Object::String(object::CString(s.clone()))),
         }
     }

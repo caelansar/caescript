@@ -48,7 +48,7 @@ impl Environment {
         let outer = self
             .outer
             .as_ref()
-            .and_then(|ref outer| outer.borrow_mut().get(name.clone()).map(|v| v.clone()));
+            .and_then(|ref outer| outer.borrow_mut().get(name.as_str()).map(|v| v.clone()));
 
         let inner = self.store.get(&name).map(|v| v.clone());
 
