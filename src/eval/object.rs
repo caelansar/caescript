@@ -5,9 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::{arithmetic_operator, arithmetic_operator_ref, ast};
-
-use super::{builtin, env::Environment};
+use super::{ast, builtin, env::Environment};
 
 pub const BOOL_OBJ_TRUE: Object = Object::Bool(true);
 pub const BOOL_OBJ_FALSE: Object = Object::Bool(false);
@@ -178,86 +176,6 @@ impl Display for Object {
                 write!(f, "closure()")
             }
         }
-    }
-}
-
-impl std::ops::Add for Object {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, +, Int, Float, String)
-    }
-}
-
-impl std::ops::Sub for Object {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, -, Int, Float)
-    }
-}
-
-impl std::ops::Mul for Object {
-    type Output = Self;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, *, Int, Float)
-    }
-}
-
-impl std::ops::Div for Object {
-    type Output = Self;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, /, Int, Float)
-    }
-}
-
-impl std::ops::Rem for Object {
-    type Output = Self;
-
-    fn rem(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, %, Int, Float)
-    }
-}
-
-impl std::ops::Add for &Object {
-    type Output = Object;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        arithmetic_operator_ref!(self, rhs, +, Int, Float, String)
-    }
-}
-
-impl std::ops::Sub for &Object {
-    type Output = Object;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        arithmetic_operator_ref!(self, rhs, -, Int, Float)
-    }
-}
-
-impl std::ops::Mul for &Object {
-    type Output = Object;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        arithmetic_operator_ref!(self, rhs, *, Int, Float)
-    }
-}
-
-impl std::ops::Div for &Object {
-    type Output = Object;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        arithmetic_operator_ref!(self, rhs, /, Int, Float)
-    }
-}
-
-impl std::ops::Rem for &Object {
-    type Output = Object;
-
-    fn rem(self, rhs: Self) -> Self::Output {
-        arithmetic_operator_ref!(self, rhs, %, Int, Float)
     }
 }
 
