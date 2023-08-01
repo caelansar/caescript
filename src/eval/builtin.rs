@@ -127,12 +127,11 @@ fn push(args: Vec<Rc<Object>>) -> Object {
         return Object::Error(format!("invalid args number: {:?}", args));
     }
 
-    let mut args = args.clone();
-    let obj = args.pop().unwrap();
-    let arr = args.pop().unwrap();
+    let obj = args.get(1).unwrap();
+    let arr = args.get(0).unwrap();
 
-    if let Object::Array(mut arr) = (&*arr).clone() {
-        arr.push((&*obj).clone());
+    if let Object::Array(mut arr) = (&**arr).clone() {
+        arr.push((&**obj).clone());
         Object::Array(arr)
     } else {
         Object::Error("not array type".into())
@@ -144,8 +143,7 @@ fn first(args: Vec<Rc<Object>>) -> Object {
         return Object::Error(format!("invalid args number: {:?}", args));
     }
 
-    let mut args = args.clone();
-    let arr = args.pop().unwrap();
+    let arr = args.get(0).unwrap().clone();
 
     if let Object::Array(arr) = &*arr {
         arr.first().map(|x| x.clone()).unwrap_or(Object::Null)
@@ -159,8 +157,7 @@ fn last(args: Vec<Rc<Object>>) -> Object {
         return Object::Error("invalid args number".into());
     }
 
-    let mut args = args.clone();
-    let arr = args.pop().unwrap();
+    let arr = args.get(0).unwrap().clone();
 
     if let Object::Array(arr) = &*arr {
         arr.last().map(|x| x.clone()).unwrap_or(Object::Null)
@@ -174,12 +171,11 @@ fn rest(args: Vec<Rc<Object>>) -> Object {
         return Object::Error("invalid args number".into());
     }
 
-    let mut args = args.clone();
-    let arr = args.pop().unwrap();
+    let arr = args.get(0).unwrap().clone();
 
     if let Object::Array(arr) = &*arr {
         arr.split_first()
-            .map(|(_, x)| Object::Array(Vec::from(x.clone())))
+            .map(|(_, x)| Object::Array(Vec::from(x)))
             .unwrap_or(Object::Null)
     } else {
         Object::Error("not array type".into())

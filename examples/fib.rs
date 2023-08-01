@@ -63,5 +63,5 @@ fn vm_run(input: &str) -> Object {
     let mut vm = VM::new(bytecode);
     vm.run();
 
-    vm.last_popped().map(|x| (&*x.clone()).clone()).unwrap()
+    vm.last_popped().map(|x| ((&*x).clone())).unwrap()
 }
