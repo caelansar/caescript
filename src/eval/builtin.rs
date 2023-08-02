@@ -130,8 +130,8 @@ fn push(args: Vec<Rc<Object>>) -> Object {
     let obj = args.get(1).unwrap();
     let arr = args.get(0).unwrap();
 
-    if let Object::Array(mut arr) = (&**arr).clone() {
-        arr.push((&**obj).clone());
+    if let Object::Array(mut arr) = (*arr.as_ref()).clone() {
+        arr.push((*obj.as_ref()).clone());
         Object::Array(arr)
     } else {
         Object::Error("not array type".into())

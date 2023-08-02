@@ -231,7 +231,7 @@ impl<'a> VM<'a> {
                     let pos = code::read_u16(&self.current_frame().instructions()[ip..]);
                     self.current_frame_mut().ip += 2;
 
-                    let cond: bool = self.pop().map(|x| x.as_ref().clone().into()).unwrap();
+                    let cond: bool = self.pop().map(|x| x.as_ref().into()).unwrap();
                     if !cond {
                         self.current_frame_mut().ip = pos
                     }

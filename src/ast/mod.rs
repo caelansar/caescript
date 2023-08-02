@@ -241,8 +241,8 @@ impl Display for Expression {
                 out.push_str(
                     params
                         .iter()
-                        .map(|ident| ident.0.clone())
-                        .collect::<Vec<String>>()
+                        .map(|ident| ident.0.as_str())
+                        .collect::<Vec<&str>>()
                         .join(",")
                         .as_str(),
                 );
@@ -366,8 +366,8 @@ impl Display for Statement {
                 out.push_str(
                     params
                         .iter()
-                        .map(|ident| ident.0.clone())
-                        .collect::<Vec<String>>()
+                        .map(|ident| ident.0.as_str())
+                        .collect::<Vec<&str>>()
                         .join(",")
                         .as_str(),
                 );
