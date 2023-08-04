@@ -115,10 +115,7 @@ impl Evaluator {
                     Some(_) => todo!(),
                     None => return None,
                 };
-                elements
-                    .get(idx as usize)
-                    .map(|x| x.clone())
-                    .or(Some(Object::Null))
+                elements.get(idx as usize).cloned().or(Some(Object::Null))
             }
             Object::Hash(hash) => {
                 let key = match self.eval_expression(idx) {
@@ -232,15 +229,12 @@ impl Evaluator {
         }
     }
 
-    fn eval_identifier(&self, ident: &String) -> Option<Object> {
+    fn eval_identifier(&self, ident: &str) -> Option<Object> {
         Some(
             self.env
                 .borrow()
-                .get(ident.as_str())
-                .unwrap_or(Object::Error(format!(
-                    "undefined variable {}",
-                    ident.as_str()
-                ))),
+                .get(ident)
+                .unwrap_or(Object::Error(format!("undefined variable {}", ident))),
         )
     }
 
@@ -266,13 +260,13 @@ impl Evaluator {
         let current_env = self.env.clone();
 
         // set function env as outer scope
-        let mut call_env = Environment::enclosed(env.clone());
+        let mut call_env = Environment::enclosed(env);
 
         // set our args
         params
             .iter()
             .zip(args)
-            .for_each(|(ast::Ident(param), arg)| call_env.set_self(param.clone(), (&*arg).clone()));
+            .for_each(|(ast::Ident(param), arg)| call_env.set_self(param.clone(), (*arg).clone()));
 
         self.env = Rc::new(RefCell::new(call_env));
         let rv = self.eval_block_statements(body);
@@ -293,9 +287,9 @@ impl Evaluator {
         if cond.into() {
             rv = self.eval_block_statements(consequence)
         } else {
-            alternative
-                .as_ref()
-                .map(|alternative| rv = self.eval_block_statements(alternative));
+            if let Some(alternative) = alternative.as_ref() {
+                rv = self.eval_block_statements(alternative);
+            }
         }
 
         rv

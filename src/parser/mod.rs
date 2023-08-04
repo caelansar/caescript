@@ -217,9 +217,7 @@ impl<'a> Parser<'a> {
             Err(_) => return None,
         };
 
-        if lhs.is_none() {
-            return None;
-        }
+        lhs.as_ref()?;
 
         let precedence = self.current_precedence();
 
@@ -425,11 +423,7 @@ impl<'a> Parser<'a> {
                 self.next_token();
             }
 
-            Some(ast::Statement::Function(
-                ast::Ident(ident.clone()),
-                params,
-                body,
-            ))
+            Some(ast::Statement::Function(ast::Ident(ident), params, body))
         } else {
             self.parse_expression_statement()
         }
@@ -489,9 +483,7 @@ impl<'a> Parser<'a> {
 
     #[inline(always)]
     fn parse_call_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
-        if lhs.is_none() {
-            return None;
-        }
+        lhs.as_ref()?;
 
         let args = self.parse_call_args()?;
 
@@ -503,9 +495,7 @@ impl<'a> Parser<'a> {
 
     #[inline(always)]
     fn parse_index_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
-        if lhs.is_none() {
-            return None;
-        }
+        lhs.as_ref()?;
 
         self.next_token();
         self.next_token();
@@ -563,7 +553,7 @@ impl<'a> Parser<'a> {
 
         let errors = self.errors();
 
-        if errors.len() > 0 {
+        if !errors.is_empty() {
             let msg = errors
                 .into_iter()
                 .map(|e| format!("{}\n", e))

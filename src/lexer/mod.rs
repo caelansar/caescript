@@ -194,7 +194,7 @@ impl<'a> Lexer<'a> {
                 _ => {
                     if token.is_alphabetic() || token == '_' {
                         let literal = self.read_identifier();
-                        let typ = lookup_ident(literal.clone());
+                        let typ = lookup_ident(literal);
                         return typ;
                     } else if token.is_numeric() {
                         let literal = self.read_number();

@@ -176,28 +176,28 @@ pub enum Expression {
 impl Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Expression::Ident(Ident(ident)) => f.write_str(&ident),
+            Expression::Ident(Ident(ident)) => f.write_str(ident),
             Expression::Literal(ref literal) => f.write_str(&literal.to_string()),
             Expression::Prefix(prefix, expr) => {
                 let mut out = String::new();
 
-                out.push_str("(");
+                out.push('(');
                 out.push_str(&prefix.to_string());
                 out.push_str(&expr.to_string());
-                out.push_str(")");
+                out.push(')');
 
                 f.write_str(&out)
             }
             Expression::Infix(infix, lexpr, rexpr) => {
                 let mut out = String::new();
 
-                out.push_str("(");
+                out.push('(');
                 out.push_str(&lexpr.to_string());
-                out.push_str(" ");
+                out.push(' ');
                 out.push_str(&infix.to_string());
-                out.push_str(" ");
+                out.push(' ');
                 out.push_str(&rexpr.to_string());
-                out.push_str(")");
+                out.push(')');
 
                 f.write_str(&out)
             }
@@ -209,9 +209,9 @@ impl Display for Expression {
 
                 out.push_str("if ");
                 out.push_str(&condition.to_string());
-                out.push_str(" ");
+                out.push(' ');
                 out.push_str(&consequence.to_string());
-                out.push_str(" ");
+                out.push(' ');
                 f.write_str(&out)
             }
             Expression::If {
@@ -223,9 +223,9 @@ impl Display for Expression {
 
                 out.push_str("if ");
                 out.push_str(&condition.to_string());
-                out.push_str(" ");
+                out.push(' ');
                 out.push_str(&consequence.to_string());
-                out.push_str(" ");
+                out.push(' ');
                 if let Some(ref alternative) = alternative {
                     out.push_str("else ");
                     out.push_str(&alternative.to_string());
@@ -237,7 +237,7 @@ impl Display for Expression {
                 let mut out = String::new();
 
                 out.push_str(&format!("fn {}", name.as_ref().unwrap_or(&"".to_string())));
-                out.push_str("(");
+                out.push('(');
                 out.push_str(
                     params
                         .iter()
@@ -246,11 +246,11 @@ impl Display for Expression {
                         .join(",")
                         .as_str(),
                 );
-                out.push_str(")");
+                out.push(')');
 
-                out.push_str("{");
+                out.push('{');
                 out.push_str(&body.to_string());
-                out.push_str("}");
+                out.push('}');
 
                 f.write_str(&out)
             }
@@ -258,7 +258,7 @@ impl Display for Expression {
                 let mut out = String::new();
 
                 out.push_str(&func.to_string());
-                out.push_str("(");
+                out.push('(');
                 out.push_str(
                     args.iter()
                         .map(|arg| arg.to_string())
@@ -266,7 +266,7 @@ impl Display for Expression {
                         .join(",")
                         .as_str(),
                 );
-                out.push_str(")");
+                out.push(')');
 
                 f.write_str(&out)
             }
@@ -276,7 +276,7 @@ impl Display for Expression {
                 out.push_str(&format!(" {} ", op));
 
                 out.push_str(&expr.to_string());
-                out.push_str(";");
+                out.push(';');
 
                 f.write_str(&out)
             }
@@ -317,7 +317,7 @@ impl Display for Literal {
         match self {
             Literal::Int(int) => out.push_str(&int.to_string()),
             Literal::Float(float) => out.push_str(&float.to_string()),
-            Literal::String(string) => out.push_str(&string),
+            Literal::String(string) => out.push_str(string),
             Literal::Bool(b) => out.push_str(&b.to_string()),
         }
         f.write_str(&out)
@@ -339,21 +339,21 @@ impl Display for Statement {
         match self {
             Statement::Let(Ident(ident), expr) => {
                 let mut out = "let".to_string();
-                out.push_str(" ");
+                out.push(' ');
                 out.push_str(&ident.to_string());
                 out.push_str(" = ");
 
                 out.push_str(&expr.to_string());
-                out.push_str(";");
+                out.push(';');
 
                 f.write_str(&out)
             }
             Statement::Return(expr) => {
                 let mut out = "return".to_string();
-                out.push_str(" ");
+                out.push(' ');
 
                 out.push_str(&expr.to_string());
-                out.push_str(";");
+                out.push(';');
 
                 f.write_str(&out)
             }
@@ -362,7 +362,7 @@ impl Display for Statement {
 
                 out.push_str("fn ");
                 out.push_str(&ident.0);
-                out.push_str("(");
+                out.push('(');
                 out.push_str(
                     params
                         .iter()
@@ -371,11 +371,11 @@ impl Display for Statement {
                         .join(",")
                         .as_str(),
                 );
-                out.push_str(")");
+                out.push(')');
 
-                out.push_str("{");
+                out.push('{');
                 out.push_str(&body.to_string());
-                out.push_str("}");
+                out.push('}');
 
                 f.write_str(&out)
             }

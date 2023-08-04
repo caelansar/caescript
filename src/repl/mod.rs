@@ -31,7 +31,7 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
         let bytecode = match compiler.compile(&program) {
             Ok(bytecode) => bytecode,
             Err(err) => {
-                write!(writer, "\x1b[41mcompile error: {}\x1b[0m\n", err)?;
+                writeln!(writer, "\x1b[41mcompile error: {}\x1b[0m", err)?;
                 continue;
             }
         };
@@ -45,7 +45,7 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
         symbol_table = compiler.symbol_table;
 
         if let Some(obj) = obj {
-            write!(writer, "< {}\n", obj)?;
+            writeln!(writer, "< {}", obj)?;
         }
     }
     writer.write(b"exit\n")?;
@@ -80,8 +80,8 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
             break;
         }
         match obj {
-            Some(object::Object::Error(err)) => write!(writer, "\x1b[41merror: {}\x1b[0m\n", err)?,
-            Some(obj) => write!(writer, "< {}\n", obj)?,
+            Some(object::Object::Error(err)) => writeln!(writer, "\x1b[41merror: {}\x1b[0m", err)?,
+            Some(obj) => writeln!(writer, "< {}", obj)?,
             _ => {}
         }
     }

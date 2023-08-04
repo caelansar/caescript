@@ -17,14 +17,14 @@ pub static BUILTINS: OnceLock<Vec<(String, BuiltinFn)>> = OnceLock::new();
 pub type BuiltinFn = fn(Vec<Rc<Object>>) -> Object;
 
 pub fn default_builtins() -> Vec<(String, BuiltinFn)> {
-    let mut builtins: Vec<(String, BuiltinFn)> = Vec::new();
-
-    builtins.push((Builtin::Len.to_string(), len));
-    builtins.push((Builtin::Puts.to_string(), puts));
-    builtins.push((Builtin::Push.to_string(), push));
-    builtins.push((Builtin::First.to_string(), first));
-    builtins.push((Builtin::Last.to_string(), last));
-    builtins.push((Builtin::Rest.to_string(), rest));
+    let builtins: Vec<(String, BuiltinFn)> = vec![
+        (Builtin::Len.to_string(), len),
+        (Builtin::Puts.to_string(), puts),
+        (Builtin::Push.to_string(), push),
+        (Builtin::First.to_string(), first),
+        (Builtin::Last.to_string(), last),
+        (Builtin::Rest.to_string(), rest),
+    ];
 
     builtins
 }
@@ -93,7 +93,7 @@ impl Builtin {
 }
 
 pub fn new_builtins() -> HashMap<String, Object> {
-    new_custom_builtins(|| default_builtins())
+    new_custom_builtins(default_builtins)
 }
 
 pub fn new_custom_builtins(
@@ -146,7 +146,7 @@ fn first(args: Vec<Rc<Object>>) -> Object {
     let arr = args.get(0).unwrap().clone();
 
     if let Object::Array(arr) = &*arr {
-        arr.first().map(|x| x.clone()).unwrap_or(Object::Null)
+        arr.first().cloned().unwrap_or(Object::Null)
     } else {
         Object::Error("not array type".into())
     }
@@ -160,7 +160,7 @@ fn last(args: Vec<Rc<Object>>) -> Object {
     let arr = args.get(0).unwrap().clone();
 
     if let Object::Array(arr) = &*arr {
-        arr.last().map(|x| x.clone()).unwrap_or(Object::Null)
+        arr.last().cloned().unwrap_or(Object::Null)
     } else {
         Object::Error("not array type".into())
     }
