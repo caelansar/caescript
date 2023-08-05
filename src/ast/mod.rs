@@ -16,6 +16,12 @@ impl Deref for Ident {
     }
 }
 
+impl AsRef<str> for Ident {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(PartialEq, Clone, Debug)]
 pub enum Prefix {
     Minus,

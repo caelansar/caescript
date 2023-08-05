@@ -242,7 +242,7 @@ impl Op {
     }
 }
 
-pub fn make(op: Op, operands: &Vec<usize>) -> Instructions {
+pub fn make(op: Op, operands: &[usize]) -> Instructions {
     let widths = op.operand_widths();
     let mut instruction = Vec::new();
 

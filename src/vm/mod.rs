@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{borrow::Borrow, cell::RefCell, rc::Rc};
 
 use num_enum::TryFromPrimitive;
 
@@ -60,7 +60,7 @@ impl<'a> VM<'a> {
         global: Vec<Rc<object::Object>>,
     ) -> Self {
         let mut vm = Self::new(byteorder);
-        if global.len() > 0 {
+        if !global.is_empty() {
             vm.global = global;
         }
         vm
@@ -89,7 +89,7 @@ impl<'a> VM<'a> {
         if self.sp == 0 {
             None
         } else {
-            self.stack.get(self.sp - 1).map(|o| o.clone())
+            self.stack.get(self.sp - 1).cloned()
         }
     }
 
@@ -104,11 +104,11 @@ impl<'a> VM<'a> {
 
     fn pop(&mut self) -> Option<Rc<object::Object>> {
         self.sp -= 1;
-        self.stack.get(self.sp).map(|x| x.clone())
+        self.stack.get(self.sp).cloned()
     }
 
     pub fn last_popped(&self) -> Option<Rc<object::Object>> {
-        self.stack.get(self.sp).map(|x| x.clone())
+        self.stack.get(self.sp).cloned()
     }
 
     pub fn run(&mut self) {
@@ -286,7 +286,7 @@ impl<'a> VM<'a> {
                     self.current_frame_mut().ip += 2;
 
                     let mut elems = Vec::with_capacity(len);
-                    (self.sp - len..self.sp).into_iter().for_each(|idx| {
+                    (self.sp - len..self.sp).for_each(|idx| {
                         elems.push(self.stack[idx].as_ref().clone());
                     });
 
@@ -298,15 +298,12 @@ impl<'a> VM<'a> {
                     self.current_frame_mut().ip += 2;
 
                     let mut elems = Vec::with_capacity(len);
-                    (self.sp - len..self.sp)
-                        .into_iter()
-                        .step_by(2)
-                        .for_each(|idx| {
-                            elems.push((
-                                self.stack[idx].as_ref().clone(),
-                                self.stack[idx + 1].as_ref().clone(),
-                            ));
-                        });
+                    (self.sp - len..self.sp).step_by(2).for_each(|idx| {
+                        elems.push((
+                            self.stack[idx].as_ref().clone(),
+                            self.stack[idx + 1].as_ref().clone(),
+                        ));
+                    });
 
                     self.sp -= len;
                     self.push(Rc::new(object::Object::Hash(Iterator::collect(
@@ -319,15 +316,13 @@ impl<'a> VM<'a> {
 
                     match (expr.as_ref(), idx.as_ref()) {
                         (object::Object::Hash(hash), key) => self.push(Rc::new(
-                            hash.get(&key)
-                                .map(|x| x.clone())
-                                .unwrap_or(object::Object::Null),
+                            hash.get(key).cloned().unwrap_or(object::Object::Null),
                         )),
                         (object::Object::Array(array), object::Object::Int(i)) => {
                             self.push(Rc::new(
                                 array
                                     .get(*i as usize)
-                                    .map(|x| x.clone())
+                                    .cloned()
                                     .unwrap_or(object::Object::Null),
                             ))
                         }
@@ -338,10 +333,12 @@ impl<'a> VM<'a> {
                     let num_args = self.current_frame().instructions()[ip] as usize;
                     self.current_frame_mut().ip += 1;
 
-                    let func = self.stack.get(self.sp - 1 - num_args);
-                    match func.map(|x| x.clone()).as_deref() {
-                        None => panic!("func not found"),
-                        Some(object::Object::Closure(closure)) => {
+                    let func = self
+                        .stack
+                        .get(self.sp - 1 - num_args)
+                        .expect("func not found");
+                    match func.borrow() {
+                        object::Object::Closure(closure) => {
                             assert!(
                                 closure.func.num_params == num_args,
                                 "wrong number of argument"
@@ -350,12 +347,12 @@ impl<'a> VM<'a> {
                             self.sp = frame.bp + closure.func.num_locals;
                             self.push_frame(frame);
                         }
-                        Some(object::Object::Builtin(builtin)) => {
+                        object::Object::Builtin(builtin) => {
                             let args = &self.stack[self.sp - num_args..self.sp];
                             self.sp = self.sp - num_args - 1;
                             self.push(Rc::new(builtin.call(args.to_vec())));
                         }
-                        _ => panic!("{} not a function", func.unwrap()),
+                        _ => panic!("{} not a function", func),
                     }
                 }
                 code::Op::GetBuiltin => {
@@ -392,13 +389,13 @@ impl<'a> VM<'a> {
                     self.current_frame_mut().ip += 3;
 
                     let mut free = vec![];
-                    (0..free_num).into_iter().for_each(|i| {
+                    (0..free_num).for_each(|i| {
                         let idx = self.sp - free_num + i;
                         free.push(self.stack[idx].as_ref().clone())
                     });
 
                     if let Some(object::Object::CompiledFunction(ins, num_locals, num_params)) =
-                        self.consts.get(idx).map(|x| x.clone()).as_deref()
+                        self.consts.get(idx).cloned().as_deref()
                     {
                         self.push(Rc::new(object::Object::Closure(object::Closure {
                             func: object::CompiledFunction {
@@ -419,7 +416,7 @@ impl<'a> VM<'a> {
 
                     let closure = current_frame.closure.clone();
 
-                    let free = closure.free.borrow();
+                    let free = RefCell::borrow(&closure.free);
                     let obj = free.get(free_idx).unwrap();
                     self.push(Rc::new(obj.clone()))
                 }
@@ -431,12 +428,9 @@ impl<'a> VM<'a> {
                     let current_frame = self.current_frame_mut();
                     current_frame.ip += 1;
 
-                    current_frame
-                        .closure
-                        .free
-                        .borrow_mut()
-                        .get_mut(free_idx)
-                        .map(|f| *f = val.as_ref().clone());
+                    if let Some(f) = current_frame.closure.free.borrow_mut().get_mut(free_idx) {
+                        *f = val.as_ref().clone()
+                    }
                 }
                 code::Op::GetCurrentClosure => {
                     let closure = self.current_frame().closure.clone();

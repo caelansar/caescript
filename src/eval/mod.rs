@@ -53,7 +53,7 @@ impl Evaluator {
             ast::Statement::Let(ident, expr) => self.eval_let(ident, expr),
             ast::Statement::Expression(expr) => self.eval_expression(expr),
             ast::Statement::Return(ret) => self
-                .eval_expression(&ret)
+                .eval_expression(ret)
                 .map(|x| Object::Return(Box::new(x))),
             ast::Statement::Function(ast::Ident(ident), params, body) => {
                 let val = Object::Function(params.clone(), body.clone(), self.env.clone());
@@ -120,12 +120,12 @@ impl Evaluator {
             Object::Hash(hash) => {
                 let key = match self.eval_expression(idx) {
                     Some(Object::Int(i)) => Object::Int(i),
-                    Some(Object::String(s)) => Object::String(s.clone()),
+                    Some(Object::String(s)) => Object::String(s),
                     Some(Object::Bool(b)) => Object::Bool(b),
                     Some(_) => todo!(),
                     None => return None,
                 };
-                hash.get(&key).map(|x| x.clone()).or(Some(Object::Null))
+                hash.get(&key).cloned().or(Some(Object::Null))
             }
             _ => todo!(),
         }
@@ -191,7 +191,7 @@ impl Evaluator {
                 consequence,
                 alternative,
             } => {
-                if let Some(cond) = self.eval_expression(&condition) {
+                if let Some(cond) = self.eval_expression(condition) {
                     self.eval_if_expression(cond, consequence, alternative)
                 } else {
                     None
@@ -238,11 +238,11 @@ impl Evaluator {
         )
     }
 
-    fn eval_function_call(&mut self, func: Object, args: &Vec<ast::Expression>) -> Option<Object> {
+    fn eval_function_call(&mut self, func: Object, args: &[ast::Expression]) -> Option<Object> {
         let args: Vec<_> = args
             .iter()
             .map(|arg| self.eval_expression(arg).unwrap_or(Object::Null))
-            .map(|arg| Rc::new(arg))
+            .map(Rc::new)
             .collect();
         let (params, ref body, env) = match func {
             Object::Function(params, body, env) => (params, body, env),
@@ -297,7 +297,7 @@ impl Evaluator {
 
     fn eval_for_expression(
         &mut self,
-        condition: &Box<ast::Expression>,
+        condition: &ast::Expression,
         consequence: &ast::BlockStatement,
     ) -> Option<Object> {
         let mut rv = Some(Object::Null);

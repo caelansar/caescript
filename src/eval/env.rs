@@ -48,12 +48,12 @@ impl Environment {
         let outer = self
             .outer
             .as_ref()
-            .and_then(|ref outer| outer.borrow_mut().get(name.as_str()));
+            .and_then(|outer| outer.borrow_mut().get(name.as_str()));
 
-        let inner = self.store.get(&name).map(|v| v.clone());
+        let inner = self.store.get(&name).cloned();
 
         if inner.is_none() && outer.is_some() {
-            if let Some(ref outer) = self.outer.as_ref() {
+            if let Some(outer) = self.outer.as_ref() {
                 outer.borrow_mut().set(name, value)
             }
         } else {

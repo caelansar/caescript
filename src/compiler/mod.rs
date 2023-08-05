@@ -153,7 +153,7 @@ impl Compiler {
             ast::Expression::Ident(ident) => {
                 let symbol = self
                     .symbol_table
-                    .resolve(&ident)
+                    .resolve(ident)
                     .ok_or(anyhow!("undefined variable {}", &ident.0))?;
                 self.emit_get(&symbol);
             }
@@ -258,7 +258,7 @@ impl Compiler {
                 ast::Assign::Assign => {
                     let symbol = self
                         .symbol_table
-                        .resolve(&ident)
+                        .resolve(ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
                     self.emit(code::Op::GetGlobal, &vec![symbol.index]);
 
@@ -269,7 +269,7 @@ impl Compiler {
                 ast::Assign::PlusEq => {
                     let symbol = self
                         .symbol_table
-                        .resolve(&ident)
+                        .resolve(ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
                     self.emit_get(&symbol);
@@ -282,7 +282,7 @@ impl Compiler {
                 ast::Assign::MinusEq => {
                     let symbol = self
                         .symbol_table
-                        .resolve(&ident)
+                        .resolve(ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
                     self.emit_get(&symbol);
@@ -295,7 +295,7 @@ impl Compiler {
                 ast::Assign::MultiplyEq => {
                     let symbol = self
                         .symbol_table
-                        .resolve(&ident)
+                        .resolve(ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
                     self.emit_get(&symbol);
@@ -308,7 +308,7 @@ impl Compiler {
                 ast::Assign::DivideEq => {
                     let symbol = self
                         .symbol_table
-                        .resolve(&ident)
+                        .resolve(ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
                     self.emit_get(&symbol);
@@ -321,7 +321,7 @@ impl Compiler {
                 ast::Assign::ModEq => {
                     let symbol = self
                         .symbol_table
-                        .resolve(&ident)
+                        .resolve(ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
 
                     self.emit_get(&symbol);
@@ -348,8 +348,8 @@ impl Compiler {
                 self.emit(code::Op::Hash, &vec![kvs.len() * 2]);
             }
             ast::Expression::Index(expr, idx) => {
-                self.compile_expression(&expr)?;
-                self.compile_expression(&idx)?;
+                self.compile_expression(expr)?;
+                self.compile_expression(idx)?;
                 self.emit(code::Op::Index, &vec![]);
             }
             ast::Expression::Func { name, params, body } => {
@@ -396,7 +396,7 @@ impl Compiler {
         Ok(())
     }
 
-    pub fn bytecode<'a>(&'a mut self) -> Bytecode<'a> {
+    pub fn bytecode(&mut self) -> Bytecode<'_> {
         Bytecode {
             instructions: self.current_instructions(),
             consts: &self.consts,
@@ -448,10 +448,13 @@ impl Compiler {
     }
 
     fn remove_last(&mut self) {
-        self.scopes[self.scope_idx]
-            .last
-            .clone()
-            .map(|ins| self.scopes[self.scope_idx].instructions.truncate(ins.pos));
+        let mut pos = 0;
+        if let Some(ref ins) = self.scopes[self.scope_idx].last {
+            pos = ins.pos;
+        }
+        if pos != 0 {
+            self.scopes[self.scope_idx].instructions.truncate(pos);
+        }
 
         self.scopes[self.scope_idx].last = self.scopes[self.scope_idx].prev.take();
     }
@@ -503,7 +506,7 @@ impl Compiler {
             .symbol_table
             .outer
             .as_ref()
-            .and_then(|outer| Some(outer.as_ref().clone()))
+            .map(|outer| outer.as_ref().clone())
             .expect("top-level scope");
 
         ins
@@ -529,7 +532,9 @@ impl Compiler {
             .enumerate()
             .for_each(|(idx, d)| self.current_instructions_mut()[last + idx] = *d);
 
-        self.scopes[self.scope_idx].last.as_mut().map(|x| x.op = to);
+        if let Some(x) = self.scopes[self.scope_idx].last.as_mut() {
+            x.op = to
+        }
     }
 
     fn change_op(&mut self, from: code::Op, to: code::Op, operands: &Vec<usize>) {

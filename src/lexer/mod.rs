@@ -12,7 +12,7 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     pub fn new(input: &'a str) -> Self {
         let mut l = Lexer {
-            input: input.as_ref(),
+            input,
             ..Default::default()
         };
         l.read_char();
@@ -59,10 +59,10 @@ impl<'a> Lexer<'a> {
 
     fn read_identifier(&mut self) -> String {
         let pos = self.pos;
-        while self.ch.map(|c| Self::is_identifier(c)).is_some_and(|t| t) {
+        while self.ch.map(Self::is_identifier).is_some_and(|t| t) {
             self.read_char();
         }
-        return self.input[pos..self.pos].to_string();
+        self.input[pos..self.pos].to_string()
     }
 
     fn read_number(&mut self) -> String {
@@ -70,7 +70,7 @@ impl<'a> Lexer<'a> {
         while self.ch.map(|c| c.is_numeric()).is_some_and(|t| t) {
             self.read_char();
         }
-        return self.input[pos..self.pos].to_string();
+        self.input[pos..self.pos].to_string()
     }
 
     fn read_string(&mut self) -> String {
@@ -81,7 +81,7 @@ impl<'a> Lexer<'a> {
                 break;
             }
         }
-        return self.input[pos..self.pos].to_string();
+        self.input[pos..self.pos].to_string()
     }
 
     #[inline(always)]

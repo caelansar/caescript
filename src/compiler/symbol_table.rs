@@ -41,7 +41,7 @@ pub struct SymbolTable {
 
 impl SymbolTable {
     pub(crate) fn new() -> Self {
-        Self::new_with_builtins(|| builtin::default_builtins())
+        Self::new_with_builtins(builtin::default_builtins)
     }
 
     pub(crate) fn new_with_builtins(f: impl FnOnce() -> Vec<(String, builtin::BuiltinFn)>) -> Self {
@@ -49,11 +49,11 @@ impl SymbolTable {
 
         builtin::BUILTINS.get_or_init(f);
 
-        builtin::BUILTINS.get().map(|builtin| {
+        if let Some(builtin) = builtin::BUILTINS.get() {
             builtin.iter().enumerate().for_each(|(idx, builtin)| {
                 symbol_table.define_builtin(idx, builtin.0.clone());
             });
-        });
+        }
 
         symbol_table
     }
@@ -71,7 +71,7 @@ impl SymbolTable {
     }
 
     pub(super) fn define_builtin(&mut self, idx: usize, name: String) -> Symbol {
-        assert!(name.len() > 0);
+        assert!(!name.is_empty());
         let symbol = Symbol::new(name.clone(), Scope::Builtin, idx);
         self.store.insert(name, symbol.clone());
 
@@ -95,8 +95,8 @@ impl SymbolTable {
         symbol
     }
 
-    pub(super) fn resolve(&mut self, name: &str) -> Option<Symbol> {
-        match self.store.get(name) {
+    pub(super) fn resolve(&mut self, name: impl AsRef<str>) -> Option<Symbol> {
+        match self.store.get(name.as_ref()) {
             Some(s) => Some(s.clone()),
             None => {
                 let sym = self
