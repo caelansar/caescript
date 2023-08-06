@@ -394,8 +394,8 @@ impl<'a> VM<'a> {
                         free.push(self.stack[idx].as_ref().clone())
                     });
 
-                    if let Some(object::Object::CompiledFunction(ins, num_locals, num_params)) =
-                        self.consts.get(idx).cloned().as_deref()
+                    if let object::Object::CompiledFunction(ins, num_locals, num_params) =
+                        self.consts.get(idx).expect("not a function").borrow()
                     {
                         self.push(Rc::new(object::Object::Closure(object::Closure {
                             func: object::CompiledFunction {
@@ -405,10 +405,9 @@ impl<'a> VM<'a> {
                             },
                             free: Rc::new(RefCell::new(free)),
                         })))
-                    } else {
-                        panic!("not a function");
                     }
                 }
+
                 code::Op::GetFree => {
                     let free_idx = self.current_frame().instructions()[ip] as usize;
                     let current_frame = self.current_frame_mut();
