@@ -26,7 +26,8 @@ pub struct VM<'a> {
 impl<'a> VM<'a> {
     pub fn new(bytecode: compiler::Bytecode<'a>) -> Self {
         // this initialization is reuqired, because the stack is not linear growth
-        let stack = vec![Rc::new(object::Object::Null); GLOBAL_SIZE];
+        let null = Rc::new(object::Object::Null);
+        let stack = vec![null; GLOBAL_SIZE];
         let global = Vec::with_capacity(GLOBAL_SIZE);
 
         let ins = bytecode.instructions;

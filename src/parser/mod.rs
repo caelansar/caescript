@@ -60,8 +60,8 @@ impl<'a> Parser<'a> {
     pub fn new(lexer: lexer::Lexer<'a>) -> Self {
         let mut parser = Self {
             lexer,
-            current_token: token::Token::EOF,
-            next_token: token::Token::EOF,
+            current_token: token::Token::Eof,
+            next_token: token::Token::Eof,
             errors: Vec::new(),
         };
 
@@ -126,7 +126,7 @@ impl<'a> Parser<'a> {
         self.next_token();
 
         while !self.current_token_is(&token::Token::Rbrace) {
-            if self.current_token_is(&token::Token::EOF) {
+            if self.current_token_is(&token::Token::Eof) {
                 panic!(
                     "unterminated block statement, current token {:?}",
                     self.current_token
@@ -351,7 +351,7 @@ impl<'a> Parser<'a> {
         let mut hash = vec![];
 
         while !self.next_token_is(&token::Token::Rbrace)
-            && !self.next_token_is(&token::Token::EOF)
+            && !self.next_token_is(&token::Token::Eof)
             && !self.next_token_is(&token::Token::SemiColon)
         {
             self.next_token();
@@ -540,7 +540,7 @@ impl<'a> Parser<'a> {
 
     pub fn parse_program(&mut self) -> Result<ast::Program, String> {
         let mut stmts = Vec::new();
-        while self.current_token != token::Token::EOF {
+        while self.current_token != token::Token::Eof {
             if self.is_illegal_token() {
                 return Ok(ast::BlockStatement(stmts));
             }

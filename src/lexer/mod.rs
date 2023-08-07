@@ -214,7 +214,7 @@ impl<'a> Lexer<'a> {
                 }
             }
         } else {
-            Token::EOF
+            Token::Eof
         };
         self.read_char();
         tok
@@ -335,7 +335,7 @@ mod test {
             Token::Minus,
             Token::Continue,
             Token::Null,
-            Token::EOF,
+            Token::Eof,
         ];
         tests.into_iter().for_each(|test| {
             let tok = lexer.next_token();

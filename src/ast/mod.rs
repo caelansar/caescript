@@ -297,13 +297,11 @@ impl Display for Expression {
             Expression::Hash(hash) => f.write_str(&format!(
                 "{{{}}}",
                 hash.iter()
-                    .map(|(k, v)| format!("{}: {}", k.to_string(), v.to_string()))
+                    .map(|(k, v)| format!("{}: {}", k, v))
                     .collect::<Vec<_>>()
                     .join(", ")
             )),
-            Expression::Index(lhs, idx) => {
-                f.write_str(&format!("{}[{}]", lhs.to_string(), idx.to_string()))
-            }
+            Expression::Index(lhs, idx) => f.write_str(&format!("{}[{}]", lhs, idx)),
             Expression::Null => f.write_str("null"),
         }
     }

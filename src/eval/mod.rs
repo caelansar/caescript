@@ -286,10 +286,8 @@ impl Evaluator {
 
         if cond.into() {
             rv = self.eval_block_statements(consequence)
-        } else {
-            if let Some(alternative) = alternative.as_ref() {
-                rv = self.eval_block_statements(alternative);
-            }
+        } else if let Some(alternative) = alternative.as_ref() {
+            rv = self.eval_block_statements(alternative);
         }
 
         rv

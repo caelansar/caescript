@@ -3,7 +3,7 @@ use std::{fmt, str::FromStr};
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) enum Token {
     Illegal,
-    EOF,
+    Eof,
 
     Ident(String),
     Int(i64),
@@ -145,7 +145,7 @@ impl fmt::Display for Token {
             Token::And => write!(f, "&&"),
             Token::Or => write!(f, "||"),
             Token::Null => write!(f, "null"),
-            Token::EOF => write!(f, "EOF"),
+            Token::Eof => write!(f, "EOF"),
         }
     }
 }

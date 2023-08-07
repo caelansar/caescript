@@ -81,7 +81,7 @@ impl Compiler {
                 if !matches!(expr, ast::Expression::Assign(_, _, _))
                     && !matches!(expr, ast::Expression::For { .. })
                 {
-                    self.emit(code::Op::Pop, &vec![]);
+                    self.emit(code::Op::Pop, &[]);
                 }
             }
             ast::Statement::Let(ident, expr) => {
@@ -92,7 +92,7 @@ impl Compiler {
             }
             ast::Statement::Return(expr) => {
                 self.compile_expression(expr)?;
-                self.emit(code::Op::ReturnValue, &vec![]);
+                self.emit(code::Op::ReturnValue, &[]);
             }
             // do not really need Break/Continue opcode, but we still have
             // some placeholder opcode and it will be replaced with `Jump`
@@ -101,13 +101,13 @@ impl Compiler {
                 if !self.is_in_loop() {
                     return Err(anyhow!("Break is only allowed in for loop"));
                 }
-                self.emit(code::Op::Break, &vec![9999]);
+                self.emit(code::Op::Break, &[9999]);
             }
             ast::Statement::Continue => {
                 if !self.is_in_loop() {
                     return Err(anyhow!("Continue is only allowed in for loop"));
                 }
-                self.emit(code::Op::Continue, &vec![9999]);
+                self.emit(code::Op::Continue, &[9999]);
             }
             ast::Statement::Function(ident, params, body) => {
                 // assamble a func expr manually
@@ -129,26 +129,26 @@ impl Compiler {
             ast::Expression::Literal(ast::Literal::Int(i)) => {
                 let int = object::Object::Int(*i);
                 let pos = self.add_const(int);
-                self.emit(code::Op::Const, &vec![pos]);
+                self.emit(code::Op::Const, &[pos]);
             }
             ast::Expression::Literal(ast::Literal::Float(f)) => {
                 let float = object::Object::Float(*f);
                 let pos = self.add_const(float);
-                self.emit(code::Op::Const, &vec![pos]);
+                self.emit(code::Op::Const, &[pos]);
             }
             ast::Expression::Literal(ast::Literal::String(ref s)) => {
                 let s = object::Object::String(s.as_str().into());
                 let pos = self.add_const(s);
-                self.emit(code::Op::Const, &vec![pos]);
+                self.emit(code::Op::Const, &[pos]);
             }
             ast::Expression::Literal(ast::Literal::Bool(true)) => {
-                self.emit(code::Op::True, &vec![]);
+                self.emit(code::Op::True, &[]);
             }
             ast::Expression::Literal(ast::Literal::Bool(false)) => {
-                self.emit(code::Op::False, &vec![]);
+                self.emit(code::Op::False, &[]);
             }
             ast::Expression::Null => {
-                self.emit(code::Op::Null, &vec![]);
+                self.emit(code::Op::Null, &[]);
             }
             ast::Expression::Ident(ident) => {
                 let symbol = self
@@ -160,8 +160,8 @@ impl Compiler {
             ast::Expression::Prefix(prefix, expr) => {
                 self.compile_expression(expr)?;
                 match prefix {
-                    ast::Prefix::Minus => self.emit(code::Op::Minus, &vec![]),
-                    ast::Prefix::Not => self.emit(code::Op::Not, &vec![]),
+                    ast::Prefix::Minus => self.emit(code::Op::Minus, &[]),
+                    ast::Prefix::Not => self.emit(code::Op::Not, &[]),
                 };
             }
             ast::Expression::If {
@@ -175,7 +175,7 @@ impl Compiler {
                 // how far to jump and can "back-patching" it. Because the compiler is a single pass compiler
                 // this is the solution, however more complex compilers may not come back to change it on first
                 // pass and instead fill it in on another traversal
-                let pos = self.emit(code::Op::JumpNotTruthy, &vec![9999]);
+                let pos = self.emit(code::Op::JumpNotTruthy, &[9999]);
                 self.compile_statements(consequence)?;
 
                 // evict redundant `Pop`
@@ -183,13 +183,13 @@ impl Compiler {
                     self.remove_last();
                 }
 
-                let jump_pos = self.emit(code::Op::Jump, &vec![9999]);
+                let jump_pos = self.emit(code::Op::Jump, &[9999]);
 
                 let mut after_pos = self.current_instructions_mut().len();
                 self.change_operand(pos, after_pos);
 
                 if alternative.is_none() {
-                    self.emit(code::Op::Null, &vec![]);
+                    self.emit(code::Op::Null, &[]);
                 } else {
                     self.compile_statements(alternative.as_ref().unwrap())?;
 
@@ -207,7 +207,7 @@ impl Compiler {
                 let start = self.current_instructions_mut().len();
                 self.compile_expression(condition)?;
 
-                let pos = self.emit(code::Op::JumpNotTruthy, &vec![9999]);
+                let pos = self.emit(code::Op::JumpNotTruthy, &[9999]);
 
                 self.enter_loop();
                 self.compile_statements(consequence)?;
@@ -218,14 +218,14 @@ impl Compiler {
                     self.remove_last();
                 }
 
-                self.change_op(code::Op::Continue, code::Op::Jump, &vec![start]);
+                self.change_op(code::Op::Continue, code::Op::Jump, &[start]);
 
                 // go back to the start
-                self.emit(code::Op::Jump, &vec![start]);
+                self.emit(code::Op::Jump, &[start]);
 
                 let after_pos = self.current_instructions_mut().len();
                 self.change_operand(pos, after_pos);
-                self.change_op(code::Op::Break, code::Op::Jump, &vec![after_pos]);
+                self.change_op(code::Op::Break, code::Op::Jump, &[after_pos]);
             }
             ast::Expression::Infix(infix, lhs, rhs) => match infix {
                 ast::Infix::Plus
@@ -241,17 +241,17 @@ impl Compiler {
                 | ast::Infix::GtEq => {
                     self.compile_expression(lhs)?;
                     self.compile_expression(rhs)?;
-                    self.emit(infix.into(), &vec![]);
+                    self.emit(infix.into(), &[]);
                 }
                 ast::Infix::Lt => {
                     self.compile_expression(rhs)?;
                     self.compile_expression(lhs)?;
-                    self.emit(code::Op::Gt, &vec![]);
+                    self.emit(code::Op::Gt, &[]);
                 }
                 ast::Infix::LtEq => {
                     self.compile_expression(rhs)?;
                     self.compile_expression(lhs)?;
-                    self.emit(code::Op::GtEq, &vec![]);
+                    self.emit(code::Op::GtEq, &[]);
                 }
             },
             ast::Expression::Assign(assign, ident, expr) => match assign {
@@ -260,11 +260,11 @@ impl Compiler {
                         .symbol_table
                         .resolve(ident)
                         .ok_or(anyhow!("undefined variable {}", &ident.0))?;
-                    self.emit(code::Op::GetGlobal, &vec![symbol.index]);
+                    self.emit(code::Op::GetGlobal, &[symbol.index]);
 
                     self.compile_expression(expr)?;
                     let symbol = self.symbol_table.define(ident.0.clone());
-                    self.emit(code::Op::SetGlobal, &vec![symbol.index]);
+                    self.emit(code::Op::SetGlobal, &[symbol.index]);
                 }
                 ast::Assign::PlusEq => {
                     let symbol = self
@@ -275,7 +275,7 @@ impl Compiler {
                     self.emit_get(&symbol);
 
                     self.compile_expression(expr)?;
-                    self.emit(code::Op::Add, &vec![]);
+                    self.emit(code::Op::Add, &[]);
 
                     self.emit_set(&symbol);
                 }
@@ -288,7 +288,7 @@ impl Compiler {
                     self.emit_get(&symbol);
 
                     self.compile_expression(expr)?;
-                    self.emit(code::Op::Sub, &vec![]);
+                    self.emit(code::Op::Sub, &[]);
 
                     self.emit_set(&symbol);
                 }
@@ -301,7 +301,7 @@ impl Compiler {
                     self.emit_get(&symbol);
 
                     self.compile_expression(expr)?;
-                    self.emit(code::Op::Mul, &vec![]);
+                    self.emit(code::Op::Mul, &[]);
 
                     self.emit_set(&symbol);
                 }
@@ -314,7 +314,7 @@ impl Compiler {
                     self.emit_get(&symbol);
 
                     self.compile_expression(expr)?;
-                    self.emit(code::Op::Div, &vec![]);
+                    self.emit(code::Op::Div, &[]);
 
                     self.emit_set(&symbol);
                 }
@@ -327,7 +327,7 @@ impl Compiler {
                     self.emit_get(&symbol);
 
                     self.compile_expression(expr)?;
-                    self.emit(code::Op::Mod, &vec![]);
+                    self.emit(code::Op::Mod, &[]);
 
                     self.emit_set(&symbol);
                 }
@@ -337,7 +337,7 @@ impl Compiler {
                     .iter()
                     .try_for_each(|elem| self.compile_expression(elem))?;
 
-                self.emit(code::Op::Array, &vec![elems.len()]);
+                self.emit(code::Op::Array, &[elems.len()]);
             }
             ast::Expression::Hash(kvs) => {
                 kvs.iter().try_for_each(|(k, v)| {
@@ -345,12 +345,12 @@ impl Compiler {
                     self.compile_expression(v)
                 })?;
 
-                self.emit(code::Op::Hash, &vec![kvs.len() * 2]);
+                self.emit(code::Op::Hash, &[kvs.len() * 2]);
             }
             ast::Expression::Index(expr, idx) => {
                 self.compile_expression(expr)?;
                 self.compile_expression(idx)?;
-                self.emit(code::Op::Index, &vec![]);
+                self.emit(code::Op::Index, &[]);
             }
             ast::Expression::Func { name, params, body } => {
                 self.enter_scope();
@@ -368,7 +368,7 @@ impl Compiler {
                     self.replace_last_op(code::Op::ReturnValue)
                 }
                 if !self.last_instruction_is(code::Op::ReturnValue) {
-                    self.emit(code::Op::Return, &vec![]);
+                    self.emit(code::Op::Return, &[]);
                 }
 
                 let free = self.symbol_table.free.clone();
@@ -382,7 +382,7 @@ impl Compiler {
                     num_local,
                     params.len(),
                 ));
-                self.emit(code::Op::Closure, &vec![operand, free.len()]);
+                self.emit(code::Op::Closure, &[operand, free.len()]);
             }
             ast::Expression::Call { func, args } => {
                 self.compile_expression(func)?;
@@ -390,7 +390,7 @@ impl Compiler {
                 args.iter()
                     .try_for_each(|arg| self.compile_expression(arg))?;
 
-                self.emit(code::Op::Call, &vec![args.len()]);
+                self.emit(code::Op::Call, &[args.len()]);
             }
         }
         Ok(())
@@ -408,7 +408,7 @@ impl Compiler {
         self.consts.len() - 1
     }
 
-    fn emit(&mut self, op: code::Op, operands: &Vec<usize>) -> usize {
+    fn emit(&mut self, op: code::Op, operands: &[usize]) -> usize {
         let ins = code::make(op, operands);
         let pos = self.add_instruction(ins);
 
@@ -418,19 +418,19 @@ impl Compiler {
 
     fn emit_get(&mut self, symbol: &symbol_table::Symbol) {
         match symbol.scope {
-            Scope::Global => self.emit(code::Op::GetGlobal, &vec![symbol.index]),
-            Scope::Local => self.emit(code::Op::GetLocal, &vec![symbol.index]),
-            Scope::Builtin => self.emit(code::Op::GetBuiltin, &vec![symbol.index]),
-            Scope::Free => self.emit(code::Op::GetFree, &vec![symbol.index]),
-            Scope::Function => self.emit(code::Op::GetCurrentClosure, &vec![symbol.index]),
+            Scope::Global => self.emit(code::Op::GetGlobal, &[symbol.index]),
+            Scope::Local => self.emit(code::Op::GetLocal, &[symbol.index]),
+            Scope::Builtin => self.emit(code::Op::GetBuiltin, &[symbol.index]),
+            Scope::Free => self.emit(code::Op::GetFree, &[symbol.index]),
+            Scope::Function => self.emit(code::Op::GetCurrentClosure, &[symbol.index]),
         };
     }
 
     fn emit_set(&mut self, symbol: &symbol_table::Symbol) {
         match symbol.scope {
-            Scope::Global => self.emit(code::Op::SetGlobal, &vec![symbol.index]),
-            Scope::Local => self.emit(code::Op::SetLocal, &vec![symbol.index]),
-            Scope::Free => self.emit(code::Op::SetFree, &vec![symbol.index]),
+            Scope::Global => self.emit(code::Op::SetGlobal, &[symbol.index]),
+            Scope::Local => self.emit(code::Op::SetLocal, &[symbol.index]),
+            Scope::Free => self.emit(code::Op::SetFree, &[symbol.index]),
             _ => unreachable!(),
         };
     }
@@ -514,7 +514,7 @@ impl Compiler {
 
     fn change_operand(&mut self, pos: usize, operand: usize) {
         let op = code::Op::try_from_primitive(self.current_instructions_mut()[pos]).unwrap();
-        let new_instruction = code::make(op, &vec![operand]);
+        let new_instruction = code::make(op, &[operand]);
 
         new_instruction
             .iter()
@@ -525,7 +525,7 @@ impl Compiler {
     fn replace_last_op(&mut self, to: code::Op) {
         let last = self.scopes[self.scope_idx].last.clone().unwrap().pos;
 
-        let new_instruction = code::make(code::Op::ReturnValue, &vec![]);
+        let new_instruction = code::make(code::Op::ReturnValue, &[]);
 
         new_instruction
             .iter()
@@ -537,7 +537,7 @@ impl Compiler {
         }
     }
 
-    fn change_op(&mut self, from: code::Op, to: code::Op, operands: &Vec<usize>) {
+    fn change_op(&mut self, from: code::Op, to: code::Op, operands: &[usize]) {
         let new_instruction = code::make(to, operands);
 
         let mut idxs = vec![];

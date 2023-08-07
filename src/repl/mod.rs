@@ -10,10 +10,10 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
     let mut global = vec![];
     let mut symbol_table = compiler::symbol_table::SymbolTable::new();
 
-    writer.write(b"engine: vm\n")?;
+    writer.write_all(b"engine: vm\n")?;
 
     loop {
-        writer.write(b">>> ")?;
+        writer.write_all(b">>> ")?;
         writer.flush()?;
 
         let mut line = String::new();
@@ -48,7 +48,7 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
             writeln!(writer, "< {}", obj)?;
         }
     }
-    writer.write(b"exit\n")?;
+    writer.write_all(b"exit\n")?;
     Ok(())
 }
 
@@ -61,10 +61,10 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
     let env = Environment::new();
     let mut evaluator = Evaluator::new(Rc::new(RefCell::new(env)));
 
-    writer.write(b"engine: interpreter\n")?;
+    writer.write_all(b"engine: interpreter\n")?;
 
     loop {
-        writer.write(b">>> ")?;
+        writer.write_all(b">>> ")?;
         writer.flush()?;
 
         let mut input = String::new();
@@ -85,6 +85,6 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
             _ => {}
         }
     }
-    writer.write(b"exit\n")?;
+    writer.write_all(b"exit\n")?;
     Ok(())
 }

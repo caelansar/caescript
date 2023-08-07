@@ -32,5 +32,7 @@ jobs:
         run: cargo fmt -- --check
       - name: Check the package for errors
         run: cargo check --all --all-features
+      - name: Lint rust sources
+        run: cargo clippy --all-features -- -D warnings
       - name: Execute rust tests
         run: cargo nextest run --all-features

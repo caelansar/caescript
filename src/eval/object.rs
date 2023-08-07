@@ -143,7 +143,7 @@ impl Display for Object {
             Object::Float(float) => write!(f, "{}", float),
             Object::Bool(b) => write!(f, "{}", b),
             Object::String(s) => write!(f, "{}", s),
-            Object::Return(r) => write!(f, "{}", r.to_string()),
+            Object::Return(r) => write!(f, "{}", r),
             Object::Array(e) => write!(
                 f,
                 "[{}]",
@@ -172,7 +172,7 @@ impl Display for Object {
                 let mut result = String::new();
                 for (i, ast::Ident(ref s)) in params.iter().enumerate() {
                     if i < 1 {
-                        result.push_str(&format!("{}", s));
+                        result.push_str(s);
                     } else {
                         result.push_str(&format!(", {}", s));
                     }

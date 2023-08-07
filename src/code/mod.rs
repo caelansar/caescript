@@ -1,11 +1,13 @@
 use std::{
     fmt::Display,
     ops::{Deref, DerefMut},
-    rc::Rc,
     vec::IntoIter,
 };
 
-use byteorder::{BigEndian, ByteOrder, ReadBytesExt, WriteBytesExt};
+#[cfg(test)]
+use std::rc::Rc;
+
+use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 use crate::{ast, eval::object::Instructions};
@@ -58,7 +60,7 @@ impl Display for Instructions {
 }
 
 #[inline(always)]
-fn format_instruction(op: &Op, operands: &Vec<usize>) -> String {
+fn format_instruction(op: &Op, operands: &[usize]) -> String {
     match op.operand_widths().len() {
         2 => format!("{} {} {}", op, operands[0], operands[1]),
         1 => format!("{} {}", op, operands[0]),
@@ -260,6 +262,7 @@ pub fn make(op: Op, operands: &[usize]) -> Instructions {
     Instructions(instruction)
 }
 
+#[cfg(test)]
 pub(crate) fn concat_instructions(ins: Vec<Instructions>) -> Rc<Instructions> {
     Rc::new(Instructions(ins.into_iter().flatten().collect::<Vec<u8>>()))
 }

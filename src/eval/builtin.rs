@@ -118,7 +118,7 @@ fn len(args: Vec<Rc<Object>>) -> Object {
 }
 
 fn puts(args: Vec<Rc<Object>>) -> Object {
-    args.iter().for_each(|a| println!("{}", a.to_string()));
+    args.iter().for_each(|a| println!("{}", a));
     Object::Null
 }
 
