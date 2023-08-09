@@ -15,7 +15,7 @@ mod frame;
 
 // VM is a stack-based Virtual Machine
 pub struct VM<'a> {
-    consts: &'a Vec<Rc<object::Object>>,
+    consts: &'a [Rc<object::Object>],
     stack: Vec<Rc<object::Object>>,
     sp: usize, // stack pointer
     pub global: Vec<Rc<object::Object>>,

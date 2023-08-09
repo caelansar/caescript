@@ -24,7 +24,7 @@ pub struct Compiler {
 #[derive(Debug, Clone)]
 pub struct Bytecode<'a> {
     pub instructions: &'a object::Instructions,
-    pub consts: &'a Vec<Rc<object::Object>>,
+    pub consts: &'a [Rc<object::Object>],
 }
 
 impl Compiler {
