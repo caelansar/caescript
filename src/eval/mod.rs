@@ -206,14 +206,11 @@ impl Evaluator {
                 name: _,
                 params,
                 body,
-            } => {
-                dbg!("create func");
-                Some(Object::Function(
-                    params.clone(),
-                    body.clone(),
-                    self.env.clone(),
-                ))
-            }
+            } => Some(Object::Function(
+                params.clone(),
+                body.clone(),
+                self.env.clone(),
+            )),
             ast::Expression::Call { func, args } => {
                 if let Some(obj) = self.eval_expression(func) {
                     self.eval_function_call(obj, args)
