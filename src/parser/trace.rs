@@ -1,4 +1,4 @@
-use std::sync::RwLock;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 pub(crate) struct ScopeCall<F: FnOnce()> {
     pub(crate) c: Option<F>,
@@ -20,18 +20,18 @@ macro_rules! defer {
     };
 }
 
-static TRACE_LEVEL: RwLock<i32> = RwLock::new(0);
+static TRACE_LEVEL: AtomicU32 = AtomicU32::new(0);
 
 fn ident_level() -> String {
-    " ".repeat((*TRACE_LEVEL.read().unwrap() - 1) as usize)
+    " ".repeat((TRACE_LEVEL.load(Ordering::Relaxed) - 1) as usize)
 }
 
 fn inc_ident() {
-    *TRACE_LEVEL.write().unwrap() += 1
+    TRACE_LEVEL.fetch_add(1, Ordering::Relaxed);
 }
 
 fn dec_ident() {
-    *TRACE_LEVEL.write().unwrap() -= 1
+    TRACE_LEVEL.fetch_sub(1, Ordering::Relaxed);
 }
 
 pub fn trace(msg: &str) -> &str {
