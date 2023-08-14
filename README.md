@@ -7,7 +7,10 @@ Monkey has a C-like syntax, supports **variable bindings**, **prefix** and **inf
 reading through [Writing An Interpreter In Go](https://interpreterbook.com/) and [Writing A Compiler In Go](https://compilerbook.com/) for more details
 
 ## How to use
-### With custom install
+### Precompiled binaries
+[Archives of precompiled binaries for caescript are available for Windows, macOS and Linux](https://github.com/caelansar/caescript/releases)
+
+### Build from source code
 - Build release
 ```
 $ cargo build --release --bin caescript
