@@ -743,7 +743,7 @@ mod test {
             eprintln!("parse error: {}", err)
         }
 
-        assert!(errs.len() == 0)
+        assert!(errs.is_empty())
     }
 
     #[test]

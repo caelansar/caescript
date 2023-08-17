@@ -83,11 +83,11 @@ fn env_should_work() {
     assert_eq!(Some(Object::Null), env1.get("2"));
 
     // make sure value in outer is Object::Int(1) for the first time
-    assert_eq!(Some(Object::Int(1)), outer.clone().borrow_mut().get("1"));
+    assert_eq!(Some(Object::Int(1)), outer.borrow_mut().get("1"));
     env1.set("1".to_string(), Object::Int(2));
     assert_eq!(Some(Object::Int(2)), env1.get("1"));
     // the value in outer env should be updated
-    assert_eq!(Some(Object::Int(2)), outer.clone().borrow_mut().get("1"));
+    assert_eq!(Some(Object::Int(2)), outer.borrow_mut().get("1"));
     // should not set set value for self hashmap
     assert_eq!(None, env1.store.get("1"))
 }

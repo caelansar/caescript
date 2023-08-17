@@ -275,26 +275,26 @@ mod test {
     fn make_should_work() {
         let tests = [
             (
-                vec![make(Op::Const, &vec![65534])],
+                vec![make(Op::Const, &[65534])],
                 vec![Op::Const as u8, 255, 254],
                 "0000 OpConstant 65534\n",
             ),
             (
-                vec![make(Op::Add, &vec![])],
+                vec![make(Op::Add, &[])],
                 vec![Op::Add as u8],
                 "0000 OpAdd\n",
             ),
             (
                 vec![
-                    make(Op::Add, &vec![]),
-                    make(Op::Const, &vec![0]),
-                    make(Op::Const, &vec![1]),
+                    make(Op::Add, &[]),
+                    make(Op::Const, &[0]),
+                    make(Op::Const, &[1]),
                 ],
                 vec![Op::Add as u8, Op::Const as u8, 0, 0, Op::Const as u8, 0, 1],
                 "0000 OpAdd\n0001 OpConstant 0\n0004 OpConstant 1\n",
             ),
             (
-                vec![make(Op::Closure, &vec![0, 1])],
+                vec![make(Op::Closure, &[0, 1])],
                 vec![Op::Closure as u8, 0, 0, 1],
                 "0000 OpClosure 0 1\n",
             ),

@@ -455,7 +455,7 @@ mod test {
         let mut compiler = Compiler::new();
         let bytecode = compiler.compile(&program).unwrap();
 
-        let expect = expect.map(|x| Rc::new(x));
+        let expect = expect.map(Rc::new);
 
         println!("{}", bytecode.instructions);
         bytecode

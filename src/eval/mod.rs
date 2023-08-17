@@ -444,7 +444,7 @@ mod test {
         let lexer = lexer::Lexer::new(input);
         let mut parser = Parser::new(lexer);
         assert!(
-            parser.errors().len() == 0,
+            parser.errors().is_empty(),
             "parse error: {:?}",
             parser.errors()
         );

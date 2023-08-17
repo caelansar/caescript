@@ -572,7 +572,7 @@ mod test {
     fn compile(input: &str, instructions: Vec<Instructions>, consts: Vec<object::Object>) {
         let consts = consts
             .into_iter()
-            .map(|x| Rc::new(x))
+            .map(Rc::new)
             .collect::<Vec<Rc<object::Object>>>();
         let program = parser::Parser::new(lexer::Lexer::new(input))
             .parse_program()
@@ -598,26 +598,26 @@ mod test {
             (
                 "1;2",
                 vec![
-                    code::make(code::Op::Const, &vec![0]),
-                    code::make(code::Op::Pop, &vec![]),
-                    code::make(code::Op::Const, &vec![1]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Const, &[0]),
+                    code::make(code::Op::Pop, &[]),
+                    code::make(code::Op::Const, &[1]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![object::Object::Int(1), object::Object::Int(2)],
             ),
             (
                 "true",
                 vec![
-                    code::make(code::Op::True, &vec![1]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::True, &[1]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![],
             ),
             (
                 "false",
                 vec![
-                    code::make(code::Op::False, &vec![1]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::False, &[1]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![],
             ),
@@ -625,21 +625,21 @@ mod test {
                 "if (true) {10} else {20}; 3333",
                 vec![
                     // 0000
-                    code::make(code::Op::True, &vec![]),
+                    code::make(code::Op::True, &[]),
                     // 0001
-                    code::make(code::Op::JumpNotTruthy, &vec![10]),
+                    code::make(code::Op::JumpNotTruthy, &[10]),
                     // 0004
-                    code::make(code::Op::Const, &vec![0]),
+                    code::make(code::Op::Const, &[0]),
                     // 0007
-                    code::make(code::Op::Jump, &vec![13]),
+                    code::make(code::Op::Jump, &[13]),
                     // 0010
-                    code::make(code::Op::Const, &vec![1]),
+                    code::make(code::Op::Const, &[1]),
                     // 0013
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Pop, &[]),
                     // 0014
-                    code::make(code::Op::Const, &vec![2]),
+                    code::make(code::Op::Const, &[2]),
                     // 0017
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![
                     object::Object::Int(10),
@@ -651,21 +651,21 @@ mod test {
                 "if (true) {10}; 3333",
                 vec![
                     // 0000
-                    code::make(code::Op::True, &vec![]),
+                    code::make(code::Op::True, &[]),
                     // 0001
-                    code::make(code::Op::JumpNotTruthy, &vec![10]),
+                    code::make(code::Op::JumpNotTruthy, &[10]),
                     // 0004
-                    code::make(code::Op::Const, &vec![0]),
+                    code::make(code::Op::Const, &[0]),
                     // 0007
-                    code::make(code::Op::Jump, &vec![11]),
+                    code::make(code::Op::Jump, &[11]),
                     // 0010
-                    code::make(code::Op::Null, &vec![]),
+                    code::make(code::Op::Null, &[]),
                     // 0011
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Pop, &[]),
                     // 0012
-                    code::make(code::Op::Const, &vec![1]),
+                    code::make(code::Op::Const, &[1]),
                     // 0015
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![object::Object::Int(10), object::Object::Int(3333)],
             ),
@@ -682,13 +682,13 @@ mod test {
             "1;2",
             vec![
                 // 0000
-                code::make(code::Op::Const, &vec![0]),
+                code::make(code::Op::Const, &[0]),
                 // 0003
-                code::make(code::Op::Pop, &vec![]),
+                code::make(code::Op::Pop, &[]),
                 // 0004
-                code::make(code::Op::Const, &vec![10]),
+                code::make(code::Op::Const, &[10]),
                 // 0007
-                code::make(code::Op::Pop, &vec![]),
+                code::make(code::Op::Pop, &[]),
             ],
         )];
 
@@ -716,10 +716,10 @@ mod test {
         let tests = [(
             "1 + 2",
             vec![
-                code::make(code::Op::Const, &vec![0]),
-                code::make(code::Op::Const, &vec![1]),
-                code::make(code::Op::Sub, &vec![]),
-                code::make(code::Op::Pop, &vec![]),
+                code::make(code::Op::Const, &[0]),
+                code::make(code::Op::Const, &[1]),
+                code::make(code::Op::Sub, &[]),
+                code::make(code::Op::Pop, &[]),
             ],
         )];
 
@@ -730,7 +730,7 @@ mod test {
             let mut compiler = Compiler::new();
             compiler.compile(&program).unwrap();
 
-            compiler.change_op(code::Op::Add, code::Op::Sub, &vec![]);
+            compiler.change_op(code::Op::Add, code::Op::Sub, &[]);
 
             let bytecode = compiler.bytecode();
             let res = concat_instructions(test.1);
@@ -748,19 +748,19 @@ mod test {
             (
                 "[]",
                 vec![
-                    code::make(code::Op::Array, &vec![0]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Array, &[0]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![],
             ),
             (
                 "[1,2,3]",
                 vec![
-                    code::make(code::Op::Const, &vec![0]),
-                    code::make(code::Op::Const, &vec![1]),
-                    code::make(code::Op::Const, &vec![2]),
-                    code::make(code::Op::Array, &vec![3]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Const, &[0]),
+                    code::make(code::Op::Const, &[1]),
+                    code::make(code::Op::Const, &[2]),
+                    code::make(code::Op::Array, &[3]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![
                     object::Object::Int(1),
@@ -771,13 +771,13 @@ mod test {
             (
                 "[1,2,1+2]",
                 vec![
-                    code::make(code::Op::Const, &vec![0]),
-                    code::make(code::Op::Const, &vec![1]),
-                    code::make(code::Op::Const, &vec![2]),
-                    code::make(code::Op::Const, &vec![3]),
-                    code::make(code::Op::Add, &vec![]),
-                    code::make(code::Op::Array, &vec![3]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Const, &[0]),
+                    code::make(code::Op::Const, &[1]),
+                    code::make(code::Op::Const, &[2]),
+                    code::make(code::Op::Const, &[3]),
+                    code::make(code::Op::Add, &[]),
+                    code::make(code::Op::Array, &[3]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![
                     object::Object::Int(1),
@@ -799,32 +799,32 @@ mod test {
             (
                 "{}",
                 vec![
-                    code::make(code::Op::Hash, &vec![0]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Hash, &[0]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![],
             ),
             (
                 "{1: 2}",
                 vec![
-                    code::make(code::Op::Const, &vec![0]),
-                    code::make(code::Op::Const, &vec![1]),
-                    code::make(code::Op::Hash, &vec![2]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Const, &[0]),
+                    code::make(code::Op::Const, &[1]),
+                    code::make(code::Op::Hash, &[2]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![object::Object::Int(1), object::Object::Int(2)],
             ),
             (
                 "{1: 2, 4: 1+2}",
                 vec![
-                    code::make(code::Op::Const, &vec![0]),
-                    code::make(code::Op::Const, &vec![1]),
-                    code::make(code::Op::Const, &vec![2]),
-                    code::make(code::Op::Const, &vec![3]),
-                    code::make(code::Op::Const, &vec![4]),
-                    code::make(code::Op::Add, &vec![]),
-                    code::make(code::Op::Hash, &vec![4]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Const, &[0]),
+                    code::make(code::Op::Const, &[1]),
+                    code::make(code::Op::Const, &[2]),
+                    code::make(code::Op::Const, &[3]),
+                    code::make(code::Op::Const, &[4]),
+                    code::make(code::Op::Add, &[]),
+                    code::make(code::Op::Hash, &[4]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![
                     object::Object::Int(1),
@@ -847,31 +847,31 @@ mod test {
             "let a = 1; for (a<10) {a+=2}; 3333",
             vec![
                 // 0000
-                code::make(code::Op::Const, &vec![0]),
+                code::make(code::Op::Const, &[0]),
                 // 0003
-                code::make(code::Op::SetGlobal, &vec![0]),
+                code::make(code::Op::SetGlobal, &[0]),
                 // 0006
-                code::make(code::Op::Const, &vec![1]),
+                code::make(code::Op::Const, &[1]),
                 // 0009
-                code::make(code::Op::GetGlobal, &vec![0]),
+                code::make(code::Op::GetGlobal, &[0]),
                 // 0012
-                code::make(code::Op::Gt, &vec![]),
+                code::make(code::Op::Gt, &[]),
                 // 0013
-                code::make(code::Op::JumpNotTruthy, &vec![29]),
+                code::make(code::Op::JumpNotTruthy, &[29]),
                 // 0016
-                code::make(code::Op::GetGlobal, &vec![0]),
+                code::make(code::Op::GetGlobal, &[0]),
                 // 0019
-                code::make(code::Op::Const, &vec![2]),
+                code::make(code::Op::Const, &[2]),
                 // 0022
-                code::make(code::Op::Add, &vec![]),
+                code::make(code::Op::Add, &[]),
                 // 0023
-                code::make(code::Op::SetGlobal, &vec![0]),
+                code::make(code::Op::SetGlobal, &[0]),
                 // 0026
-                code::make(code::Op::Jump, &vec![6]),
+                code::make(code::Op::Jump, &[6]),
                 // 0029
-                code::make(code::Op::Const, &vec![3]),
+                code::make(code::Op::Const, &[3]),
                 // 0032
-                code::make(code::Op::Pop, &vec![]),
+                code::make(code::Op::Pop, &[]),
             ],
             vec![
                 object::Object::Int(1),
@@ -909,18 +909,18 @@ mod test {
             (
                 "fn() { return 1+2 }",
                 vec![
-                    code::make(code::Op::Closure, &vec![2, 0]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Closure, &[2, 0]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![
                     object::Object::Int(1),
                     object::Object::Int(2),
                     object::Object::CompiledFunction(
                         concat_instructions(vec![
-                            code::make(code::Op::Const, &vec![0]),
-                            code::make(code::Op::Const, &vec![1]),
-                            code::make(code::Op::Add, &vec![]),
-                            code::make(code::Op::ReturnValue, &vec![]),
+                            code::make(code::Op::Const, &[0]),
+                            code::make(code::Op::Const, &[1]),
+                            code::make(code::Op::Add, &[]),
+                            code::make(code::Op::ReturnValue, &[]),
                         ]),
                         0,
                         0,
@@ -930,18 +930,18 @@ mod test {
             (
                 "fn() { 1+2 }",
                 vec![
-                    code::make(code::Op::Closure, &vec![2, 0]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Closure, &[2, 0]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![
                     object::Object::Int(1),
                     object::Object::Int(2),
                     object::Object::CompiledFunction(
                         concat_instructions(vec![
-                            code::make(code::Op::Const, &vec![0]),
-                            code::make(code::Op::Const, &vec![1]),
-                            code::make(code::Op::Add, &vec![]),
-                            code::make(code::Op::ReturnValue, &vec![]),
+                            code::make(code::Op::Const, &[0]),
+                            code::make(code::Op::Const, &[1]),
+                            code::make(code::Op::Add, &[]),
+                            code::make(code::Op::ReturnValue, &[]),
                         ]),
                         0,
                         0,
@@ -951,18 +951,18 @@ mod test {
             (
                 "fn() { 1;2 }",
                 vec![
-                    code::make(code::Op::Closure, &vec![2, 0]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Closure, &[2, 0]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![
                     object::Object::Int(1),
                     object::Object::Int(2),
                     object::Object::CompiledFunction(
                         concat_instructions(vec![
-                            code::make(code::Op::Const, &vec![0]),
-                            code::make(code::Op::Pop, &vec![]),
-                            code::make(code::Op::Const, &vec![1]),
-                            code::make(code::Op::ReturnValue, &vec![]),
+                            code::make(code::Op::Const, &[0]),
+                            code::make(code::Op::Pop, &[]),
+                            code::make(code::Op::Const, &[1]),
+                            code::make(code::Op::ReturnValue, &[]),
                         ]),
                         0,
                         0,
@@ -972,11 +972,11 @@ mod test {
             (
                 "fn() {}",
                 vec![
-                    code::make(code::Op::Closure, &vec![0, 0]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Closure, &[0, 0]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![object::Object::CompiledFunction(
-                    concat_instructions(vec![code::make(code::Op::Return, &vec![])]),
+                    concat_instructions(vec![code::make(code::Op::Return, &[])]),
                     0,
                     0,
                 )],
@@ -984,19 +984,19 @@ mod test {
             (
                 "fn() { 1;2 }()",
                 vec![
-                    code::make(code::Op::Closure, &vec![2, 0]),
-                    code::make(code::Op::Call, &vec![0]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Closure, &[2, 0]),
+                    code::make(code::Op::Call, &[0]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![
                     object::Object::Int(1),
                     object::Object::Int(2),
                     object::Object::CompiledFunction(
                         concat_instructions(vec![
-                            code::make(code::Op::Const, &vec![0]),
-                            code::make(code::Op::Pop, &vec![]),
-                            code::make(code::Op::Const, &vec![1]),
-                            code::make(code::Op::ReturnValue, &vec![]),
+                            code::make(code::Op::Const, &[0]),
+                            code::make(code::Op::Pop, &[]),
+                            code::make(code::Op::Const, &[1]),
+                            code::make(code::Op::ReturnValue, &[]),
                         ]),
                         0,
                         0,
@@ -1006,17 +1006,17 @@ mod test {
             (
                 "fn() { let a = 1; a }",
                 vec![
-                    code::make(code::Op::Closure, &vec![1, 0]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Closure, &[1, 0]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![
                     object::Object::Int(1),
                     object::Object::CompiledFunction(
                         concat_instructions(vec![
-                            code::make(code::Op::Const, &vec![0]),
-                            code::make(code::Op::SetLocal, &vec![0]),
-                            code::make(code::Op::GetLocal, &vec![0]),
-                            code::make(code::Op::ReturnValue, &vec![]),
+                            code::make(code::Op::Const, &[0]),
+                            code::make(code::Op::SetLocal, &[0]),
+                            code::make(code::Op::GetLocal, &[0]),
+                            code::make(code::Op::ReturnValue, &[]),
                         ]),
                         1,
                         0,
@@ -1026,14 +1026,14 @@ mod test {
             (
                 "fn(a) {  }(1)",
                 vec![
-                    code::make(code::Op::Closure, &vec![0, 0]),
-                    code::make(code::Op::Const, &vec![1]),
-                    code::make(code::Op::Call, &vec![1]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Closure, &[0, 0]),
+                    code::make(code::Op::Const, &[1]),
+                    code::make(code::Op::Call, &[1]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![
                     object::Object::CompiledFunction(
-                        concat_instructions(vec![code::make(code::Op::Return, &vec![])]),
+                        concat_instructions(vec![code::make(code::Op::Return, &[])]),
                         1,
                         1,
                     ),
@@ -1043,16 +1043,16 @@ mod test {
             (
                 "fn(a) { a }(1)",
                 vec![
-                    code::make(code::Op::Closure, &vec![0, 0]),
-                    code::make(code::Op::Const, &vec![1]),
-                    code::make(code::Op::Call, &vec![1]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Closure, &[0, 0]),
+                    code::make(code::Op::Const, &[1]),
+                    code::make(code::Op::Call, &[1]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![
                     object::Object::CompiledFunction(
                         concat_instructions(vec![
-                            code::make(code::Op::GetLocal, &vec![0]),
-                            code::make(code::Op::ReturnValue, &vec![]),
+                            code::make(code::Op::GetLocal, &[0]),
+                            code::make(code::Op::ReturnValue, &[]),
                         ]),
                         1,
                         1,
@@ -1063,25 +1063,25 @@ mod test {
             (
                 r#"fn(a) { fn(b) {a + b} }"#,
                 vec![
-                    code::make(code::Op::Closure, &vec![1, 0]),
-                    code::make(code::Op::Pop, &vec![]),
+                    code::make(code::Op::Closure, &[1, 0]),
+                    code::make(code::Op::Pop, &[]),
                 ],
                 vec![
                     object::Object::CompiledFunction(
                         concat_instructions(vec![
-                            code::make(code::Op::GetFree, &vec![0]),
-                            code::make(code::Op::GetLocal, &vec![0]),
-                            code::make(code::Op::Add, &vec![]),
-                            code::make(code::Op::ReturnValue, &vec![]),
+                            code::make(code::Op::GetFree, &[0]),
+                            code::make(code::Op::GetLocal, &[0]),
+                            code::make(code::Op::Add, &[]),
+                            code::make(code::Op::ReturnValue, &[]),
                         ]),
                         1,
                         1,
                     ),
                     object::Object::CompiledFunction(
                         concat_instructions(vec![
-                            code::make(code::Op::GetLocal, &vec![0]),
-                            code::make(code::Op::Closure, &vec![0, 1]),
-                            code::make(code::Op::ReturnValue, &vec![]),
+                            code::make(code::Op::GetLocal, &[0]),
+                            code::make(code::Op::Closure, &[0, 1]),
+                            code::make(code::Op::ReturnValue, &[]),
                         ]),
                         1,
                         1,
@@ -1100,10 +1100,10 @@ mod test {
         let tests = [(
             r#"len("1")"#,
             vec![
-                code::make(code::Op::GetBuiltin, &vec![0]),
-                code::make(code::Op::Const, &vec![0]),
-                code::make(code::Op::Call, &vec![1]),
-                code::make(code::Op::Pop, &vec![]),
+                code::make(code::Op::GetBuiltin, &[0]),
+                code::make(code::Op::Const, &[0]),
+                code::make(code::Op::Call, &[1]),
+                code::make(code::Op::Pop, &[]),
             ],
             vec![object::Object::String("1".into())],
         )];
@@ -1121,23 +1121,23 @@ mod test {
             recursion(1)
             "#,
             vec![
-                code::make(code::Op::Closure, &vec![1, 0]),
-                code::make(code::Op::SetGlobal, &vec![0]),
-                code::make(code::Op::GetGlobal, &vec![0]),
-                code::make(code::Op::Const, &vec![2]),
-                code::make(code::Op::Call, &vec![1]),
-                code::make(code::Op::Pop, &vec![]),
+                code::make(code::Op::Closure, &[1, 0]),
+                code::make(code::Op::SetGlobal, &[0]),
+                code::make(code::Op::GetGlobal, &[0]),
+                code::make(code::Op::Const, &[2]),
+                code::make(code::Op::Call, &[1]),
+                code::make(code::Op::Pop, &[]),
             ],
             vec![
                 object::Object::Int(1),
                 object::Object::CompiledFunction(
                     concat_instructions(vec![
-                        code::make(code::Op::GetCurrentClosure, &vec![]),
-                        code::make(code::Op::GetLocal, &vec![0]),
-                        code::make(code::Op::Const, &vec![0]),
-                        code::make(code::Op::Sub, &vec![]),
-                        code::make(code::Op::Call, &vec![1]),
-                        code::make(code::Op::ReturnValue, &vec![]),
+                        code::make(code::Op::GetCurrentClosure, &[]),
+                        code::make(code::Op::GetLocal, &[0]),
+                        code::make(code::Op::Const, &[0]),
+                        code::make(code::Op::Sub, &[]),
+                        code::make(code::Op::Call, &[1]),
+                        code::make(code::Op::ReturnValue, &[]),
                     ]),
                     1,
                     1,
