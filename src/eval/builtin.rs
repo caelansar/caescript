@@ -69,16 +69,15 @@ impl Display for Builtin {
 
 impl Builtin {
     pub fn iterator() -> impl Iterator<Item = Self> {
-        [
-            Self::Len,
-            Self::Puts,
-            Self::Push,
-            Self::First,
-            Self::Last,
-            Self::Rest,
-        ]
-        .iter()
-        .copied()
+        static ITER: [Builtin; 6] = [
+            Builtin::Len,
+            Builtin::Puts,
+            Builtin::Push,
+            Builtin::First,
+            Builtin::Last,
+            Builtin::Rest,
+        ];
+        ITER.into_iter()
     }
 
     pub fn call(&self, args: Vec<Rc<Object>>) -> Object {
