@@ -429,7 +429,7 @@ impl Evaluator {
             ast::Literal::Int(i) => Some(Object::Int(*i)),
             ast::Literal::Float(f) => Some(Object::Float(*f)),
             ast::Literal::Bool(b) => Some((*b).into()),
-            ast::Literal::String(s) => Some(Object::String(object::CString(s.clone()))),
+            ast::Literal::String(s) => Some(Object::String(object::CString(Rc::from(s.as_str())))),
         }
     }
 }
@@ -499,7 +499,7 @@ mod test {
             ("1 + 4 == 5", Some(Object::Bool(true))),
             (
                 r#""hello "+"world""#,
-                Some(Object::String(CString("hello world".to_string()))),
+                Some(Object::String(CString(Rc::from("hello world")))),
             ),
             (r#""hello" == "hello""#, Some(Object::Bool(true))),
             (r#""hello" != "hello""#, Some(Object::Bool(false))),
@@ -529,7 +529,7 @@ mod test {
             ("return 1+2", Some(Object::Int(3))),
             (
                 r#"return "1""#,
-                Some(Object::String(CString("1".to_string()))),
+                Some(Object::String(CString(Rc::from("1")))),
             ),
         ];
 
@@ -774,7 +774,7 @@ mod test {
                 r#"{1:2, "a":"b", true: false}"#,
                 Some(Object::Hash(map! {
                     Object::Int(1) => Object::Int(2),
-                    Object::String(CString("a".to_string())) => Object::String(CString("b".to_string())),
+                    Object::String(CString(Rc::from("a"))) => Object::String(CString(Rc::from("b"))),
                     Object::Bool(true) => Object::Bool(false),
                 })),
             ),
@@ -803,15 +803,15 @@ mod test {
             ("let hash = {1:2,true:false}; hash[1]", Some(Object::Int(2))),
             (
                 r#"let list = [{"name":"aa"},{"name":"bb"}]; list[1]["name"]"#,
-                Some(Object::String(CString("bb".to_string()))),
+                Some(Object::String(CString(Rc::from("bb")))),
             ),
             (
                 r#"{"name":"aa"}["name"]"#,
-                Some(Object::String(CString("aa".to_string()))),
+                Some(Object::String(CString(Rc::from("aa")))),
             ),
             (
                 r#"[{"name":"aa"},{"name":"bb"}][1]["name"]"#,
-                Some(Object::String(CString("bb".to_string()))),
+                Some(Object::String(CString(Rc::from("bb")))),
             ),
         ];
 

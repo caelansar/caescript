@@ -14,7 +14,7 @@ pub const BOOL_OBJ_FALSE: Object = Object::Bool(false);
 pub struct Instructions(pub Vec<u8>);
 
 #[derive(PartialEq, Clone, PartialOrd)]
-pub struct CString(pub String);
+pub struct CString(pub Rc<str>);
 
 impl Display for CString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -38,7 +38,7 @@ impl std::ops::Add for CString {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        CString(format!("{}{}", self, rhs))
+        CString(format!("{}{}", self, rhs).into())
     }
 }
 
@@ -46,7 +46,7 @@ impl std::ops::Add for &CString {
     type Output = CString;
 
     fn add(self, rhs: Self) -> Self::Output {
-        CString(format!("{}{}", self, rhs))
+        CString(format!("{}{}", self, rhs).into())
     }
 }
 
