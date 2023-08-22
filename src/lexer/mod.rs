@@ -112,22 +112,28 @@ impl<'a> Lexer<'a> {
                         Token::from_str(token.to_string().as_str()).unwrap()
                     }
                 }
-                '>' => {
-                    if let Some('=') = self.peek_char() {
+                '>' => match self.peek_char() {
+                    Some('=') => {
                         self.read_char();
                         Token::GtEq
-                    } else {
-                        Token::Gt
                     }
-                }
-                '<' => {
-                    if let Some('=') = self.peek_char() {
+                    Some('>') => {
+                        self.read_char();
+                        Token::RightShift
+                    }
+                    _ => Token::Gt,
+                },
+                '<' => match self.peek_char() {
+                    Some('=') => {
                         self.read_char();
                         Token::LtEq
-                    } else {
-                        Token::Lt
                     }
-                }
+                    Some('<') => {
+                        self.read_char();
+                        Token::LeftShift
+                    }
+                    _ => Token::Lt,
+                },
                 '"' => Token::String(self.read_string()),
                 '+' => {
                     if let Some('=') = self.peek_char() {

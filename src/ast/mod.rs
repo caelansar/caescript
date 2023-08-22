@@ -64,6 +64,8 @@ pub enum Infix {
     LtEq,
     And,
     Or,
+    LeftShift,
+    RightShift,
 }
 
 impl TryFrom<&token::Token> for Infix {
@@ -84,6 +86,8 @@ impl TryFrom<&token::Token> for Infix {
             token::Token::LtEq => Ok(Infix::LtEq),
             token::Token::And => Ok(Infix::And),
             token::Token::Or => Ok(Infix::Or),
+            token::Token::LeftShift => Ok(Infix::LeftShift),
+            token::Token::RightShift => Ok(Infix::RightShift),
             _ => Err("invalid infix token"),
         }
     }
@@ -105,6 +109,8 @@ impl fmt::Display for Infix {
             Infix::LtEq => write!(f, "<="),
             Infix::And => write!(f, "&&"),
             Infix::Or => write!(f, "||"),
+            Infix::LeftShift => write!(f, "<<"),
+            Infix::RightShift => write!(f, ">>"),
         }
     }
 }

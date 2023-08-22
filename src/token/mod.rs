@@ -49,6 +49,8 @@ pub(crate) enum Token {
     Comment,
     And,
     Or,
+    LeftShift,
+    RightShift,
     Null,
 }
 
@@ -145,6 +147,8 @@ impl fmt::Display for Token {
             Token::And => write!(f, "&&"),
             Token::Or => write!(f, "||"),
             Token::Null => write!(f, "null"),
+            Token::LeftShift => write!(f, "<<"),
+            Token::RightShift => write!(f, ">>"),
             Token::Eof => write!(f, "EOF"),
         }
     }

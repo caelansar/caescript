@@ -356,6 +356,8 @@ impl Evaluator {
                 ast::Infix::LtEq => Some((l <= r).into()),
                 ast::Infix::And => Some(Object::Int(*r)),
                 ast::Infix::Or => Some(Object::Int(*l)),
+                ast::Infix::LeftShift => Some(Object::Int(*l << *r)),
+                ast::Infix::RightShift => Some(Object::Int(*l >> *r)),
             },
             (Object::Float(l), Object::Float(r)) => match infix {
                 ast::Infix::Plus => Some(lhs + rhs),
@@ -371,6 +373,10 @@ impl Evaluator {
                 ast::Infix::LtEq => Some(Object::Bool(l <= r)),
                 ast::Infix::And => Some(Object::Float(*r)),
                 ast::Infix::Or => Some(Object::Float(*l)),
+                _ => Some(Object::Error(format!(
+                    "unsupported operator {} for {:?}",
+                    infix, rhs,
+                ))),
             },
             (Object::Bool(l), Object::Bool(r)) => match infix {
                 ast::Infix::Eq => Some(Object::Bool(l == r)),

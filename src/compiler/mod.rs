@@ -253,6 +253,7 @@ impl Compiler {
                     self.compile_expression(lhs)?;
                     self.emit(code::Op::GtEq, &[]);
                 }
+                _ => todo!(),
             },
             ast::Expression::Assign(assign, ident, expr) => match assign {
                 ast::Assign::Assign => {
