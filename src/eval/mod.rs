@@ -358,6 +358,9 @@ impl Evaluator {
                 ast::Infix::Or => Some(Object::Int(*l)),
                 ast::Infix::LeftShift => Some(Object::Int(*l << *r)),
                 ast::Infix::RightShift => Some(Object::Int(*l >> *r)),
+                ast::Infix::BitAnd => Some(Object::Int(*l & *r)),
+                ast::Infix::BitOr => Some(Object::Int(*l | *r)),
+                ast::Infix::BitXor => Some(Object::Int(*l ^ *r)),
             },
             (Object::Float(l), Object::Float(r)) => match infix {
                 ast::Infix::Plus => Some(lhs + rhs),

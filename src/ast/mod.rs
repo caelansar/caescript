@@ -66,6 +66,9 @@ pub enum Infix {
     Or,
     LeftShift,
     RightShift,
+    BitAnd,
+    BitOr,
+    BitXor,
 }
 
 impl TryFrom<&token::Token> for Infix {
@@ -88,6 +91,9 @@ impl TryFrom<&token::Token> for Infix {
             token::Token::Or => Ok(Infix::Or),
             token::Token::LeftShift => Ok(Infix::LeftShift),
             token::Token::RightShift => Ok(Infix::RightShift),
+            token::Token::BitAnd => Ok(Infix::BitAnd),
+            token::Token::BitOr => Ok(Infix::BitOr),
+            token::Token::BitXor => Ok(Infix::BitXor),
             _ => Err("invalid infix token"),
         }
     }
@@ -111,6 +117,9 @@ impl fmt::Display for Infix {
             Infix::Or => write!(f, "||"),
             Infix::LeftShift => write!(f, "<<"),
             Infix::RightShift => write!(f, ">>"),
+            Infix::BitAnd => write!(f, "&"),
+            Infix::BitOr => write!(f, "|"),
+            Infix::BitXor => write!(f, "^"),
         }
     }
 }

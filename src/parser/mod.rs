@@ -46,6 +46,9 @@ impl From<&token::Token> for Precedence {
             token::Token::Or => Precedence::Logical,
             token::Token::LeftShift => Precedence::Logical,
             token::Token::RightShift => Precedence::Logical,
+            token::Token::BitAnd => Precedence::Logical,
+            token::Token::BitOr => Precedence::Logical,
+            token::Token::BitXor => Precedence::Logical,
             _ => Precedence::Lowest,
         }
     }
@@ -699,7 +702,10 @@ impl<'a> Parser<'a> {
                 | token::Token::And
                 | token::Token::Or
                 | token::Token::LeftShift
-                | token::Token::RightShift => {
+                | token::Token::RightShift
+                | token::Token::BitAnd
+                | token::Token::BitOr
+                | token::Token::BitXor => {
                     self.next_token();
                     lhs = self.parse_infix_expression(lhs)
                 }

@@ -183,7 +183,7 @@ impl<'a> Lexer<'a> {
                         self.read_char();
                         Token::And
                     } else {
-                        Token::Illegal
+                        Token::BitAnd
                     }
                 }
                 '|' => {
@@ -191,10 +191,10 @@ impl<'a> Lexer<'a> {
                         self.read_char();
                         Token::Or
                     } else {
-                        Token::Illegal
+                        Token::BitOr
                     }
                 }
-                ',' | ';' | ':' | '(' | ')' | '{' | '}' | '[' | ']' => {
+                ',' | ';' | ':' | '(' | ')' | '{' | '}' | '[' | ']' | '^' => {
                     Token::from_str(token.to_string().as_str()).unwrap()
                 }
                 _ => {

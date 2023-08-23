@@ -51,6 +51,9 @@ pub(crate) enum Token {
     Or,
     LeftShift,
     RightShift,
+    BitAnd,
+    BitOr,
+    BitXor,
     Null,
 }
 
@@ -94,6 +97,9 @@ impl FromStr for Token {
             "}" => Ok(Token::Rbrace),
             "[" => Ok(Token::Lbracket),
             "]" => Ok(Token::Rbracket),
+            "&" => Ok(Token::BitAnd),
+            "|" => Ok(Token::BitOr),
+            "^" => Ok(Token::BitXor),
             _ => Err("unknow token str"),
         }
     }
@@ -149,6 +155,9 @@ impl fmt::Display for Token {
             Token::Null => write!(f, "null"),
             Token::LeftShift => write!(f, "<<"),
             Token::RightShift => write!(f, ">>"),
+            Token::BitAnd => write!(f, "&"),
+            Token::BitOr => write!(f, "|"),
+            Token::BitXor => write!(f, "^"),
             Token::Eof => write!(f, "EOF"),
         }
     }
