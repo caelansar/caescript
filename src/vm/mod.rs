@@ -224,6 +224,7 @@ impl<'a> VM<'a> {
                     match *operand {
                         object::Object::Bool(false) => self.push(Rc::new(object::BOOL_OBJ_TRUE)),
                         object::Object::Bool(true) => self.push(Rc::new(object::BOOL_OBJ_FALSE)),
+                        object::Object::Int(i) => self.push(Rc::new(object::Object::Int(!i))),
                         object::Object::Null => self.push(Rc::new(object::BOOL_OBJ_TRUE)),
                         _ => self.push(Rc::new(object::BOOL_OBJ_FALSE)),
                     }

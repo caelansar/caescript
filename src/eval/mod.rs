@@ -331,6 +331,7 @@ impl Evaluator {
         match obj {
             Object::Bool(b) => Some((!b).into()),
             Object::Null => Some(BOOL_OBJ_TRUE),
+            Object::Int(i) => Some(Object::Int(!i)),
             _ => Some(BOOL_OBJ_FALSE),
         }
     }
@@ -490,8 +491,8 @@ mod test {
             ("!!false", Some(Object::Bool(false))),
             ("!!true", Some(Object::Bool(true))),
             ("-1", Some(Object::Int(-1))),
-            ("!-1", Some(Object::Bool(false))),
-            ("!!-1", Some(Object::Bool(true))),
+            ("!-1", Some(Object::Int(0))),
+            ("!!-1", Some(Object::Int(-1))),
             ("true == true", Some(Object::Bool(true))),
             ("false == false", Some(Object::Bool(true))),
             ("1 == 1", Some(Object::Bool(true))),
