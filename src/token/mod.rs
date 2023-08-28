@@ -57,6 +57,14 @@ pub(crate) enum Token {
     Null,
 }
 
+impl Eq for Token {}
+
+impl std::hash::Hash for Token {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.to_string().hash(state)
+    }
+}
+
 impl FromStr for Token {
     type Err = &'static str;
 

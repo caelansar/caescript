@@ -1,10 +1,14 @@
 mod trace;
 
+use std::collections::HashMap;
+
 #[cfg(feature = "trace")]
 use crate::defer;
 use crate::{ast, lexer, token};
 #[cfg(feature = "trace")]
 use trace::{trace, untrace, ScopeCall};
+
+type InfixParseFn = for<'a> fn(&mut Parser<'a>, Option<ast::Expression>) -> Option<ast::Expression>;
 
 #[derive(PartialEq, PartialOrd, Debug)]
 pub(crate) enum Precedence {
@@ -59,6 +63,7 @@ pub struct Parser<'a> {
     current_token: token::Token,
     next_token: token::Token,
     errors: Vec<String>,
+    infix_parse_map: Option<HashMap<token::Token, InfixParseFn>>,
 }
 
 impl<'a> Parser<'a> {
@@ -68,11 +73,51 @@ impl<'a> Parser<'a> {
             current_token: token::Token::Eof,
             next_token: token::Token::Eof,
             errors: Vec::new(),
+            infix_parse_map: None,
         };
+
+        parser.register_parse_fn();
 
         parser.next_token();
         parser.next_token();
         parser
+    }
+
+    fn register_parse_fn(&mut self) {
+        let parse_call: InfixParseFn = |this, lhs| this.parse_call_expression(lhs);
+        let parse_infix: InfixParseFn = |this, lhs| this.parse_infix_expression(lhs);
+        let parse_assign: InfixParseFn = |this, lhs| this.parse_assign_expression(lhs);
+        let parse_index: InfixParseFn = |this, lhs| this.parse_index_expression(lhs);
+
+        let mut map = HashMap::new();
+        map.insert(token::Token::Plus, parse_infix);
+        map.insert(token::Token::Minus, parse_infix);
+        map.insert(token::Token::Eq, parse_infix);
+        map.insert(token::Token::Ne, parse_infix);
+        map.insert(token::Token::Gt, parse_infix);
+        map.insert(token::Token::GtEq, parse_infix);
+        map.insert(token::Token::Lt, parse_infix);
+        map.insert(token::Token::LtEq, parse_infix);
+        map.insert(token::Token::Slash, parse_infix);
+        map.insert(token::Token::Asterisk, parse_infix);
+        map.insert(token::Token::Mod, parse_infix);
+        map.insert(token::Token::And, parse_infix);
+        map.insert(token::Token::Or, parse_infix);
+        map.insert(token::Token::LeftShift, parse_infix);
+        map.insert(token::Token::RightShift, parse_infix);
+        map.insert(token::Token::BitAnd, parse_infix);
+        map.insert(token::Token::BitOr, parse_infix);
+        map.insert(token::Token::BitXor, parse_infix);
+        map.insert(token::Token::Lparen, parse_call);
+        map.insert(token::Token::Assign, parse_assign);
+        map.insert(token::Token::PlusEq, parse_assign);
+        map.insert(token::Token::MinusEq, parse_assign);
+        map.insert(token::Token::AsteriskEq, parse_assign);
+        map.insert(token::Token::SlashEq, parse_assign);
+        map.insert(token::Token::ModEq, parse_assign);
+        map.insert(token::Token::Lbracket, parse_index);
+
+        self.infix_parse_map = Some(map);
     }
 
     #[inline(always)]
@@ -217,6 +262,8 @@ impl<'a> Parser<'a> {
     fn parse_infix_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_infix_expression"));
+        self.next_token();
+
         let infix: ast::Infix = match (&self.current_token).try_into() {
             Ok(infix) => infix,
             Err(_) => return None,
@@ -466,11 +513,8 @@ impl<'a> Parser<'a> {
         Some(idents)
     }
 
-    fn parse_assign_expression(
-        &mut self,
-        op: ast::Assign,
-        lhs: Option<ast::Expression>,
-    ) -> Option<ast::Expression> {
+    fn parse_assign_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
+        let op: ast::Assign = (&self.next_token).try_into().unwrap();
         if let Some(ast::Expression::Ident(ident)) = lhs {
             self.next_token();
             self.next_token();
@@ -488,6 +532,8 @@ impl<'a> Parser<'a> {
 
     #[inline(always)]
     fn parse_call_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
+        self.next_token();
+
         lhs.as_ref()?;
 
         let args = self.parse_call_args()?;
@@ -687,43 +733,10 @@ impl<'a> Parser<'a> {
         };
 
         while !self.next_token_is(&token::Token::SemiColon) && precedence < self.next_precedence() {
-            match self.next_token {
-                token::Token::Plus
-                | token::Token::Minus
-                | token::Token::Eq
-                | token::Token::Ne
-                | token::Token::Gt
-                | token::Token::GtEq
-                | token::Token::Lt
-                | token::Token::LtEq
-                | token::Token::Slash
-                | token::Token::Asterisk
-                | token::Token::Mod
-                | token::Token::And
-                | token::Token::Or
-                | token::Token::LeftShift
-                | token::Token::RightShift
-                | token::Token::BitAnd
-                | token::Token::BitOr
-                | token::Token::BitXor => {
-                    self.next_token();
-                    lhs = self.parse_infix_expression(lhs)
-                }
-                token::Token::Lparen => {
-                    self.next_token();
-                    lhs = self.parse_call_expression(lhs)
-                }
-                token::Token::Assign
-                | token::Token::PlusEq
-                | token::Token::MinusEq
-                | token::Token::AsteriskEq
-                | token::Token::SlashEq
-                | token::Token::ModEq => {
-                    lhs = self.parse_assign_expression((&self.next_token).try_into().unwrap(), lhs)
-                }
-                token::Token::Lbracket => lhs = self.parse_index_expression(lhs),
-                _ => return lhs,
-            }
+            match self.infix_parse_map.as_ref().unwrap().get(&self.next_token) {
+                Some(parse_fn) => lhs = parse_fn(self, lhs),
+                None => return lhs,
+            };
         }
 
         lhs
