@@ -8,6 +8,7 @@ use crate::{ast, lexer, token};
 #[cfg(feature = "trace")]
 use trace::{trace, untrace, ScopeCall};
 
+type PrefixParseFn = for<'a> fn(&mut Parser<'a>) -> Option<ast::Expression>;
 type InfixParseFn = for<'a> fn(&mut Parser<'a>, Option<ast::Expression>) -> Option<ast::Expression>;
 
 #[derive(PartialEq, PartialOrd, Debug)]
@@ -63,6 +64,7 @@ pub struct Parser<'a> {
     current_token: token::Token,
     next_token: token::Token,
     errors: Vec<String>,
+    prefix_parse_map: Option<HashMap<token::Token, PrefixParseFn>>,
     infix_parse_map: Option<HashMap<token::Token, InfixParseFn>>,
 }
 
@@ -73,6 +75,7 @@ impl<'a> Parser<'a> {
             current_token: token::Token::Eof,
             next_token: token::Token::Eof,
             errors: Vec::new(),
+            prefix_parse_map: None,
             infix_parse_map: None,
         };
 
@@ -84,6 +87,36 @@ impl<'a> Parser<'a> {
     }
 
     fn register_parse_fn(&mut self) {
+        let parse_ident: PrefixParseFn = |this| this.parse_identifier();
+        let parse_integer: PrefixParseFn = |this| this.parse_integer_literal();
+        let parse_float: PrefixParseFn = |this| this.parse_float_literal();
+        let parse_bool: PrefixParseFn = |this| this.parse_boolean_literal();
+        let parse_string: PrefixParseFn = |this| this.parse_string_literal();
+        let parse_prefix: PrefixParseFn = |this| this.parse_prefix_expression();
+        let parse_lparen: PrefixParseFn = |this| this.parse_grouped_expression();
+        let parse_if: PrefixParseFn = |this| this.parse_if_expression();
+        let parse_for: PrefixParseFn = |this| this.parse_for_expression();
+        let parse_func: PrefixParseFn = |this| this.parse_function_literal();
+        let parse_lbracket: PrefixParseFn = |this| this.parse_array();
+        let parse_lbrace: PrefixParseFn = |this| this.parse_hash();
+
+        let mut map = HashMap::new();
+        map.insert(token::Token::Ident("".into()), parse_ident);
+        map.insert(token::Token::Int(1), parse_integer);
+        map.insert(token::Token::Float(1.0), parse_float);
+        map.insert(token::Token::Bool(false), parse_bool);
+        map.insert(token::Token::String("".into()), parse_string);
+        map.insert(token::Token::Minus, parse_prefix);
+        map.insert(token::Token::Bang, parse_prefix);
+        map.insert(token::Token::Lparen, parse_lparen);
+        map.insert(token::Token::If, parse_if);
+        map.insert(token::Token::For, parse_for);
+        map.insert(token::Token::Function, parse_func);
+        map.insert(token::Token::Lbracket, parse_lbracket);
+        map.insert(token::Token::Lbrace, parse_lbrace);
+        map.insert(token::Token::Null, |_| Some(ast::Expression::Null));
+        self.prefix_parse_map = Some(map);
+
         let parse_call: InfixParseFn = |this, lhs| this.parse_call_expression(lhs);
         let parse_infix: InfixParseFn = |this, lhs| this.parse_infix_expression(lhs);
         let parse_assign: InfixParseFn = |this, lhs| this.parse_assign_expression(lhs);
@@ -708,24 +741,14 @@ impl<'a> Parser<'a> {
         #[cfg(feature = "trace")]
         defer!(untrace, trace("parse_expression"));
 
-        let mut lhs = match self.current_token {
-            token::Token::Ident(_) => self.parse_identifier(),
-            token::Token::Int(_) => self.parse_integer_literal(),
-            token::Token::Float(_) => self.parse_float_literal(),
-            token::Token::Bool(_) => self.parse_boolean_literal(),
-            token::Token::Minus => self.parse_prefix_expression(),
-            token::Token::Bang => self.parse_prefix_expression(),
-            token::Token::Lparen => self.parse_grouped_expression(),
-            token::Token::If => self.parse_if_expression(),
-            token::Token::For => self.parse_for_expression(),
-            token::Token::String(_) => self.parse_string_literal(),
-            token::Token::Function => self.parse_function_literal(),
-            token::Token::Lbracket => self.parse_array(),
-            token::Token::Lbrace => self.parse_hash(),
-            token::Token::Comment => {
-                return None;
-            }
-            token::Token::Null => Some(ast::Expression::Null),
+        let mut lhs = match self
+            .prefix_parse_map
+            .as_ref()
+            .unwrap()
+            .get(&self.current_token)
+        {
+            Some(parse_fn) => parse_fn(self),
+            None if self.current_token_is(&token::Token::Comment) => return None,
             _ => {
                 self.no_prefix_parse_fn_error(&self.current_token.clone());
                 return None;

@@ -1,6 +1,6 @@
-use std::{fmt, str::FromStr};
+use std::{fmt, mem, str::FromStr};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) enum Token {
     Illegal,
     Eof,
@@ -59,9 +59,15 @@ pub(crate) enum Token {
 
 impl Eq for Token {}
 
+impl PartialEq for Token {
+    fn eq(&self, other: &Self) -> bool {
+        mem::discriminant(self).eq(&mem::discriminant(other))
+    }
+}
+
 impl std::hash::Hash for Token {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.to_string().hash(state)
+        mem::discriminant(self).hash(state)
     }
 }
 
@@ -181,7 +187,7 @@ pub(crate) fn lookup_ident(key: impl AsRef<str>) -> Token {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::str::FromStr;
+    use std::{collections::HashMap, str::FromStr};
 
     #[test]
     fn token_should_work() {
@@ -195,5 +201,14 @@ mod test {
         assert_eq!(Token::Else, lookup_ident("else"));
         assert_eq!(Token::For, lookup_ident("for"));
         assert_eq!(Token::Null, lookup_ident("null"));
+    }
+
+    #[test]
+    fn test_token_hash() {
+        let mut map = HashMap::new();
+        map.insert(Token::String("".into()), 1);
+
+        let v = map.get(&Token::String("1".into()));
+        assert_eq!(1, *v.unwrap());
     }
 }
