@@ -238,7 +238,12 @@ impl Compiler {
                 | ast::Infix::Eq
                 | ast::Infix::Ne
                 | ast::Infix::Gt
-                | ast::Infix::GtEq => {
+                | ast::Infix::GtEq
+                | ast::Infix::LeftShift
+                | ast::Infix::RightShift
+                | ast::Infix::BitAnd
+                | ast::Infix::BitOr
+                | ast::Infix::BitXor => {
                     self.compile_expression(lhs)?;
                     self.compile_expression(rhs)?;
                     self.emit(infix.into(), &[]);
@@ -253,7 +258,6 @@ impl Compiler {
                     self.compile_expression(lhs)?;
                     self.emit(code::Op::GtEq, &[]);
                 }
-                _ => todo!(),
             },
             ast::Expression::Assign(assign, ident, expr) => match assign {
                 ast::Assign::Assign => {

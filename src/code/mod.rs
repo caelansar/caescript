@@ -94,46 +94,71 @@ pub(crate) fn read_u16(slice: &[u8]) -> usize {
     BigEndian::read_u16(slice) as usize
 }
 
-#[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive)]
-pub enum Op {
-    Const,
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-    And,
-    Or,
-    True,
-    False,
-    Gt,
-    Eq,
-    Ne,
-    GtEq,
-    Minus,
-    Not,
-    JumpNotTruthy,
-    Jump,
-    Null,
-    SetGlobal,
-    GetGlobal,
-    SetLocal,
-    GetLocal,
-    GetBuiltin,
-    Array,
-    Hash,
-    Index,
-    Break,
-    Continue,
-    Call,
-    ReturnValue,
-    Return,
-    Closure,
-    SetFree,
-    GetFree,
-    GetCurrentClosure,
-    Pop,
+macro_rules! impl_display {
+    (enum $name:ident {
+        $($variant:ident),*,
+    }) => {
+        #[repr(u8)]
+        #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive)]
+        pub enum $name {
+            $($variant),*
+        }
+
+        impl Display for Op {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    $($name::$variant => f.write_str(&format!("{}{}", "Op", stringify!($variant)))),*
+                }
+            }
+        }
+    };
+}
+
+impl_display! {
+    enum Op {
+        Const,
+        Add,
+        Sub,
+        Mul,
+        Div,
+        Mod,
+        And,
+        Or,
+        True,
+        False,
+        Gt,
+        Eq,
+        Ne,
+        GtEq,
+        Minus,
+        Not,
+        JumpNotTruthy,
+        Jump,
+        Null,
+        SetGlobal,
+        GetGlobal,
+        SetLocal,
+        GetLocal,
+        GetBuiltin,
+        Array,
+        Hash,
+        Index,
+        Break,
+        Continue,
+        Call,
+        ReturnValue,
+        Return,
+        Closure,
+        SetFree,
+        GetFree,
+        GetCurrentClosure,
+        LeftShift,
+        RightShift,
+        BitAnd,
+        BitOr,
+        BitXor,
+        Pop,
+    }
 }
 
 impl From<&ast::Infix> for Op {
@@ -150,53 +175,13 @@ impl From<&ast::Infix> for Op {
             ast::Infix::GtEq => Op::GtEq,
             ast::Infix::And => Op::And,
             ast::Infix::Or => Op::Or,
+            ast::Infix::LeftShift => Op::LeftShift,
+            ast::Infix::RightShift => Op::RightShift,
+            ast::Infix::BitAnd => Op::BitAnd,
+            ast::Infix::BitOr => Op::BitOr,
+            ast::Infix::BitXor => Op::BitXor,
             _ => unreachable!(),
         }
-    }
-}
-
-impl Display for Op {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            Op::Const => "OpConstant",
-            Op::Add => "OpAdd",
-            Op::Sub => "OpSub",
-            Op::Mul => "OpMul",
-            Op::Div => "OpDiv",
-            Op::Mod => "OpMod",
-            Op::Pop => "OpPop",
-            Op::True => "OpTrue",
-            Op::False => "OpFalse",
-            Op::Gt => "OpGreaterThan",
-            Op::Eq => "OpEqual",
-            Op::Ne => "OpNotEqual",
-            Op::GtEq => "OpGreaterThanEqual",
-            Op::Not => "OpNot",
-            Op::Minus => "OpMinus",
-            Op::JumpNotTruthy => "OpJumpNotTruthy",
-            Op::Jump => "OpJump",
-            Op::Null => "OpNull",
-            Op::And => "OpAnd",
-            Op::Or => "OpOr",
-            Op::SetGlobal => "OpSetGlobal",
-            Op::SetLocal => "OpSetLocal",
-            Op::GetGlobal => "OpGetGlobal",
-            Op::GetLocal => "OpGetLocal",
-            Op::GetBuiltin => "OpGetBuiltin",
-            Op::Array => "OpArray",
-            Op::Hash => "OpHash",
-            Op::Index => "OpIndex",
-            Op::Break => unreachable!(),
-            Op::Continue => unreachable!(),
-            Op::Call => "OpCall",
-            Op::ReturnValue => "OpReturnValue",
-            Op::Closure => "OpClosure",
-            Op::GetFree => "OpGetFree",
-            Op::SetFree => "OpSetFree",
-            Op::Return => "OpReturn",
-            Op::GetCurrentClosure => "OpGetCurrentClosure",
-        };
-        f.write_str(s)
     }
 }
 
@@ -240,6 +225,11 @@ impl Op {
             Op::GetFree => vec![1],
             Op::SetFree => vec![1],
             Op::GetCurrentClosure => vec![],
+            Op::LeftShift => vec![],
+            Op::RightShift => vec![],
+            Op::BitAnd => vec![],
+            Op::BitOr => vec![],
+            Op::BitXor => vec![],
         }
     }
 }
@@ -277,7 +267,7 @@ mod test {
             (
                 vec![make(Op::Const, &[65534])],
                 vec![Op::Const as u8, 255, 254],
-                "0000 OpConstant 65534\n",
+                "0000 OpConst 65534\n",
             ),
             (
                 vec![make(Op::Add, &[])],
@@ -291,7 +281,7 @@ mod test {
                     make(Op::Const, &[1]),
                 ],
                 vec![Op::Add as u8, Op::Const as u8, 0, 0, Op::Const as u8, 0, 1],
-                "0000 OpAdd\n0001 OpConstant 0\n0004 OpConstant 1\n",
+                "0000 OpAdd\n0001 OpConst 0\n0004 OpConst 1\n",
             ),
             (
                 vec![make(Op::Closure, &[0, 1])],

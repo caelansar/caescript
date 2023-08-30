@@ -219,6 +219,56 @@ impl<'a> VM<'a> {
                         _ => todo!(),
                     }
                 }
+                code::Op::BitAnd => {
+                    let r = self.pop().unwrap();
+                    let l = self.pop().unwrap();
+                    match (l.as_ref(), r.as_ref()) {
+                        (object::Object::Int(l), object::Object::Int(r)) => {
+                            self.push(Rc::new(object::Object::Int(*l & *r)));
+                        }
+                        _ => todo!(),
+                    }
+                }
+                code::Op::BitOr => {
+                    let r = self.pop().unwrap();
+                    let l = self.pop().unwrap();
+                    match (l.as_ref(), r.as_ref()) {
+                        (object::Object::Int(l), object::Object::Int(r)) => {
+                            self.push(Rc::new(object::Object::Int(*l | *r)));
+                        }
+                        _ => todo!(),
+                    }
+                }
+                code::Op::BitXor => {
+                    let r = self.pop().unwrap();
+                    let l = self.pop().unwrap();
+                    match (l.as_ref(), r.as_ref()) {
+                        (object::Object::Int(l), object::Object::Int(r)) => {
+                            self.push(Rc::new(object::Object::Int(*l ^ *r)));
+                        }
+                        _ => todo!(),
+                    }
+                }
+                code::Op::LeftShift => {
+                    let r = self.pop().unwrap();
+                    let l = self.pop().unwrap();
+                    match (l.as_ref(), r.as_ref()) {
+                        (object::Object::Int(l), object::Object::Int(r)) => {
+                            self.push(Rc::new(object::Object::Int(*l << *r)));
+                        }
+                        _ => todo!(),
+                    }
+                }
+                code::Op::RightShift => {
+                    let r = self.pop().unwrap();
+                    let l = self.pop().unwrap();
+                    match (l.as_ref(), r.as_ref()) {
+                        (object::Object::Int(l), object::Object::Int(r)) => {
+                            self.push(Rc::new(object::Object::Int(*l >> *r)));
+                        }
+                        _ => todo!(),
+                    }
+                }
                 code::Op::Not => {
                     let operand = self.pop().unwrap();
                     match *operand {
@@ -512,6 +562,11 @@ mod test {
             ("-(1+2) * -3", Some(object::Object::Int(9))),
             ("false || true", Some(object::Object::Bool(true))),
             ("false && true", Some(object::Object::Bool(false))),
+            ("1 & 2", Some(object::Object::Int(0))),
+            ("1 | 2", Some(object::Object::Int(3))),
+            ("1 ^ 2", Some(object::Object::Int(3))),
+            ("1 << 2", Some(object::Object::Int(4))),
+            ("4 >> 2", Some(object::Object::Int(1))),
             ("null", Some(object::Object::Null)),
         ];
 
