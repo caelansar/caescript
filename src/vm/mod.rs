@@ -1,6 +1,4 @@
-use std::{borrow::Borrow, cell::RefCell, rc::Rc};
-
-use num_enum::TryFromPrimitive;
+use std::{borrow::Borrow, cell::RefCell, rc::Rc, str::FromStr};
 
 use crate::{
     code, compiler,
@@ -115,7 +113,7 @@ impl<'a> VM<'a> {
     pub fn run(&mut self) {
         while self.current_frame().ip < self.current_frame().instructions().len() {
             let mut ip = self.current_frame().ip;
-            let op = code::Op::try_from_primitive(self.current_frame().instructions()[ip]).unwrap();
+            let op = code::Op::from_repr(self.current_frame().instructions()[ip]).unwrap();
 
             self.current_frame_mut().ip += 1;
             ip += 1;
@@ -419,7 +417,10 @@ impl<'a> VM<'a> {
                         .0
                         .clone();
 
-                    self.push(Rc::new(object::Object::Builtin(builtin.into())));
+                    self.push(Rc::new(object::Object::Builtin(
+                        builtin::Builtin::from_str(&builtin)
+                            .unwrap_or_else(|_| panic!("{builtin} not found")),
+                    )));
                 }
                 code::Op::ReturnValue => {
                     let rv = self.pop().unwrap();

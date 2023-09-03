@@ -8,7 +8,8 @@ use std::{
 use std::rc::Rc;
 
 use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
-use num_enum::{IntoPrimitive, TryFromPrimitive};
+use strum::Display as EmunDisplay;
+use strum::FromRepr;
 
 use crate::{ast, eval::object::Instructions};
 
@@ -42,8 +43,8 @@ impl Display for Instructions {
         let mut i = 0;
 
         while i < self.0.len() {
-            let op: u8 = *self.0.get(i).unwrap();
-            let op = Op::try_from_primitive(op).unwrap();
+            let op = *self.0.get(i).unwrap();
+            let op = Op::from_repr(op).unwrap();
 
             let (operands, read) = read_operands(&op, &self.0[i + 1..]);
 
@@ -94,71 +95,51 @@ pub(crate) fn read_u16(slice: &[u8]) -> usize {
     BigEndian::read_u16(slice) as usize
 }
 
-macro_rules! impl_display {
-    (enum $name:ident {
-        $($variant:ident),*,
-    }) => {
-        #[repr(u8)]
-        #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, IntoPrimitive, TryFromPrimitive)]
-        pub enum $name {
-            $($variant),*
-        }
-
-        impl Display for Op {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                match self {
-                    $($name::$variant => f.write_str(&format!("{}{}", "Op", stringify!($variant)))),*
-                }
-            }
-        }
-    };
-}
-
-impl_display! {
-    enum Op {
-        Const,
-        Add,
-        Sub,
-        Mul,
-        Div,
-        Mod,
-        And,
-        Or,
-        True,
-        False,
-        Gt,
-        Eq,
-        Ne,
-        GtEq,
-        Minus,
-        Not,
-        JumpNotTruthy,
-        Jump,
-        Null,
-        SetGlobal,
-        GetGlobal,
-        SetLocal,
-        GetLocal,
-        GetBuiltin,
-        Array,
-        Hash,
-        Index,
-        Break,
-        Continue,
-        Call,
-        ReturnValue,
-        Return,
-        Closure,
-        SetFree,
-        GetFree,
-        GetCurrentClosure,
-        LeftShift,
-        RightShift,
-        BitAnd,
-        BitOr,
-        BitXor,
-        Pop,
-    }
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, EmunDisplay, FromRepr)]
+#[repr(u8)]
+pub enum Op {
+    Const,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    And,
+    Or,
+    True,
+    False,
+    Gt,
+    Eq,
+    Ne,
+    GtEq,
+    Minus,
+    Not,
+    JumpNotTruthy,
+    Jump,
+    Null,
+    SetGlobal,
+    GetGlobal,
+    SetLocal,
+    GetLocal,
+    GetBuiltin,
+    Array,
+    Hash,
+    Index,
+    Break,
+    Continue,
+    Call,
+    ReturnValue,
+    Return,
+    Closure,
+    SetFree,
+    GetFree,
+    GetCurrentClosure,
+    LeftShift,
+    RightShift,
+    BitAnd,
+    BitOr,
+    BitXor,
+    Pop,
 }
 
 impl From<&ast::Infix> for Op {
@@ -267,13 +248,9 @@ mod test {
             (
                 vec![make(Op::Const, &[65534])],
                 vec![Op::Const as u8, 255, 254],
-                "0000 OpConst 65534\n",
+                "0000 Const 65534\n",
             ),
-            (
-                vec![make(Op::Add, &[])],
-                vec![Op::Add as u8],
-                "0000 OpAdd\n",
-            ),
+            (vec![make(Op::Add, &[])], vec![Op::Add as u8], "0000 Add\n"),
             (
                 vec![
                     make(Op::Add, &[]),
@@ -281,12 +258,12 @@ mod test {
                     make(Op::Const, &[1]),
                 ],
                 vec![Op::Add as u8, Op::Const as u8, 0, 0, Op::Const as u8, 0, 1],
-                "0000 OpAdd\n0001 OpConst 0\n0004 OpConst 1\n",
+                "0000 Add\n0001 Const 0\n0004 Const 1\n",
             ),
             (
                 vec![make(Op::Closure, &[0, 1])],
                 vec![Op::Closure as u8, 0, 0, 1],
-                "0000 OpClosure 0 1\n",
+                "0000 Closure 0 1\n",
             ),
         ];
 

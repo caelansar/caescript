@@ -1,8 +1,11 @@
-use std::{collections::HashMap, fmt::Display, rc::Rc, sync::OnceLock};
+use std::{collections::HashMap, rc::Rc, sync::OnceLock};
 
 use super::object::Object;
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+use strum::{Display, EnumIter, EnumString, IntoEnumIterator};
+
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, EnumString, EnumIter, Display)]
+#[strum(serialize_all = "lowercase")]
 pub enum Builtin {
     Len,
     Puts,
@@ -40,46 +43,7 @@ pub fn update_builtins(key: String, f: BuiltinFn) -> Vec<(String, BuiltinFn)> {
     builtins
 }
 
-impl From<String> for Builtin {
-    fn from(value: String) -> Self {
-        match value.as_str() {
-            "len" => Self::Len,
-            "puts" => Self::Puts,
-            "push" => Self::Push,
-            "first" => Self::First,
-            "last" => Self::Last,
-            "rest" => Self::Rest,
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl Display for Builtin {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Len => f.write_str("len"),
-            Self::Puts => f.write_str("puts"),
-            Self::Push => f.write_str("push"),
-            Self::First => f.write_str("first"),
-            Self::Last => f.write_str("last"),
-            Self::Rest => f.write_str("rest"),
-        }
-    }
-}
-
 impl Builtin {
-    pub fn iterator() -> impl Iterator<Item = Self> {
-        static ITER: [Builtin; 6] = [
-            Builtin::Len,
-            Builtin::Puts,
-            Builtin::Push,
-            Builtin::First,
-            Builtin::Last,
-            Builtin::Rest,
-        ];
-        ITER.into_iter()
-    }
-
     pub fn call(&self, args: Vec<Rc<Object>>) -> Object {
         BUILTINS
             .get()
@@ -101,7 +65,7 @@ pub fn new_custom_builtins(
     BUILTINS.get_or_init(f);
 
     let mut map = HashMap::new();
-    Builtin::iterator().for_each(|builtin| {
+    Builtin::iter().for_each(|builtin| {
         map.insert(builtin.to_string(), Object::Builtin(builtin));
     });
     map
