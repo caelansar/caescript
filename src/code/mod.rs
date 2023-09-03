@@ -63,9 +63,9 @@ impl Display for Instructions {
 #[inline(always)]
 fn format_instruction(op: &Op, operands: &[usize]) -> String {
     match op.operand_widths().len() {
-        2 => format!("{} {} {}", op, operands[0], operands[1]),
-        1 => format!("{} {}", op, operands[0]),
-        0 => format!("{}", op),
+        2 => format!("Op{} {} {}", op, operands[0], operands[1]),
+        1 => format!("Op{} {}", op, operands[0]),
+        0 => format!("Op{}", op),
         _ => panic!("unsuported operand width"),
     }
 }
@@ -248,9 +248,13 @@ mod test {
             (
                 vec![make(Op::Const, &[65534])],
                 vec![Op::Const as u8, 255, 254],
-                "0000 Const 65534\n",
+                "0000 OpConst 65534\n",
             ),
-            (vec![make(Op::Add, &[])], vec![Op::Add as u8], "0000 Add\n"),
+            (
+                vec![make(Op::Add, &[])],
+                vec![Op::Add as u8],
+                "0000 OpAdd\n",
+            ),
             (
                 vec![
                     make(Op::Add, &[]),
@@ -258,12 +262,12 @@ mod test {
                     make(Op::Const, &[1]),
                 ],
                 vec![Op::Add as u8, Op::Const as u8, 0, 0, Op::Const as u8, 0, 1],
-                "0000 Add\n0001 Const 0\n0004 Const 1\n",
+                "0000 OpAdd\n0001 OpConst 0\n0004 OpConst 1\n",
             ),
             (
                 vec![make(Op::Closure, &[0, 1])],
                 vec![Op::Closure as u8, 0, 0, 1],
-                "0000 Closure 0 1\n",
+                "0000 OpClosure 0 1\n",
             ),
         ];
 
