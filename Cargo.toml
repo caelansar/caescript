@@ -12,7 +12,7 @@ path = "src/bin/main.rs"
 byteorder = { version = "1", optional = true }
 anyhow = { version = "1.0.71", optional = true}
 strum = { version = "0.25", features = ["derive"] }
-rustyline = { version="12.0.0", features = ["derive"] }
+rustyline = { git="https://github.com/caelansar/rustyline.git", branch = "prompt4" }
 
 [features]
 trace = []
