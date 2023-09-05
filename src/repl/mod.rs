@@ -3,12 +3,9 @@ use std::io;
 
 use crate::{lexer, parser};
 
-use rustyline::completion::FilenameCompleter;
-use rustyline::error::ReadlineError;
 use rustyline::highlight::{Highlighter, MatchingBracketHighlighter};
 use rustyline::hint::HistoryHinter;
 use rustyline::validate::MatchingBracketValidator;
-use rustyline::{Cmd, Config, Editor, EventHandler, KeyEvent};
 use rustyline::{Completer, Helper, Hinter, Validator};
 
 #[cfg(feature = "vm")]
@@ -67,6 +64,10 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
 
     use crate::eval::{env::Environment, object, Evaluator};
 
+    use rustyline::error::ReadlineError;
+
+    use rustyline::{Cmd, Config, Editor, EventHandler, KeyEvent};
+
     let env = Environment::new();
     let mut evaluator = Evaluator::new(Rc::new(RefCell::new(env)));
 
@@ -74,7 +75,6 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
 
     let config = Config::builder().history_ignore_space(true).build();
     let h = MyHelper {
-        completer: FilenameCompleter::new(),
         highlighter: MatchingBracketHighlighter::new(),
         hinter: HistoryHinter {},
         colored_prompt: "".to_owned(),
@@ -133,8 +133,6 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
 
 #[derive(Helper, Completer, Hinter, Validator)]
 struct MyHelper {
-    #[rustyline(Completer)]
-    completer: FilenameCompleter,
     highlighter: MatchingBracketHighlighter,
     #[rustyline(Validator)]
     validator: MatchingBracketValidator,
