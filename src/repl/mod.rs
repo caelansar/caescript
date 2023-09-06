@@ -4,12 +4,12 @@ use std::io;
 use crate::{lexer, parser};
 
 use rustyline::completion::{Completer, FilenameCompleter, Pair};
+use rustyline::config::OutputStreamType;
 use rustyline::error::ReadlineError;
-use rustyline::highlight::Highlighter;
-use rustyline::highlight::PromptInfo;
+use rustyline::highlight::{Highlighter, PromptInfo};
 use rustyline::hint::{Hinter, HistoryHinter};
 use rustyline::validate::{self, MatchingBracketValidator, Validator};
-use rustyline::{Context, Helper};
+use rustyline::{Cmd, CompletionType, Config, Context, EditMode, Editor, Helper, KeyPress};
 
 #[cfg(feature = "vm")]
 pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::Result<()> {
@@ -21,43 +21,74 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
 
     writer.write_all(b"engine: vm\n")?;
 
+    let config = Config::builder()
+        .history_ignore_space(true)
+        .completion_type(CompletionType::List)
+        .edit_mode(EditMode::Emacs)
+        .output_stream(OutputStreamType::Stdout)
+        .build();
+    let h = MyHelper {
+        completer: FilenameCompleter::new(),
+        hinter: HistoryHinter {},
+        colored_prompt: "  0> ".to_owned(),
+        continuation_prompt: "\x1b[1;32m.> \x1b[0m".to_owned(),
+        validator: MatchingBracketValidator::new(),
+    };
+    let mut rl = Editor::with_config(config);
+    rl.set_helper(Some(h));
+    rl.bind_sequence(KeyPress::Meta('N'), Cmd::HistorySearchForward);
+    rl.bind_sequence(KeyPress::Meta('P'), Cmd::HistorySearchBackward);
+    rl.bind_sequence(KeyPress::Tab, Cmd::Insert(1, "    ".into()));
+
+    let mut count = 1;
     loop {
-        writer.write_all(b">>> ")?;
-        writer.flush()?;
+        let p = format!("{:>1}> ", count);
+        rl.helper_mut().expect("No helper").colored_prompt = format!("\x1b[1;32m{}\x1b[0m", p);
+        let readline = rl.readline(&p);
+        match readline {
+            Ok(input) => {
+                rl.add_history_entry(input.as_str());
+                let lexer = lexer::Lexer::new(&input);
+                let mut parser = parser::Parser::new(lexer);
+                let program = parser.parse_program().unwrap();
 
-        let mut line = String::new();
-        let size = reader.read_line(&mut line)?;
-        if size == 1 {
-            break;
-        }
+                let mut compiler =
+                    compiler::Compiler::new_with_state(symbol_table.clone(), constants.clone());
+                let bytecode = match compiler.compile(&program) {
+                    Ok(bytecode) => bytecode,
+                    Err(err) => {
+                        writeln!(writer, "\x1b[41mcompile error: {}\x1b[0m", err)?;
+                        continue;
+                    }
+                };
+                let mut vm = vm::VM::new_with_global(bytecode.clone(), global.clone());
+                vm.run();
 
-        let lexer = lexer::Lexer::new(&line);
-        let mut parser = parser::Parser::new(lexer);
-        let program = parser.parse_program().unwrap();
+                let obj = vm.last_popped();
 
-        let mut compiler =
-            compiler::Compiler::new_with_state(symbol_table.clone(), constants.clone());
-        let bytecode = match compiler.compile(&program) {
-            Ok(bytecode) => bytecode,
-            Err(err) => {
-                writeln!(writer, "\x1b[41mcompile error: {}\x1b[0m", err)?;
-                continue;
+                global = vm.global.clone();
+                constants = bytecode.consts.to_vec();
+                symbol_table = compiler.symbol_table;
+
+                if let Some(obj) = obj {
+                    writeln!(writer, "< {}", obj)?;
+                }
             }
-        };
-        let mut vm = vm::VM::new_with_global(bytecode.clone(), global.clone());
-        vm.run();
-
-        let obj = vm.last_popped();
-
-        global = vm.global.clone();
-        constants = bytecode.consts.to_vec();
-        symbol_table = compiler.symbol_table;
-
-        if let Some(obj) = obj {
-            writeln!(writer, "< {}", obj)?;
+            Err(ReadlineError::Interrupted) => {
+                println!("Goodbye!");
+                break;
+            }
+            Err(ReadlineError::Eof) => {
+                println!("Goodbye!");
+                break;
+            }
+            Err(err) => {
+                println!("Error: {err:?}");
+                break;
+            }
         }
+        count += 1;
     }
-    writer.write_all(b"exit\n")?;
     Ok(())
 }
 
@@ -66,10 +97,6 @@ pub fn repl<R: io::BufRead, W: io::Write>(mut reader: R, mut writer: W) -> io::R
     use std::{cell::RefCell, rc::Rc};
 
     use crate::eval::{env::Environment, object, Evaluator};
-
-    use rustyline::config::OutputStreamType;
-    use rustyline::{Cmd, Config, Editor};
-    use rustyline::{CompletionType, EditMode, KeyPress};
 
     let env = Environment::new();
     let mut evaluator = Evaluator::new(Rc::new(RefCell::new(env)));
