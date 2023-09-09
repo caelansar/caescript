@@ -231,7 +231,7 @@ impl Evaluator {
             self.env
                 .borrow()
                 .get(ident)
-                .unwrap_or(Object::Error(format!("undefined variable {}", ident))),
+                .unwrap_or_else(|| Object::Error(format!("undefined variable {}", ident))),
         )
     }
 

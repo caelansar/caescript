@@ -153,7 +153,7 @@ impl Compiler {
                 let symbol = self
                     .symbol_table
                     .resolve(ident)
-                    .ok_or(anyhow!("undefined variable {}", &ident.0))?;
+                    .ok_or_else(|| anyhow!("undefined variable {}", &ident.0))?;
                 self.emit_get(&symbol);
             }
             ast::Expression::Prefix(prefix, expr) => {
@@ -263,7 +263,7 @@ impl Compiler {
                     let symbol = self
                         .symbol_table
                         .resolve(ident)
-                        .ok_or(anyhow!("undefined variable {}", &ident.0))?;
+                        .ok_or_else(|| anyhow!("undefined variable {}", &ident.0))?;
                     self.emit(code::Op::GetGlobal, &[symbol.index]);
 
                     self.compile_expression(expr)?;
@@ -274,7 +274,7 @@ impl Compiler {
                     let symbol = self
                         .symbol_table
                         .resolve(ident)
-                        .ok_or(anyhow!("undefined variable {}", &ident.0))?;
+                        .ok_or_else(|| anyhow!("undefined variable {}", &ident.0))?;
 
                     self.emit_get(&symbol);
 
@@ -287,7 +287,7 @@ impl Compiler {
                     let symbol = self
                         .symbol_table
                         .resolve(ident)
-                        .ok_or(anyhow!("undefined variable {}", &ident.0))?;
+                        .ok_or_else(|| anyhow!("undefined variable {}", &ident.0))?;
 
                     self.emit_get(&symbol);
 
@@ -300,7 +300,7 @@ impl Compiler {
                     let symbol = self
                         .symbol_table
                         .resolve(ident)
-                        .ok_or(anyhow!("undefined variable {}", &ident.0))?;
+                        .ok_or_else(|| anyhow!("undefined variable {}", &ident.0))?;
 
                     self.emit_get(&symbol);
 
@@ -313,7 +313,7 @@ impl Compiler {
                     let symbol = self
                         .symbol_table
                         .resolve(ident)
-                        .ok_or(anyhow!("undefined variable {}", &ident.0))?;
+                        .ok_or_else(|| anyhow!("undefined variable {}", &ident.0))?;
 
                     self.emit_get(&symbol);
 
@@ -326,7 +326,7 @@ impl Compiler {
                     let symbol = self
                         .symbol_table
                         .resolve(ident)
-                        .ok_or(anyhow!("undefined variable {}", &ident.0))?;
+                        .ok_or_else(|| anyhow!("undefined variable {}", &ident.0))?;
 
                     self.emit_get(&symbol);
 
