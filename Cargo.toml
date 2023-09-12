@@ -7,13 +7,15 @@ edition = "2021"
 [[bin]]
 name = "caescript"
 path = "src/bin/main.rs"
+required-features = ["build-binary"]
 
 [dependencies]
 byteorder = { version = "1", optional = true }
-anyhow = { version = "1.0.71", optional = true}
+anyhow = { version = "1.0.71", optional = true }
 strum = { version = "0.25", features = ["derive"] }
-rustyline = { git="https://github.com/caelansar/rustyline.git", branch = "prompt4" }
+rustyline = { git="https://github.com/caelansar/rustyline.git", branch = "prompt4", optional = true }
 
 [features]
 trace = []
 vm = ["byteorder", "anyhow"]
+build-binary = ["rustyline"]
