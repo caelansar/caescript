@@ -50,7 +50,13 @@ pub fn repl<R: io::BufRead, W: io::Write>(_reader: R, mut writer: W) -> io::Resu
                 rl.add_history_entry(input.as_str());
                 let lexer = lexer::Lexer::new(&input);
                 let mut parser = parser::Parser::new(lexer);
-                let program = parser.parse_program().unwrap();
+                let program = match parser.parse_program() {
+                    Ok(program) => program,
+                    Err(err) => {
+                        writeln!(writer, "\x1b[41msyntax error: {}\x1b[0m", err)?;
+                        continue;
+                    }
+                };
 
                 let mut compiler =
                     compiler::Compiler::new_with_state(symbol_table.clone(), constants.clone());
@@ -133,7 +139,13 @@ pub fn repl<R: io::BufRead, W: io::Write>(_reader: R, mut writer: W) -> io::Resu
 
                 let lexer = lexer::Lexer::new(&input);
                 let mut parser = parser::Parser::new(lexer);
-                let program = parser.parse_program().unwrap();
+                let program = match parser.parse_program() {
+                    Ok(program) => program,
+                    Err(err) => {
+                        writeln!(writer, "\x1b[41msyntax error: {}\x1b[0m", err)?;
+                        continue;
+                    }
+                };
 
                 let obj = evaluator.eval(&program);
 
