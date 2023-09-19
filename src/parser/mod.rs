@@ -1,3 +1,4 @@
+#[cfg(feature = "trace")]
 mod trace;
 
 use std::collections::HashMap;
