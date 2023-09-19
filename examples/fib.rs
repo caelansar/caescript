@@ -32,7 +32,7 @@ fn main() {
     jh2.join().unwrap();
 }
 
-fn elapsed(input: &str, engine: &str, f: fn(&str) -> Object) {
+fn elapsed<F: Fn(&str) -> Object>(input: &str, engine: &str, f: F) {
     let start = Instant::now();
     let data = f(input);
     let duration = start.elapsed();
