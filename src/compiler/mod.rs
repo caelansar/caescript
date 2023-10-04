@@ -75,7 +75,7 @@ impl Compiler {
         match stmt {
             ast::Statement::Expression(expr) => {
                 self.compile_expression(expr)?;
-                // these expressions do not genreate value, so we do not
+                // these expressions do not generate value, so we do not
                 // need to emit pop
                 if !matches!(expr, ast::Expression::Assign(_, _, _))
                     && !matches!(expr, ast::Expression::For { .. })
@@ -109,7 +109,7 @@ impl Compiler {
                 self.emit(code::Op::Continue, &[9999]);
             }
             ast::Statement::Function(ident, params, body) => {
-                // assamble a func expr manually
+                // assemble a func expr manually
                 self.compile_expression(&ast::Expression::Func {
                     name: Some(ident.0.clone()),
                     params: params.clone(),
