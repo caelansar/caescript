@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 #[cfg(feature = "trace")]
 use crate::defer;
-use crate::{ast, lexer, token};
+use crate::{ast, lexer, map, token};
 #[cfg(feature = "trace")]
 use trace::{trace, untrace, ScopeCall};
 
@@ -101,57 +101,79 @@ impl<'a> Parser<'a> {
         let parse_lbracket: PrefixParseFn = |this| this.parse_array();
         let parse_lbrace: PrefixParseFn = |this| this.parse_hash();
 
-        let mut map = HashMap::new();
-        map.insert(token::Token::Ident("".into()), parse_ident);
-        map.insert(token::Token::Int(1), parse_integer);
-        map.insert(token::Token::Float(1.0), parse_float);
-        map.insert(token::Token::Bool(false), parse_bool);
-        map.insert(token::Token::String("".into()), parse_string);
-        map.insert(token::Token::Minus, parse_prefix);
-        map.insert(token::Token::Bang, parse_prefix);
-        map.insert(token::Token::Lparen, parse_lparen);
-        map.insert(token::Token::If, parse_if);
-        map.insert(token::Token::For, parse_for);
-        map.insert(token::Token::Function, parse_func);
-        map.insert(token::Token::Lbracket, parse_lbracket);
-        map.insert(token::Token::Lbrace, parse_lbrace);
-        map.insert(token::Token::Null, |_| Some(ast::Expression::Null));
-        self.prefix_parse_map = Some(map);
+        self.prefix_parse_map = Some(map! {
+            token::Token::Ident(Default::default()) => parse_ident,
+            token::Token::Int(Default::default())=> parse_integer,
+            token::Token::Float(Default::default())=> parse_float,
+            token::Token::Bool(Default::default())=> parse_bool,
+            token::Token::String(Default::default())=> parse_string,
+            token::Token::Minus=> parse_prefix,
+            token::Token::Bang=> parse_prefix,
+            token::Token::Lparen=> parse_lparen,
+            token::Token::If=> parse_if,
+            token::Token::For=> parse_for,
+            token::Token::Function=> parse_func,
+            token::Token::Lbracket=> parse_lbracket,
+            token::Token::Lbrace=> parse_lbrace,
+            token::Token::Null=> |_| Some(ast::Expression::Null),
+        });
 
         let parse_call: InfixParseFn = |this, lhs| this.parse_call_expression(lhs);
         let parse_infix: InfixParseFn = |this, lhs| this.parse_infix_expression(lhs);
         let parse_assign: InfixParseFn = |this, lhs| this.parse_assign_expression(lhs);
         let parse_index: InfixParseFn = |this, lhs| this.parse_index_expression(lhs);
 
-        let mut map = HashMap::new();
-        map.insert(token::Token::Plus, parse_infix);
-        map.insert(token::Token::Minus, parse_infix);
-        map.insert(token::Token::Eq, parse_infix);
-        map.insert(token::Token::Ne, parse_infix);
-        map.insert(token::Token::Gt, parse_infix);
-        map.insert(token::Token::GtEq, parse_infix);
-        map.insert(token::Token::Lt, parse_infix);
-        map.insert(token::Token::LtEq, parse_infix);
-        map.insert(token::Token::Slash, parse_infix);
-        map.insert(token::Token::Asterisk, parse_infix);
-        map.insert(token::Token::Mod, parse_infix);
-        map.insert(token::Token::And, parse_infix);
-        map.insert(token::Token::Or, parse_infix);
-        map.insert(token::Token::LeftShift, parse_infix);
-        map.insert(token::Token::RightShift, parse_infix);
-        map.insert(token::Token::BitAnd, parse_infix);
-        map.insert(token::Token::BitOr, parse_infix);
-        map.insert(token::Token::BitXor, parse_infix);
-        map.insert(token::Token::Lparen, parse_call);
-        map.insert(token::Token::Assign, parse_assign);
-        map.insert(token::Token::PlusEq, parse_assign);
-        map.insert(token::Token::MinusEq, parse_assign);
-        map.insert(token::Token::AsteriskEq, parse_assign);
-        map.insert(token::Token::SlashEq, parse_assign);
-        map.insert(token::Token::ModEq, parse_assign);
-        map.insert(token::Token::Lbracket, parse_index);
-
-        self.infix_parse_map = Some(map);
+        self.infix_parse_map = Some(map! {
+            token::Token::Plus => parse_infix,
+            token::Token::Plus => parse_infix,
+            token::Token::Minus => parse_infix,
+            token::Token::Eq=> parse_infix,
+            token::Token::Plus => parse_infix,
+            token::Token::Minus=> parse_infix,
+            token::Token::Eq=> parse_infix,
+            token::Token::Ne=> parse_infix,
+            token::Token::Plus=> parse_infix,
+            token::Token::Minus=> parse_infix,
+            token::Token::Eq=> parse_infix,
+            token::Token::Ne=> parse_infix,
+            token::Token::Gt=> parse_infix,
+            token::Token::GtEq=> parse_infix,
+            token::Token::Lt=> parse_infix,
+            token::Token::LtEq=> parse_infix,
+            token::Token::Slash=> parse_infix,
+            token::Token::Asterisk=> parse_infix,
+            token::Token::Mod=> parse_infix,
+            token::Token::And=> parse_infix,
+            token::Token::Or=> parse_infix,
+            token::Token::LeftShift=> parse_infix,
+            token::Token::RightShift=> parse_infix,
+            token::Token::Plus=> parse_infix,
+            token::Token::Minus=> parse_infix,
+            token::Token::Eq=> parse_infix,
+            token::Token::Ne=> parse_infix,
+            token::Token::Gt=> parse_infix,
+            token::Token::GtEq=> parse_infix,
+            token::Token::Lt=> parse_infix,
+            token::Token::LtEq=> parse_infix,
+            token::Token::Slash=> parse_infix,
+            token::Token::Asterisk=> parse_infix,
+            token::Token::Mod=> parse_infix,
+            token::Token::And=> parse_infix,
+            token::Token::Or=> parse_infix,
+            token::Token::LeftShift=> parse_infix,
+            token::Token::RightShift=> parse_infix,
+            token::Token::BitAnd=> parse_infix,
+            token::Token::BitOr=> parse_infix,
+            token::Token::BitXor=> parse_infix,
+            token::Token::Lparen=> parse_call,
+            token::Token::Assign=> parse_assign,
+            token::Token::PlusEq=> parse_assign,
+            token::Token::MinusEq=> parse_assign,
+            token::Token::AsteriskEq=> parse_assign,
+            token::Token::SlashEq=> parse_assign,
+            token::Token::ModEq=> parse_assign,
+            token::Token::Lbracket=> parse_index,
+        });
     }
 
     #[inline(always)]
@@ -639,10 +661,7 @@ impl<'a> Parser<'a> {
         let errors = self.errors();
 
         if !errors.is_empty() {
-            let msg = errors
-                .into_iter()
-                .map(|e| format!("{}\n", e))
-                .collect::<String>();
+            let msg = errors.join("\n");
 
             return Err(msg);
         }
