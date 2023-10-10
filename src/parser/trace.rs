@@ -12,7 +12,7 @@ impl<F: FnOnce()> Drop for ScopeCall<F> {
 
 #[macro_export]
 macro_rules! defer {
-    ($f:ident, $exp:expr) => {
+    ($f:ident($exp:expr)) => {
         let x = $exp;
         let _scope_call = ScopeCall {
             c: Some(|| -> () { $f(x) }),

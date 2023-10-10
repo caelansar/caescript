@@ -251,7 +251,7 @@ impl<'a> Parser<'a> {
     #[inline]
     fn parse_if_expression(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
-        defer!(untrace, trace("parse_if_expression"));
+        defer!(untrace(trace("parse_if_expression")));
 
         if !self.expect_next(&token::Token::Lparen) {
             return None;
@@ -289,7 +289,7 @@ impl<'a> Parser<'a> {
     #[inline]
     fn parse_for_expression(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
-        defer!(untrace, trace("parse_for_expression"));
+        defer!(untrace(trace("parse_for_expression")));
 
         if !self.expect_next(&token::Token::Lparen) {
             return None;
@@ -317,7 +317,7 @@ impl<'a> Parser<'a> {
     #[inline(always)]
     fn parse_infix_expression(&mut self, lhs: Option<ast::Expression>) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
-        defer!(untrace, trace("parse_infix_expression"));
+        defer!(untrace(trace("parse_infix_expression")));
         self.next_token();
 
         let infix: ast::Infix = match (&self.current_token).try_into() {
@@ -343,7 +343,7 @@ impl<'a> Parser<'a> {
     #[inline(always)]
     fn parse_grouped_expression(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
-        defer!(untrace, trace("parse_grouped_expression"));
+        defer!(untrace(trace("parse_grouped_expression")));
         self.next_token();
 
         let exp = self.parse_expression(Precedence::Lowest);
@@ -358,7 +358,7 @@ impl<'a> Parser<'a> {
     #[inline(always)]
     fn parse_prefix_expression(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
-        defer!(untrace, trace("parse_prefix_expression"));
+        defer!(untrace(trace("parse_prefix_expression")));
         let prefix = match (&self.current_token).try_into() {
             Ok(infix) => infix,
             Err(_) => return None,
@@ -374,7 +374,7 @@ impl<'a> Parser<'a> {
     #[inline(always)]
     fn parse_identifier(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
-        defer!(untrace, trace("parse_identifier"));
+        defer!(untrace(trace("parse_identifier")));
         if let token::Token::Ident(ref ident) = self.current_token {
             Some(ast::Expression::Ident(ast::Ident(ident.clone())))
         } else {
@@ -385,7 +385,7 @@ impl<'a> Parser<'a> {
     #[inline(always)]
     fn parse_string_literal(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
-        defer!(untrace, trace("parse_string_literal"));
+        defer!(untrace(trace("parse_string_literal")));
         if let token::Token::String(ref s) = self.current_token {
             Some(ast::Expression::Literal(ast::Literal::String(s.clone())))
         } else {
@@ -396,7 +396,7 @@ impl<'a> Parser<'a> {
     #[inline(always)]
     fn parse_integer_literal(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
-        defer!(untrace, trace("parse_integer_literal"));
+        defer!(untrace(trace("parse_integer_literal")));
         if let token::Token::Int(int) = self.current_token {
             Some(ast::Expression::Literal(ast::Literal::Int(int)))
         } else {
@@ -407,7 +407,7 @@ impl<'a> Parser<'a> {
     #[inline(always)]
     fn parse_float_literal(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
-        defer!(untrace, trace("parse_integer_literal"));
+        defer!(untrace(trace("parse_integer_literal")));
         if let token::Token::Float(float) = self.current_token {
             Some(ast::Expression::Literal(ast::Literal::Float(float)))
         } else {
@@ -418,7 +418,7 @@ impl<'a> Parser<'a> {
     #[inline(always)]
     fn parse_boolean_literal(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
-        defer!(untrace, trace("parse_boolean_literal"));
+        defer!(untrace(trace("parse_boolean_literal")));
         if let token::Token::Bool(b) = self.current_token {
             Some(ast::Expression::Literal(ast::Literal::Bool(b)))
         } else {
@@ -428,7 +428,7 @@ impl<'a> Parser<'a> {
 
     fn parse_array(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
-        defer!(untrace, trace("parse_array"));
+        defer!(untrace(trace("parse_array")));
 
         let mut exprs = vec![];
 
@@ -492,7 +492,7 @@ impl<'a> Parser<'a> {
     #[inline(always)]
     fn parse_function_literal(&mut self) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
-        defer!(untrace, trace("parse_function_literal"));
+        defer!(untrace(trace("parse_function_literal")));
         if !self.expect_next(&token::Token::Lparen) {
             return None;
         }
@@ -740,7 +740,7 @@ impl<'a> Parser<'a> {
 
     fn parse_expression_statement(&mut self) -> Option<ast::Statement> {
         #[cfg(feature = "trace")]
-        defer!(untrace, trace("parse_expression_statement"));
+        defer!(untrace(trace("parse_expression_statement")));
         let expression = self.parse_expression(Precedence::Lowest)?;
         let stmt = ast::Statement::Expression(expression);
 
@@ -759,7 +759,7 @@ impl<'a> Parser<'a> {
 
     fn parse_expression(&mut self, precedence: Precedence) -> Option<ast::Expression> {
         #[cfg(feature = "trace")]
-        defer!(untrace, trace("parse_expression"));
+        defer!(untrace(trace("parse_expression")));
 
         let mut lhs = match self
             .prefix_parse_map
