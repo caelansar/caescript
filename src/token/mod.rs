@@ -1,7 +1,7 @@
 use std::{fmt, mem, str::FromStr};
 
 #[derive(Debug, Clone)]
-pub(crate) enum Token {
+pub enum Token {
     Illegal,
     Eof,
 
