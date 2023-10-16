@@ -5,11 +5,18 @@ use std::{cell::RefCell, env, fs, io, process::exit, rc::Rc};
 
 use caescript::{lexer, parser, repl};
 
+static VERSION: &str = env!("GIT_VERSION");
+static COMMIT: &str = env!("GIT_COMMIT");
+static DATE: &str = env!("GIT_DATE");
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
     if args.len() == 1 {
         println!("Welcome to Caescript!");
+        println!("version: {}", VERSION);
+        println!("commit: {}", COMMIT);
+        println!("build date: {}", DATE);
         return repl::repl(io::stdin().lock(), io::stdout().lock()).unwrap();
     }
 
