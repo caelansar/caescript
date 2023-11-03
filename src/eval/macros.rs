@@ -42,6 +42,46 @@ macro_rules! map {
     }};
 }
 
+impl std::ops::Shl for Object {
+    type Output = Self;
+
+    fn shl(self, rhs: Self) -> Self::Output {
+        arithmetic_operator!(self, rhs, <<, Int)
+    }
+}
+
+impl std::ops::Shr for Object {
+    type Output = Self;
+
+    fn shr(self, rhs: Self) -> Self::Output {
+        arithmetic_operator!(self, rhs, >>, Int)
+    }
+}
+
+impl std::ops::BitAnd for Object {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        arithmetic_operator!(self, rhs, &, Int)
+    }
+}
+
+impl std::ops::BitOr for Object {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        arithmetic_operator!(self, rhs, |, Int)
+    }
+}
+
+impl std::ops::BitXor for Object {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        arithmetic_operator!(self, rhs, ^, Int)
+    }
+}
+
 impl std::ops::Add for Object {
     type Output = Self;
 
