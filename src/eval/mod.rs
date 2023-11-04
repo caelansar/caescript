@@ -321,18 +321,8 @@ impl Evaluator {
     #[inline]
     fn eval_prefix_expression(&self, prefix: &ast::Prefix, obj: Object) -> Option<Object> {
         match prefix {
-            ast::Prefix::Minus => self.eval_minus_prefix(obj),
-            ast::Prefix::Not => self.eval_not_prefix(obj),
-        }
-    }
-
-    #[inline(always)]
-    fn eval_not_prefix(&self, obj: Object) -> Option<Object> {
-        match obj {
-            Object::Bool(b) => Some((!b).into()),
-            Object::Null => Some(BOOL_OBJ_TRUE),
-            Object::Int(i) => Some(Object::Int(!i)),
-            _ => Some(BOOL_OBJ_FALSE),
+            ast::Prefix::Minus => Some(-obj),
+            ast::Prefix::Not => Some(!obj),
         }
     }
 
@@ -421,15 +411,6 @@ impl Evaluator {
                 "unknown operator: {} {} {}",
                 lhs, infix, rhs
             ))),
-        }
-    }
-
-    #[inline(always)]
-    fn eval_minus_prefix(&self, obj: Object) -> Option<Object> {
-        if let Object::Int(int) = obj {
-            Some(Object::Int(-int))
-        } else {
-            Some(Object::Error(format!("unknown operator: -{}", obj)))
         }
     }
 
@@ -923,6 +904,26 @@ mod test {
             ("1.1 && 2.2", Some(Object::Float(2.2))),
             ("null && null", Some(Object::Null)),
             ("null || 1", Some(Object::Int(1))),
+        ];
+
+        tests.iter().for_each(|test| {
+            let obj = eval(test.0);
+            assert_eq!(
+                test.1, obj,
+                "expect {} eval to be {:?}, got {:?}",
+                test.0, test.1, obj
+            );
+        })
+    }
+
+    #[test]
+    fn eval_binary_operation_should_work() {
+        let tests = vec![
+            ("1 & 1", Some(Object::Int(1))),
+            ("1 | 0", Some(Object::Int(1))),
+            ("1 ^ 0", Some(Object::Int(1))),
+            ("1 << 2", Some(Object::Int(4))),
+            ("2 >> 1", Some(Object::Int(1))),
         ];
 
         tests.iter().for_each(|test| {

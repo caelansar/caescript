@@ -191,11 +191,7 @@ impl<'a> VM<'a> {
                 }
                 code::Op::Minus => {
                     let operand = self.pop().unwrap();
-                    match *operand {
-                        object::Object::Float(f) => self.push(Rc::new(object::Object::Float(-f))),
-                        object::Object::Int(i) => self.push(Rc::new(object::Object::Int(-i))),
-                        _ => todo!(),
-                    }
+                    self.push(Rc::new(-operand.as_ref()));
                 }
                 code::Op::And => {
                     let r = self.pop().unwrap();
@@ -221,8 +217,8 @@ impl<'a> VM<'a> {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
                     match (l.as_ref(), r.as_ref()) {
-                        (object::Object::Int(l), object::Object::Int(r)) => {
-                            self.push(Rc::new(object::Object::Int(*l & *r)));
+                        (object::Object::Int(_), object::Object::Int(_)) => {
+                            self.push(Rc::new(l.as_ref() & r.as_ref()));
                         }
                         _ => todo!(),
                     }
@@ -231,8 +227,8 @@ impl<'a> VM<'a> {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
                     match (l.as_ref(), r.as_ref()) {
-                        (object::Object::Int(l), object::Object::Int(r)) => {
-                            self.push(Rc::new(object::Object::Int(*l | *r)));
+                        (object::Object::Int(_), object::Object::Int(_)) => {
+                            self.push(Rc::new(l.as_ref() | r.as_ref()));
                         }
                         _ => todo!(),
                     }
@@ -241,8 +237,8 @@ impl<'a> VM<'a> {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
                     match (l.as_ref(), r.as_ref()) {
-                        (object::Object::Int(l), object::Object::Int(r)) => {
-                            self.push(Rc::new(object::Object::Int(*l ^ *r)));
+                        (object::Object::Int(_), object::Object::Int(_)) => {
+                            self.push(Rc::new(l.as_ref() ^ r.as_ref()));
                         }
                         _ => todo!(),
                     }
@@ -251,8 +247,8 @@ impl<'a> VM<'a> {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
                     match (l.as_ref(), r.as_ref()) {
-                        (object::Object::Int(l), object::Object::Int(r)) => {
-                            self.push(Rc::new(object::Object::Int(*l << *r)));
+                        (object::Object::Int(_), object::Object::Int(_)) => {
+                            self.push(Rc::new(l.as_ref() << r.as_ref()));
                         }
                         _ => todo!(),
                     }
@@ -261,21 +257,15 @@ impl<'a> VM<'a> {
                     let r = self.pop().unwrap();
                     let l = self.pop().unwrap();
                     match (l.as_ref(), r.as_ref()) {
-                        (object::Object::Int(l), object::Object::Int(r)) => {
-                            self.push(Rc::new(object::Object::Int(*l >> *r)));
+                        (object::Object::Int(_), object::Object::Int(_)) => {
+                            self.push(Rc::new(l.as_ref() >> r.as_ref()));
                         }
                         _ => todo!(),
                     }
                 }
                 code::Op::Not => {
                     let operand = self.pop().unwrap();
-                    match *operand {
-                        object::Object::Bool(false) => self.push(Rc::new(object::BOOL_OBJ_TRUE)),
-                        object::Object::Bool(true) => self.push(Rc::new(object::BOOL_OBJ_FALSE)),
-                        object::Object::Int(i) => self.push(Rc::new(object::Object::Int(!i))),
-                        object::Object::Null => self.push(Rc::new(object::BOOL_OBJ_TRUE)),
-                        _ => self.push(Rc::new(object::BOOL_OBJ_FALSE)),
-                    }
+                    self.push(Rc::new(!operand.as_ref()));
                 }
                 code::Op::JumpNotTruthy => {
                     let pos = code::read_u16(&self.current_frame().instructions()[ip..]);

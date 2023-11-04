@@ -1,4 +1,5 @@
 use super::object::Object;
+use crate::eval::object::{BOOL_OBJ_FALSE, BOOL_OBJ_TRUE};
 
 macro_rules! arithmetic_operator {
     ($l:expr, $r:expr, $op:tt, $($t:ident),*) => {
@@ -159,5 +160,86 @@ impl std::ops::Rem for &Object {
 
     fn rem(self, rhs: Self) -> Self::Output {
         arithmetic_operator_ref!(self, rhs, %, Int, Float)
+    }
+}
+
+impl std::ops::Not for Object {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Object::Bool(b) => (!b).into(),
+            Object::Null => BOOL_OBJ_TRUE,
+            Object::Int(i) => Object::Int(!i),
+            _ => BOOL_OBJ_FALSE,
+        }
+    }
+}
+
+impl std::ops::Neg for Object {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        match self {
+            Object::Int(i) => Object::Int(-i),
+            Object::Float(f) => Object::Float(-f),
+            _ => Object::Error(format!("unknown operator: -{}", self)),
+        }
+    }
+}
+
+impl std::ops::Neg for &Object {
+    type Output = Object;
+
+    fn neg(self) -> Self::Output {
+        self.clone().neg()
+    }
+}
+
+impl std::ops::Not for &Object {
+    type Output = Object;
+
+    fn not(self) -> Self::Output {
+        self.clone().not()
+    }
+}
+
+impl std::ops::Shl for &Object {
+    type Output = Object;
+
+    fn shl(self, rhs: Self) -> Self::Output {
+        arithmetic_operator_ref!(self, rhs, <<, Int)
+    }
+}
+
+impl std::ops::Shr for &Object {
+    type Output = Object;
+
+    fn shr(self, rhs: Self) -> Self::Output {
+        arithmetic_operator_ref!(self, rhs, >>, Int)
+    }
+}
+
+impl std::ops::BitAnd for &Object {
+    type Output = Object;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        arithmetic_operator_ref!(self, rhs, &, Int)
+    }
+}
+
+impl std::ops::BitOr for &Object {
+    type Output = Object;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        arithmetic_operator_ref!(self, rhs, |, Int)
+    }
+}
+
+impl std::ops::BitXor for &Object {
+    type Output = Object;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        arithmetic_operator_ref!(self, rhs, ^, Int)
     }
 }
