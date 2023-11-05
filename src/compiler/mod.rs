@@ -267,8 +267,7 @@ impl Compiler {
                     self.emit(code::Op::GetGlobal, &[symbol.index]);
 
                     self.compile_expression(expr)?;
-                    let symbol = self.symbol_table.define(ident.0.clone());
-                    self.emit(code::Op::SetGlobal, &[symbol.index]);
+                    self.emit_set(&symbol);
                 }
                 ast::Assign::PlusEq => {
                     let symbol = self

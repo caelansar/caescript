@@ -930,4 +930,39 @@ mod test {
         ];
         tests.into_iter().for_each(|test| run(test.0, test.1));
     }
+
+    #[test]
+    fn test_fix_issue() {
+        let tests = [(
+            r#"
+            fn f(n, n1) {
+                for (true) {
+                    if(n == 0) {
+                        return n1;
+                    }
+                    n = n - 1;
+                    n1 += 1;
+              }
+            }
+
+            f(10, 0)
+            "#,
+            Some(object::Object::Int(10)),
+            r#"
+            fn f(n, n1) {
+                for (true) {
+                    if(n == 0) {
+                        return n1;
+                    }
+                    n -= 1;
+                    n1 += 1;
+              }
+            }
+
+            f(10, 0)
+            "#,
+            Some(object::Object::Int(10)),
+        )];
+        tests.into_iter().for_each(|test| run(test.0, test.1));
+    }
 }
