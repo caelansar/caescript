@@ -122,7 +122,7 @@ impl Evaluator {
                     Some(Object::Int(i)) => Object::Int(i),
                     Some(Object::String(s)) => Object::String(s),
                     Some(Object::Bool(b)) => Object::Bool(b),
-                    Some(_) => todo!(),
+                    Some(_) => panic!("unsupported type"),
                     None => return None,
                 };
                 hash.get(&key).cloned().or(Some(Object::Null))
@@ -137,8 +137,6 @@ impl Evaluator {
         ident: &ast::Ident,
         expr: &ast::Expression,
     ) -> Option<Object> {
-        let val: Object;
-
         let ast::Ident(ident) = ident;
 
         let curr = match self.env.borrow().get(ident.as_str()) {
@@ -154,18 +152,14 @@ impl Evaluator {
             Some(val) => val,
             None => return None,
         };
-        match op {
-            ast::Assign::Assign => val = exp_val,
-            ast::Assign::PlusEq => val = curr + exp_val,
-            ast::Assign::MinusEq => val = curr - exp_val,
-            ast::Assign::MultiplyEq => val = curr * exp_val,
-            ast::Assign::DivideEq => val = curr / exp_val,
-            ast::Assign::ModEq => val = curr % exp_val,
-        }
-
-        if let Object::Null = val {
-            todo!("invalid op")
-        }
+        let val = match op {
+            ast::Assign::Assign => exp_val,
+            ast::Assign::PlusEq => &curr + &exp_val,
+            ast::Assign::MinusEq => &curr - &exp_val,
+            ast::Assign::MultiplyEq => &curr * &exp_val,
+            ast::Assign::DivideEq => &curr / &exp_val,
+            ast::Assign::ModEq => &curr % &exp_val,
+        };
 
         self.env.borrow_mut().set(ident.clone(), val);
         None
@@ -176,7 +170,7 @@ impl Evaluator {
             ast::Expression::Literal(lit) => self.eval_literal(lit),
             ast::Expression::Prefix(prefix, rhs) => {
                 if let Some(obj) = self.eval_expression(rhs) {
-                    self.eval_prefix_expression(prefix, obj)
+                    self.eval_prefix_expression(prefix, &obj)
                 } else {
                     None
                 }
@@ -319,7 +313,7 @@ impl Evaluator {
     }
 
     #[inline]
-    fn eval_prefix_expression(&self, prefix: &ast::Prefix, obj: Object) -> Option<Object> {
+    fn eval_prefix_expression(&self, prefix: &ast::Prefix, obj: &Object) -> Option<Object> {
         match prefix {
             ast::Prefix::Minus => Some(-obj),
             ast::Prefix::Not => Some(!obj),
@@ -334,11 +328,11 @@ impl Evaluator {
     ) -> Option<Object> {
         match (&lhs, &rhs) {
             (Object::Int(l), Object::Int(r)) => match infix {
-                ast::Infix::Plus => Some(lhs + rhs),
-                ast::Infix::Minus => Some(lhs - rhs),
-                ast::Infix::Divide => Some(lhs / rhs),
-                ast::Infix::Multiply => Some(lhs * rhs),
-                ast::Infix::Mod => Some(lhs % rhs),
+                ast::Infix::Plus => Some(&lhs + &rhs),
+                ast::Infix::Minus => Some(&lhs - &rhs),
+                ast::Infix::Divide => Some(&lhs / &rhs),
+                ast::Infix::Multiply => Some(&lhs * &rhs),
+                ast::Infix::Mod => Some(&lhs % &rhs),
                 ast::Infix::Eq => Some((l == r).into()),
                 ast::Infix::Ne => Some((l != r).into()),
                 ast::Infix::Gt => Some((l > r).into()),
@@ -354,11 +348,11 @@ impl Evaluator {
                 ast::Infix::BitXor => Some(lhs ^ rhs),
             },
             (Object::Float(l), Object::Float(r)) => match infix {
-                ast::Infix::Plus => Some(lhs + rhs),
-                ast::Infix::Minus => Some(lhs - rhs),
-                ast::Infix::Divide => Some(lhs / rhs),
-                ast::Infix::Multiply => Some(lhs * rhs),
-                ast::Infix::Mod => Some(lhs % rhs),
+                ast::Infix::Plus => Some(&lhs + &rhs),
+                ast::Infix::Minus => Some(&lhs - &rhs),
+                ast::Infix::Divide => Some(&lhs / &rhs),
+                ast::Infix::Multiply => Some(&lhs * &rhs),
+                ast::Infix::Mod => Some(&lhs % &rhs),
                 ast::Infix::Eq => Some(Object::Bool(l == r)),
                 ast::Infix::Ne => Some(Object::Bool(l != r)),
                 ast::Infix::Gt => Some(Object::Bool(l > r)),

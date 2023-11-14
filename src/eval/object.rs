@@ -131,7 +131,7 @@ impl std::hash::Hash for Object {
             Object::Int(i) => i.hash(state),
             Object::String(s) => s.0.hash(state),
             Object::Bool(b) => b.hash(state),
-            _ => panic!("unsupport type"),
+            _ => panic!("unsupported type"),
         }
     }
 }
@@ -201,16 +201,16 @@ fn object_display_should_work() {
 fn object_arithmetic_should_work() {
     assert_eq!(
         Object::Error("type mismatch: 123 + 1.1".into()),
-        Object::Int(123) + Object::Float(1.1)
+        &Object::Int(123) + &Object::Float(1.1)
     );
-    assert_eq!(Object::Int(124), Object::Int(123) + Object::Int(1));
+    assert_eq!(Object::Int(124), &Object::Int(123) + &Object::Int(1));
     assert_eq!(
         Object::String("12".into()),
-        Object::String("1".into()) + Object::String("2".into())
+        &Object::String("1".into()) + &Object::String("2".into())
     );
     assert_eq!(
         Object::Error("unknown operator + for Array([])".into()),
-        Object::Array(Vec::new()) + Object::Array(Vec::new())
+        &Object::Array(Vec::new()) + &Object::Array(Vec::new())
     );
-    assert_eq!(Object::Int(1), Object::Int(1) % Object::Int(2));
+    assert_eq!(Object::Int(1), &Object::Int(1) % &Object::Int(2));
 }

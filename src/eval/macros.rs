@@ -83,46 +83,6 @@ impl std::ops::BitXor for Object {
     }
 }
 
-impl std::ops::Add for Object {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, +, Int, Float, String)
-    }
-}
-
-impl std::ops::Sub for Object {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, -, Int, Float)
-    }
-}
-
-impl std::ops::Mul for Object {
-    type Output = Self;
-
-    fn mul(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, *, Int, Float)
-    }
-}
-
-impl std::ops::Div for Object {
-    type Output = Self;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, /, Int, Float)
-    }
-}
-
-impl std::ops::Rem for Object {
-    type Output = Self;
-
-    fn rem(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, %, Int, Float)
-    }
-}
-
 impl std::ops::Add for &Object {
     type Output = Object;
 
@@ -163,27 +123,15 @@ impl std::ops::Rem for &Object {
     }
 }
 
-impl std::ops::Not for Object {
-    type Output = Self;
+impl std::ops::Not for &Object {
+    type Output = Object;
 
     fn not(self) -> Self::Output {
         match self {
             Object::Bool(b) => (!b).into(),
             Object::Null => BOOL_OBJ_TRUE,
-            Object::Int(i) => Object::Int(!i),
+            Object::Int(i) => Object::Int(!*i),
             _ => BOOL_OBJ_FALSE,
-        }
-    }
-}
-
-impl std::ops::Neg for Object {
-    type Output = Self;
-
-    fn neg(self) -> Self::Output {
-        match self {
-            Object::Int(i) => Object::Int(-i),
-            Object::Float(f) => Object::Float(-f),
-            _ => Object::Error(format!("unknown operator: -{}", self)),
         }
     }
 }
@@ -192,15 +140,11 @@ impl std::ops::Neg for &Object {
     type Output = Object;
 
     fn neg(self) -> Self::Output {
-        self.clone().neg()
-    }
-}
-
-impl std::ops::Not for &Object {
-    type Output = Object;
-
-    fn not(self) -> Self::Output {
-        self.clone().not()
+        match self {
+            Object::Int(i) => Object::Int(-*i),
+            Object::Float(f) => Object::Float(-*f),
+            _ => Object::Error(format!("unknown operator: -{}", self)),
+        }
     }
 }
 
