@@ -178,7 +178,7 @@ impl Evaluator {
             ast::Expression::Infix(infix, lhs, rhs) => {
                 let lhs = self.eval_expression(lhs)?;
                 let rhs = self.eval_expression(rhs)?;
-                self.eval_infix_expression(infix, lhs, rhs)
+                self.eval_infix_expression(infix, &lhs, &rhs)
             }
             ast::Expression::If {
                 condition,
@@ -323,16 +323,16 @@ impl Evaluator {
     fn eval_infix_expression(
         &self,
         infix: &ast::Infix,
-        lhs: Object,
-        rhs: Object,
+        lhs: &Object,
+        rhs: &Object,
     ) -> Option<Object> {
-        match (&lhs, &rhs) {
+        match (lhs, rhs) {
             (Object::Int(l), Object::Int(r)) => match infix {
-                ast::Infix::Plus => Some(&lhs + &rhs),
-                ast::Infix::Minus => Some(&lhs - &rhs),
-                ast::Infix::Divide => Some(&lhs / &rhs),
-                ast::Infix::Multiply => Some(&lhs * &rhs),
-                ast::Infix::Mod => Some(&lhs % &rhs),
+                ast::Infix::Plus => Some(lhs + rhs),
+                ast::Infix::Minus => Some(lhs - rhs),
+                ast::Infix::Divide => Some(lhs / rhs),
+                ast::Infix::Multiply => Some(lhs * rhs),
+                ast::Infix::Mod => Some(lhs % rhs),
                 ast::Infix::Eq => Some((l == r).into()),
                 ast::Infix::Ne => Some((l != r).into()),
                 ast::Infix::Gt => Some((l > r).into()),
@@ -348,11 +348,11 @@ impl Evaluator {
                 ast::Infix::BitXor => Some(lhs ^ rhs),
             },
             (Object::Float(l), Object::Float(r)) => match infix {
-                ast::Infix::Plus => Some(&lhs + &rhs),
-                ast::Infix::Minus => Some(&lhs - &rhs),
-                ast::Infix::Divide => Some(&lhs / &rhs),
-                ast::Infix::Multiply => Some(&lhs * &rhs),
-                ast::Infix::Mod => Some(&lhs % &rhs),
+                ast::Infix::Plus => Some(lhs + rhs),
+                ast::Infix::Minus => Some(lhs - rhs),
+                ast::Infix::Divide => Some(lhs / rhs),
+                ast::Infix::Multiply => Some(lhs * rhs),
+                ast::Infix::Mod => Some(lhs % rhs),
                 ast::Infix::Eq => Some(Object::Bool(l == r)),
                 ast::Infix::Ne => Some(Object::Bool(l != r)),
                 ast::Infix::Gt => Some(Object::Bool(l > r)),

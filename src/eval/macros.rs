@@ -1,6 +1,7 @@
 use super::object::Object;
 use crate::eval::object::{BOOL_OBJ_FALSE, BOOL_OBJ_TRUE};
 
+#[allow(unused_macros)]
 macro_rules! arithmetic_operator {
     ($l:expr, $r:expr, $op:tt, $($t:ident),*) => {
         match $l {
@@ -41,46 +42,6 @@ macro_rules! map {
         use std::iter::{Iterator, IntoIterator};
         Iterator::collect(IntoIterator::into_iter([$(($k, $v),)*]))
     }};
-}
-
-impl std::ops::Shl for Object {
-    type Output = Self;
-
-    fn shl(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, <<, Int)
-    }
-}
-
-impl std::ops::Shr for Object {
-    type Output = Self;
-
-    fn shr(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, >>, Int)
-    }
-}
-
-impl std::ops::BitAnd for Object {
-    type Output = Self;
-
-    fn bitand(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, &, Int)
-    }
-}
-
-impl std::ops::BitOr for Object {
-    type Output = Self;
-
-    fn bitor(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, |, Int)
-    }
-}
-
-impl std::ops::BitXor for Object {
-    type Output = Self;
-
-    fn bitxor(self, rhs: Self) -> Self::Output {
-        arithmetic_operator!(self, rhs, ^, Int)
-    }
 }
 
 impl std::ops::Add for &Object {
