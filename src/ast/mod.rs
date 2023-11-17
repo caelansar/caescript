@@ -132,6 +132,8 @@ pub enum Assign {
     DivideEq,
     MultiplyEq,
     ModEq,
+    ShlAssign,
+    ShrAssign,
 }
 
 impl TryFrom<&token::Token> for Assign {
@@ -145,6 +147,8 @@ impl TryFrom<&token::Token> for Assign {
             token::Token::SlashEq => Ok(Assign::DivideEq),
             token::Token::ModEq => Ok(Assign::ModEq),
             token::Token::AsteriskEq => Ok(Assign::MultiplyEq),
+            token::Token::LeftShiftEq => Ok(Assign::ShlAssign),
+            token::Token::RightShiftEq => Ok(Assign::ShrAssign),
             _ => Err("invalid token"),
         }
     }
@@ -159,6 +163,8 @@ impl fmt::Display for Assign {
             Assign::DivideEq => write!(f, "/="),
             Assign::MultiplyEq => write!(f, "*="),
             Assign::ModEq => write!(f, "%="),
+            Assign::ShlAssign => write!(f, "<<="),
+            Assign::ShrAssign => write!(f, ">>="),
         }
     }
 }

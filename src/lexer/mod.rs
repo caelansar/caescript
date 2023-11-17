@@ -119,8 +119,13 @@ impl<'a> Lexer<'a> {
                         Token::GtEq
                     }
                     Some('>') => {
-                        self.read_char();
-                        Token::RightShift
+                        if let Some('=') = self.peek_char() {
+                            self.read_char();
+                            Token::RightShiftEq
+                        } else {
+                            self.read_char();
+                            Token::RightShift
+                        }
                     }
                     _ => Token::Gt,
                 },
@@ -130,8 +135,13 @@ impl<'a> Lexer<'a> {
                         Token::LtEq
                     }
                     Some('<') => {
-                        self.read_char();
-                        Token::LeftShift
+                        if let Some('=') = self.peek_char() {
+                            self.read_char();
+                            Token::LeftShiftEq
+                        } else {
+                            self.read_char();
+                            Token::LeftShift
+                        }
                     }
                     _ => Token::Lt,
                 },
