@@ -265,68 +265,52 @@ impl Compiler {
                     .ok_or_else(|| anyhow!("undefined variable {}", &ident.0))?;
                 match assign {
                     ast::Assign::Assign => {
-                        self.emit(code::Op::GetGlobal, &[symbol.index]);
-
                         self.compile_expression(expr)?;
-                        self.emit_set(&symbol);
                     }
                     ast::Assign::PlusEq => {
                         self.emit_get(&symbol);
 
                         self.compile_expression(expr)?;
                         self.emit(code::Op::Add, &[]);
-
-                        self.emit_set(&symbol);
                     }
                     ast::Assign::MinusEq => {
                         self.emit_get(&symbol);
 
                         self.compile_expression(expr)?;
                         self.emit(code::Op::Sub, &[]);
-
-                        self.emit_set(&symbol);
                     }
                     ast::Assign::MultiplyEq => {
                         self.emit_get(&symbol);
 
                         self.compile_expression(expr)?;
                         self.emit(code::Op::Mul, &[]);
-
-                        self.emit_set(&symbol);
                     }
                     ast::Assign::DivideEq => {
                         self.emit_get(&symbol);
 
                         self.compile_expression(expr)?;
                         self.emit(code::Op::Div, &[]);
-
-                        self.emit_set(&symbol);
                     }
                     ast::Assign::ModEq => {
                         self.emit_get(&symbol);
 
                         self.compile_expression(expr)?;
                         self.emit(code::Op::Mod, &[]);
-
-                        self.emit_set(&symbol);
                     }
                     ast::Assign::ShrAssign => {
                         self.emit_get(&symbol);
 
                         self.compile_expression(expr)?;
                         self.emit(code::Op::RightShift, &[]);
-
-                        self.emit_set(&symbol);
                     }
                     ast::Assign::ShlAssign => {
                         self.emit_get(&symbol);
 
                         self.compile_expression(expr)?;
                         self.emit(code::Op::LeftShift, &[]);
-
-                        self.emit_set(&symbol);
                     }
                 }
+                self.emit_set(&symbol);
             }
             ast::Expression::Array(elems) => {
                 elems
