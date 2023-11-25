@@ -71,7 +71,7 @@ impl Evaluator {
             None => return None,
         };
         let ast::Ident(ident) = ident;
-        self.env.borrow_mut().set(ident.clone(), val);
+        self.env.borrow_mut().set_self(ident.clone(), val);
         None
     }
 
@@ -930,5 +930,22 @@ mod test {
                 test.0, test.1, obj
             );
         })
+    }
+
+    #[test]
+    fn global_variable_should_not_be_overridden() {
+        let test = r#"
+        let a = 100;
+        fn func() {
+        let a = 10;
+        }
+
+
+        func();
+        a
+        "#;
+
+        let obj = eval(test);
+        assert_eq!(Some(Object::Int(100)), obj,);
     }
 }
