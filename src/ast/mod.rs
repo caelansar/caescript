@@ -134,6 +134,9 @@ pub enum Assign {
     ModEq,
     ShlAssign,
     ShrAssign,
+    BitAndAssign,
+    BitOrAssign,
+    BitXorAssign,
 }
 
 impl TryFrom<&token::Token> for Assign {
@@ -149,6 +152,9 @@ impl TryFrom<&token::Token> for Assign {
             token::Token::AsteriskEq => Ok(Assign::MultiplyEq),
             token::Token::LeftShiftEq => Ok(Assign::ShlAssign),
             token::Token::RightShiftEq => Ok(Assign::ShrAssign),
+            token::Token::BitOrEq => Ok(Assign::BitOrAssign),
+            token::Token::BitAndEq => Ok(Assign::BitAndAssign),
+            token::Token::BitXorEq => Ok(Assign::BitXorAssign),
             _ => Err("invalid token"),
         }
     }
@@ -165,6 +171,9 @@ impl fmt::Display for Assign {
             Assign::ModEq => write!(f, "%="),
             Assign::ShlAssign => write!(f, "<<="),
             Assign::ShrAssign => write!(f, ">>="),
+            Assign::BitAndAssign => write!(f, "&="),
+            Assign::BitOrAssign => write!(f, "|="),
+            Assign::BitXorAssign => write!(f, "^="),
         }
     }
 }

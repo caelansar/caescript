@@ -36,6 +36,11 @@ impl From<&token::Token> for Precedence {
             token::Token::AsteriskEq => Precedence::Assign,
             token::Token::SlashEq => Precedence::Assign,
             token::Token::ModEq => Precedence::Assign,
+            token::Token::RightShiftEq => Precedence::Assign,
+            token::Token::LeftShiftEq => Precedence::Assign,
+            token::Token::BitOrEq => Precedence::Assign,
+            token::Token::BitXorEq => Precedence::Assign,
+            token::Token::BitAndEq => Precedence::Assign,
             token::Token::Ne => Precedence::Equals,
             token::Token::Lt => Precedence::LessGreater,
             token::Token::Gt => Precedence::LessGreater,
@@ -173,6 +178,11 @@ impl<'a> Parser<'a> {
             token::Token::SlashEq=> parse_assign,
             token::Token::ModEq=> parse_assign,
             token::Token::Lbracket=> parse_index,
+            token::Token::BitOrEq=> parse_assign,
+            token::Token::BitAndEq=> parse_assign,
+            token::Token::BitXorEq=> parse_assign,
+            token::Token::LeftShiftEq=> parse_assign,
+            token::Token::RightShiftEq=> parse_assign,
         });
     }
 

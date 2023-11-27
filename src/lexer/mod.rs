@@ -119,11 +119,11 @@ impl<'a> Lexer<'a> {
                         Token::GtEq
                     }
                     Some('>') => {
+                        self.read_char();
                         if let Some('=') = self.peek_char() {
                             self.read_char();
                             Token::RightShiftEq
                         } else {
-                            self.read_char();
                             Token::RightShift
                         }
                     }
@@ -135,11 +135,11 @@ impl<'a> Lexer<'a> {
                         Token::LtEq
                     }
                     Some('<') => {
+                        self.read_char();
                         if let Some('=') = self.peek_char() {
                             self.read_char();
                             Token::LeftShiftEq
                         } else {
-                            self.read_char();
                             Token::LeftShift
                         }
                     }
@@ -189,23 +189,36 @@ impl<'a> Lexer<'a> {
                         Token::Mod
                     }
                 }
-                '&' => {
-                    if let Some('&') = self.peek_char() {
+                '&' => match self.peek_char() {
+                    Some('&') => {
                         self.read_char();
                         Token::And
-                    } else {
-                        Token::BitAnd
                     }
-                }
-                '|' => {
-                    if let Some('|') = self.peek_char() {
+                    Some('=') => {
+                        self.read_char();
+                        Token::BitAndEq
+                    }
+                    _ => Token::BitAnd,
+                },
+                '|' => match self.peek_char() {
+                    Some('|') => {
                         self.read_char();
                         Token::Or
-                    } else {
-                        Token::BitOr
                     }
-                }
-                ',' | ';' | ':' | '(' | ')' | '{' | '}' | '[' | ']' | '^' => {
+                    Some('=') => {
+                        self.read_char();
+                        Token::BitOrEq
+                    }
+                    _ => Token::BitOr,
+                },
+                '^' => match self.peek_char() {
+                    Some('=') => {
+                        self.read_char();
+                        Token::BitXorEq
+                    }
+                    _ => Token::BitXor,
+                },
+                ',' | ';' | ':' | '(' | ')' | '{' | '}' | '[' | ']' => {
                     Token::from_str(token.to_string().as_str()).unwrap()
                 }
                 _ => {

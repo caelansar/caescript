@@ -309,6 +309,24 @@ impl Compiler {
                         self.compile_expression(expr)?;
                         self.emit(code::Op::LeftShift, &[]);
                     }
+                    ast::Assign::BitOrAssign => {
+                        self.emit_get(&symbol);
+
+                        self.compile_expression(expr)?;
+                        self.emit(code::Op::BitOr, &[]);
+                    }
+                    ast::Assign::BitAndAssign => {
+                        self.emit_get(&symbol);
+
+                        self.compile_expression(expr)?;
+                        self.emit(code::Op::BitAnd, &[]);
+                    }
+                    ast::Assign::BitXorAssign => {
+                        self.emit_get(&symbol);
+
+                        self.compile_expression(expr)?;
+                        self.emit(code::Op::BitXor, &[]);
+                    }
                 }
                 self.emit_set(&symbol);
             }

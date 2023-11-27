@@ -161,6 +161,9 @@ impl Evaluator {
             ast::Assign::ModEq => &curr % &exp_val,
             ast::Assign::ShlAssign => &curr << &exp_val,
             ast::Assign::ShrAssign => &curr >> &exp_val,
+            ast::Assign::BitAndAssign => &curr & &exp_val,
+            ast::Assign::BitOrAssign => &curr | &exp_val,
+            ast::Assign::BitXorAssign => &curr ^ &exp_val,
         };
 
         self.env.borrow_mut().set(ident.clone(), val);

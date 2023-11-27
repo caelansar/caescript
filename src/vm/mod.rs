@@ -559,6 +559,11 @@ mod test {
             ("1 << 2", Some(object::Object::Int(4))),
             ("4 >> 2", Some(object::Object::Int(1))),
             ("null", Some(object::Object::Null)),
+            ("10 | 2", Some(object::Object::Int(10))),
+            ("10 ^ 2", Some(object::Object::Int(8))),
+            ("10 & 2", Some(object::Object::Int(2))),
+            ("10 << 2", Some(object::Object::Int(40))),
+            ("10 >> 2", Some(object::Object::Int(2))),
         ];
 
         tests.into_iter().for_each(|test| run(test.0, test.1))
@@ -591,6 +596,11 @@ mod test {
             ("let a = 10 + 2; a *= 1+1; a", Some(object::Object::Int(24))),
             ("let a = 10 + 2; a -= 2; a", Some(object::Object::Int(10))),
             ("let a = 10 + 2; a %= 2; a", Some(object::Object::Int(0))),
+            ("let a = 10; a |= 2; a", Some(object::Object::Int(10))),
+            ("let a = 10; a ^= 2; a", Some(object::Object::Int(8))),
+            ("let a = 10; a &= 2; a", Some(object::Object::Int(2))),
+            ("let a = 10; a <<= 2; a", Some(object::Object::Int(40))),
+            ("let a = 10; a >>= 2; a", Some(object::Object::Int(2))),
         ];
         tests.into_iter().for_each(|test| run(test.0, test.1))
     }

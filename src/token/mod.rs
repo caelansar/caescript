@@ -54,8 +54,11 @@ pub enum Token {
     RightShift,
     RightShiftEq,
     BitAnd,
+    BitAndEq,
     BitOr,
+    BitOrEq,
     BitXor,
+    BitXorEq,
     Null,
 }
 
@@ -174,8 +177,11 @@ impl fmt::Display for Token {
             Token::RightShift => write!(f, ">>"),
             Token::RightShiftEq => write!(f, ">>="),
             Token::BitAnd => write!(f, "&"),
+            Token::BitAndEq => write!(f, "&="),
             Token::BitOr => write!(f, "|"),
+            Token::BitOrEq => write!(f, "|="),
             Token::BitXor => write!(f, "^"),
+            Token::BitXorEq => write!(f, "^="),
             Token::Eof => write!(f, "EOF"),
         }
     }
