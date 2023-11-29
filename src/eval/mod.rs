@@ -66,10 +66,7 @@ impl Evaluator {
     }
 
     fn eval_let(&mut self, ident: &ast::Ident, expr: &ast::Expression) -> Option<Object> {
-        let val = match self.eval_expression(expr) {
-            Some(val) => val,
-            None => return None,
-        };
+        let val = self.eval_expression(expr)?;
         let ast::Ident(ident) = ident;
         self.env.borrow_mut().set_self(ident.clone(), val);
         None
@@ -104,10 +101,7 @@ impl Evaluator {
     }
 
     fn eval_index(&mut self, lhs: &ast::Expression, idx: &ast::Expression) -> Option<Object> {
-        let obj = match self.eval_expression(lhs) {
-            Some(obj) => obj,
-            None => return None,
-        };
+        let obj = self.eval_expression(lhs)?;
         match obj {
             Object::Array(elements) => {
                 let idx = match self.eval_expression(idx) {
@@ -148,10 +142,8 @@ impl Evaluator {
                 )));
             }
         };
-        let exp_val = match self.eval_expression(expr) {
-            Some(val) => val,
-            None => return None,
-        };
+        let exp_val = self.eval_expression(expr)?;
+
         let val = match op {
             ast::Assign::Assign => exp_val,
             ast::Assign::PlusEq => &curr + &exp_val,
@@ -296,10 +288,7 @@ impl Evaluator {
     ) -> Option<Object> {
         let mut rv = Some(Object::Null);
 
-        let mut cond = match self.eval_expression(condition) {
-            Some(o) => o,
-            None => return None,
-        };
+        let mut cond = self.eval_expression(condition)?;
 
         while cond.clone().into() {
             rv = self.eval_block_statements(consequence);
@@ -309,10 +298,7 @@ impl Evaluator {
                 Some(Object::Break) => break,
                 _ => (),
             }
-            cond = match self.eval_expression(condition) {
-                Some(o) => o,
-                None => return None,
-            };
+            cond = self.eval_expression(condition)?;
         }
         rv
     }
