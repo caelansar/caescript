@@ -104,24 +104,22 @@ impl Evaluator {
         let obj = self.eval_expression(lhs)?;
         match obj {
             Object::Array(elements) => {
-                let idx = match self.eval_expression(idx) {
-                    Some(Object::Int(i)) => i,
-                    Some(_) => todo!(),
-                    None => return None,
+                let idx = match self.eval_expression(idx)? {
+                    Object::Int(i) => i,
+                    _ => return Some(Object::Error("invalid array index".to_string())),
                 };
                 elements.get(idx as usize).cloned().or(Some(Object::Null))
             }
             Object::Hash(hash) => {
-                let key = match self.eval_expression(idx) {
-                    Some(Object::Int(i)) => Object::Int(i),
-                    Some(Object::String(s)) => Object::String(s),
-                    Some(Object::Bool(b)) => Object::Bool(b),
-                    Some(_) => panic!("unsupported type"),
-                    None => return None,
+                let key = match self.eval_expression(idx)? {
+                    Object::Int(i) => Object::Int(i),
+                    Object::String(s) => Object::String(s),
+                    Object::Bool(b) => Object::Bool(b),
+                    _ => return Some(Object::Error("invalid hash key".to_string())),
                 };
                 hash.get(&key).cloned().or(Some(Object::Null))
             }
-            _ => todo!(),
+            _ => Some(Object::Error(format!("unsupported type {} to index", obj))),
         }
     }
 
@@ -166,11 +164,8 @@ impl Evaluator {
         match expr {
             ast::Expression::Literal(lit) => self.eval_literal(lit),
             ast::Expression::Prefix(prefix, rhs) => {
-                if let Some(obj) = self.eval_expression(rhs) {
-                    self.eval_prefix_expression(prefix, &obj)
-                } else {
-                    None
-                }
+                let obj = self.eval_expression(rhs)?;
+                self.eval_prefix_expression(prefix, &obj)
             }
             ast::Expression::Infix(infix, lhs, rhs) => {
                 let lhs = self.eval_expression(lhs)?;
@@ -182,11 +177,8 @@ impl Evaluator {
                 consequence,
                 alternative,
             } => {
-                if let Some(cond) = self.eval_expression(condition) {
-                    self.eval_if_expression(cond, consequence, alternative)
-                } else {
-                    None
-                }
+                let cond = self.eval_expression(condition)?;
+                self.eval_if_expression(cond, consequence, alternative)
             }
             ast::Expression::For {
                 condition,
@@ -203,11 +195,8 @@ impl Evaluator {
                 self.env.clone(),
             )),
             ast::Expression::Call { func, args } => {
-                if let Some(obj) = self.eval_expression(func) {
-                    self.eval_function_call(obj, args)
-                } else {
-                    None
-                }
+                let obj = self.eval_expression(func)?;
+                self.eval_function_call(obj, args)
             }
             ast::Expression::Assign(op, ident, expr) => self.eval_assign(op, ident, expr),
             ast::Expression::Array(elements) => self.eval_array(elements.clone()),
@@ -237,12 +226,12 @@ impl Evaluator {
             Object::Builtin(f) => return Some(f.call(args)),
             _ => {
                 println!("{}", func);
-                todo!()
+                return Some(Object::Error(format!("{} is not a function", func)));
             }
         };
 
         if params.len() != args.len() {
-            todo!()
+            return Some(Object::Error("invalid args number".to_string()));
         }
 
         let current_env = self.env.clone();
