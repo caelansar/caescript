@@ -65,11 +65,18 @@ impl Evaluator {
         }
     }
 
-    fn eval_let(&mut self, ident: &ast::Ident, expr: &ast::Expression) -> Option<Object> {
-        let val = self.eval_expression(expr)?;
-        let ast::Ident(ident) = ident;
-        self.env.borrow_mut().set_self(ident.clone(), val);
-        None
+    fn eval_let(
+        &mut self,
+        ast::Ident(ident): &ast::Ident,
+        expr: &ast::Expression,
+    ) -> Option<Object> {
+        let rv = self.eval_expression(expr)?;
+        if let Object::Error(r) = rv {
+            Some(Object::Error(r))
+        } else {
+            self.env.borrow_mut().set_self(ident.clone(), rv);
+            None
+        }
     }
 
     fn eval_array(&mut self, elements: Vec<ast::Expression>) -> Option<Object> {
@@ -83,19 +90,17 @@ impl Evaluator {
 
     fn eval_hash(&mut self, hash: Vec<(ast::Expression, ast::Expression)>) -> Option<Object> {
         let mut h = HashMap::new();
-        hash.iter()
-            .map(|(k, v)| {
-                (
-                    self.eval_expression(k).unwrap_or(Object::Null),
-                    self.eval_expression(v).unwrap_or(Object::Null),
-                )
-            })
-            .for_each(|(k, v)| {
-                match k {
-                    Object::Int(_) | Object::String(_) | Object::Bool(_) => h.insert(k, v),
-                    _ => todo!(),
-                };
-            });
+        for (k, v) in hash.iter().map(|(k, v)| {
+            (
+                self.eval_expression(k).unwrap_or(Object::Null),
+                self.eval_expression(v).unwrap_or(Object::Null),
+            )
+        }) {
+            match k {
+                Object::Int(_) | Object::String(_) | Object::Bool(_) => h.insert(k, v),
+                _ => return Some(Object::Error(format!("invalid hash key {}", k))),
+            };
+        }
 
         Some(Object::Hash(h))
     }

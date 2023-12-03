@@ -620,7 +620,7 @@ impl<'a> Parser<'a> {
         let idx = self.parse_expression(Precedence::Lowest)?;
 
         if !self.expect_next(&token::Token::Rbracket) {
-            todo!()
+            return None;
         }
 
         Some(ast::Expression::Index(

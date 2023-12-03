@@ -173,7 +173,10 @@ impl<'a> VM<'a> {
                         (object::Object::Float(l), object::Object::Float(r)) => {
                             self.push(Rc::new((l > r).into()));
                         }
-                        _ => todo!(),
+                        _ => self.push(Rc::new(object::Object::Error(format!(
+                            "> not supported between '{}' and '{}'",
+                            l, r
+                        )))),
                     }
                 }
                 code::Op::GtEq => {
@@ -186,7 +189,10 @@ impl<'a> VM<'a> {
                         (object::Object::Float(l), object::Object::Float(r)) => {
                             self.push(Rc::new((l >= r).into()));
                         }
-                        _ => todo!(),
+                        _ => self.push(Rc::new(object::Object::Error(format!(
+                            ">= not supported between '{}' and '{}'",
+                            l, r
+                        )))),
                     }
                 }
                 code::Op::Minus => {
@@ -200,7 +206,10 @@ impl<'a> VM<'a> {
                         (object::Object::Bool(l), object::Object::Bool(r)) => {
                             self.push(Rc::new((*l && *r).into()));
                         }
-                        _ => todo!(),
+                        _ => self.push(Rc::new(object::Object::Error(format!(
+                            "&& not supported between '{}' and '{}'",
+                            l, r
+                        )))),
                     }
                 }
                 code::Op::Or => {
@@ -210,7 +219,10 @@ impl<'a> VM<'a> {
                         (object::Object::Bool(l), object::Object::Bool(r)) => {
                             self.push(Rc::new((*l || *r).into()));
                         }
-                        _ => todo!(),
+                        _ => self.push(Rc::new(object::Object::Error(format!(
+                            "|| not supported between '{}' and '{}'",
+                            l, r
+                        )))),
                     }
                 }
                 code::Op::BitAnd => {
@@ -220,7 +232,10 @@ impl<'a> VM<'a> {
                         (object::Object::Int(_), object::Object::Int(_)) => {
                             self.push(Rc::new(l.as_ref() & r.as_ref()));
                         }
-                        _ => todo!(),
+                        _ => self.push(Rc::new(object::Object::Error(format!(
+                            "& not supported between '{}' and '{}'",
+                            l, r
+                        )))),
                     }
                 }
                 code::Op::BitOr => {
@@ -230,7 +245,10 @@ impl<'a> VM<'a> {
                         (object::Object::Int(_), object::Object::Int(_)) => {
                             self.push(Rc::new(l.as_ref() | r.as_ref()));
                         }
-                        _ => todo!(),
+                        _ => self.push(Rc::new(object::Object::Error(format!(
+                            "| not supported between '{}' and '{}'",
+                            l, r
+                        )))),
                     }
                 }
                 code::Op::BitXor => {
@@ -240,7 +258,10 @@ impl<'a> VM<'a> {
                         (object::Object::Int(_), object::Object::Int(_)) => {
                             self.push(Rc::new(l.as_ref() ^ r.as_ref()));
                         }
-                        _ => todo!(),
+                        _ => self.push(Rc::new(object::Object::Error(format!(
+                            "^ not supported between '{}' and '{}'",
+                            l, r
+                        )))),
                     }
                 }
                 code::Op::LeftShift => {
@@ -250,7 +271,10 @@ impl<'a> VM<'a> {
                         (object::Object::Int(_), object::Object::Int(_)) => {
                             self.push(Rc::new(l.as_ref() << r.as_ref()));
                         }
-                        _ => todo!(),
+                        _ => self.push(Rc::new(object::Object::Error(format!(
+                            "<< not supported between '{}' and '{}'",
+                            l, r
+                        )))),
                     }
                 }
                 code::Op::RightShift => {
@@ -260,7 +284,10 @@ impl<'a> VM<'a> {
                         (object::Object::Int(_), object::Object::Int(_)) => {
                             self.push(Rc::new(l.as_ref() >> r.as_ref()));
                         }
-                        _ => todo!(),
+                        _ => self.push(Rc::new(object::Object::Error(format!(
+                            ">> not supported between '{}' and '{}'",
+                            l, r
+                        )))),
                     }
                 }
                 code::Op::Not => {
