@@ -17,7 +17,7 @@ fn main() {
         println!("version: {}", VERSION);
         println!("commit: {}", COMMIT);
         println!("build date: {}", DATE);
-        return repl::repl(io::stdin().lock(), io::stdout().lock()).unwrap();
+        return repl::repl(io::stdout().lock()).unwrap();
     }
 
     if args.len() != 3 {

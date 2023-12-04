@@ -12,7 +12,7 @@ use rustyline::validate::{self, MatchingBracketValidator, Validator};
 use rustyline::{Cmd, CompletionType, Config, Context, EditMode, Editor, Helper, KeyPress};
 
 #[cfg(feature = "vm")]
-pub fn repl<R: io::BufRead, W: io::Write>(_reader: R, mut writer: W) -> io::Result<()> {
+pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
     use crate::{compiler, vm};
 
     let mut constants = vec![];
@@ -99,7 +99,7 @@ pub fn repl<R: io::BufRead, W: io::Write>(_reader: R, mut writer: W) -> io::Resu
 }
 
 #[cfg(not(feature = "vm"))]
-pub fn repl<R: io::BufRead, W: io::Write>(_reader: R, mut writer: W) -> io::Result<()> {
+pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
     use std::{cell::RefCell, rc::Rc};
 
     use crate::eval::{env::Environment, object, Evaluator};
