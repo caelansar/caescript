@@ -1,4 +1,9 @@
 # Caescript
+
+[![CI](https://github.com/caelansar/caescript/actions/workflows/build.yml/badge.svg)](https://github.com/caelansar/caescript/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/caelansar/caescript.svg)](https://github.com/caelansar/caescript/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://opensource.org/licenses/MIT)
+
 A dialect of the [Monkey programming language](https://monkeylang.org/) written in Rust, has both interpreted and compiled implementation
 
 ## What’s Monkey?
