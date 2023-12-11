@@ -34,5 +34,5 @@ jobs:
         run: cargo check --all --all-features
       - name: Lint rust sources
         run: cargo clippy --all-features -- -D warnings
-      - name: Execute rust tests
-        run: cargo nextest run --features vm
+      - name: Collect coverage data
+        run: cargo llvm-cov nextest --features vm
