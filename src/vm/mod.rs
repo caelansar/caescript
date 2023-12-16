@@ -327,7 +327,7 @@ impl<'a> VM<'a> {
                     let frame = self.current_frame_mut();
                     let idx = frame.bp + pos;
                     if idx >= self.stack.len() {
-                        self.stack.insert(idx, val)
+                        panic!("stack overflow")
                     } else {
                         self.stack[idx] = val
                     }
@@ -406,8 +406,8 @@ impl<'a> VM<'a> {
                         .expect("func not found");
                     match func.borrow() {
                         object::Object::Closure(closure) => {
-                            assert!(
-                                closure.func.num_params == num_args,
+                            assert_eq!(
+                                closure.func.num_params, num_args,
                                 "wrong number of argument"
                             );
                             let frame = frame::Frame::new(closure.clone(), self.sp - num_args);
@@ -419,7 +419,10 @@ impl<'a> VM<'a> {
                             self.sp = self.sp - num_args - 1;
                             self.push(Rc::new(builtin.call(args.to_vec())));
                         }
-                        _ => panic!("{} not a function", func),
+                        _ => self.push(Rc::new(object::Object::Error(format!(
+                            "{} not a function",
+                            func
+                        )))),
                     }
                 }
                 code::Op::GetBuiltin => {
@@ -567,8 +570,13 @@ mod test {
             ("true", Some(object::Object::Bool(true))),
             ("false", Some(object::Object::Bool(false))),
             ("1>2", Some(object::Object::Bool(false))),
+            ("1!=2", Some(object::Object::Bool(true))),
+            ("1!=1", Some(object::Object::Bool(false))),
+            ("1.0>2.0", Some(object::Object::Bool(false))),
             ("2>=2", Some(object::Object::Bool(true))),
+            ("2.0>=2.0", Some(object::Object::Bool(true))),
             ("1<2", Some(object::Object::Bool(true))),
+            ("1.0<2.0", Some(object::Object::Bool(true))),
             ("2<=2", Some(object::Object::Bool(true))),
             ("1==2", Some(object::Object::Bool(false))),
             ("1==1", Some(object::Object::Bool(true))),
@@ -591,6 +599,72 @@ mod test {
             ("10 & 2", Some(object::Object::Int(2))),
             ("10 << 2", Some(object::Object::Int(40))),
             ("10 >> 2", Some(object::Object::Int(2))),
+            (
+                "1 && 1",
+                Some(object::Object::Error(
+                    "&& not supported between '1' and '1'".into(),
+                )),
+            ),
+            (
+                "1 || 1",
+                Some(object::Object::Error(
+                    "|| not supported between '1' and '1'".into(),
+                )),
+            ),
+            (
+                "1 < 2.1",
+                Some(object::Object::Error(
+                    "> not supported between '2.1' and '1'".into(),
+                )),
+            ),
+            (
+                "1 <= 2.1",
+                Some(object::Object::Error(
+                    ">= not supported between '2.1' and '1'".into(),
+                )),
+            ),
+            (
+                "1 > 2.1",
+                Some(object::Object::Error(
+                    "> not supported between '1' and '2.1'".into(),
+                )),
+            ),
+            (
+                "1 >= 2.1",
+                Some(object::Object::Error(
+                    ">= not supported between '1' and '2.1'".into(),
+                )),
+            ),
+            (
+                "1 | 2.1",
+                Some(object::Object::Error(
+                    "| not supported between '1' and '2.1'".into(),
+                )),
+            ),
+            (
+                "1 ^ 2.1",
+                Some(object::Object::Error(
+                    "^ not supported between '1' and '2.1'".into(),
+                )),
+            ),
+            (
+                "1 & 2.1",
+                Some(object::Object::Error(
+                    "& not supported between '1' and '2.1'".into(),
+                )),
+            ),
+            (
+                "1 << 2.1",
+                Some(object::Object::Error(
+                    "<< not supported between '1' and '2.1'".into(),
+                )),
+            ),
+            (
+                "1 >> 2.1",
+                Some(object::Object::Error(
+                    ">> not supported between '1' and '2.1'".into(),
+                )),
+            ),
         ];
 
         tests.into_iter().for_each(|test| run(test.0, test.1))
@@ -711,6 +785,13 @@ mod test {
             (
                 "let r = fn() {1}; let r1 = fn() {r}; r1()()",
                 Some(object::Object::Int(1)),
+            ),
+            (
+                r#"
+                let no_function = "aa";
+                no_function()
+                "#,
+                Some(object::Object::Error("aa not a function".into())),
             ),
             (
                 r#"

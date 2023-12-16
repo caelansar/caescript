@@ -190,6 +190,15 @@ impl Display for Object {
 }
 
 #[test]
+fn cstring_should_work() {
+    let s1 = CString("aa".into());
+    let s2 = CString("bb".into());
+
+    assert_eq!(CString("aabb".into()), &s1 + &s2);
+    assert_eq!(CString("aabb".into()), s1 + s2);
+}
+
+#[test]
 fn object_display_should_work() {
     assert_eq!("123", Object::Int(123).to_string());
     assert_eq!("true", Object::Bool(true).to_string());
