@@ -183,7 +183,7 @@ impl Evaluator {
                 alternative,
             } => {
                 let cond = self.eval_expression(condition)?;
-                self.eval_if_expression(cond, consequence, alternative)
+                self.eval_if_expression(&cond, consequence, alternative)
             }
             ast::Expression::For {
                 condition,
@@ -260,7 +260,7 @@ impl Evaluator {
 
     fn eval_if_expression(
         &mut self,
-        cond: Object,
+        cond: &Object,
         consequence: &ast::BlockStatement,
         alternative: &Option<ast::BlockStatement>,
     ) -> Option<Object> {
@@ -284,7 +284,7 @@ impl Evaluator {
 
         let mut cond = self.eval_expression(condition)?;
 
-        while cond.clone().into() {
+        while (&cond).into() {
             rv = self.eval_block_statements(consequence);
             match rv {
                 Some(Object::Return(_)) => return rv,

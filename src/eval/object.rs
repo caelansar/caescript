@@ -102,16 +102,6 @@ pub struct CompiledFunction {
     pub(crate) num_params: usize,
 }
 
-impl From<Object> for bool {
-    fn from(value: Object) -> Self {
-        match value {
-            Object::Bool(b) => b,
-            Object::Null => false,
-            _ => true,
-        }
-    }
-}
-
 impl From<&Object> for bool {
     fn from(value: &Object) -> Self {
         match value {
@@ -196,6 +186,15 @@ fn cstring_should_work() {
 
     assert_eq!(CString("aabb".into()), &s1 + &s2);
     assert_eq!(CString("aabb".into()), s1 + s2);
+}
+
+#[test]
+fn object_bool_should_work() {
+    let b1 = &Object::Bool(true);
+    let b2 = &Object::Bool(false);
+
+    assert_eq!(true, b1.into());
+    assert_eq!(false, b2.into());
 }
 
 #[test]
