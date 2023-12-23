@@ -7,7 +7,6 @@ pub struct Lexer<'a> {
     pos: usize,
     next_pos: usize,
     ch: Option<char>,
-    end: bool,
 }
 
 impl<'a> Lexer<'a> {
@@ -244,23 +243,37 @@ impl<'a> Lexer<'a> {
                 }
             }
         } else {
-            self.end = true;
             Token::Eof
         };
         self.read_char();
         tok
     }
+
+    pub fn iter<'b>(&'b mut self) -> Iter<'a, 'b> {
+        Iter {
+            inner: self,
+            end: false,
+        }
+    }
 }
 
-impl<'a> Iterator for Lexer<'a> {
+pub struct Iter<'a, 'b> {
+    inner: &'b mut Lexer<'a>,
+    end: bool,
+}
+
+impl<'a, 'b> Iterator for Iter<'a, 'b> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.end {
-            None
-        } else {
-            Some(self.next_token())
+            return None;
         }
+        let token = self.inner.next_token();
+        if let Token::Eof = token {
+            self.end = true
+        }
+        Some(token)
     }
 }
 
@@ -389,7 +402,7 @@ mod test {
     #[test]
     fn test_lexer_iter() {
         let input = "let aa = 10;";
-        let lexer = Lexer::new(input);
+        let mut lexer = Lexer::new(input);
 
         let expect = vec![
             Token::Let,
@@ -399,7 +412,7 @@ mod test {
             Token::SemiColon,
             Token::Eof,
         ];
-        let res: Vec<Token> = lexer.into_iter().collect();
+        let res: Vec<Token> = lexer.iter().collect();
         assert_eq!(expect, res);
     }
 
