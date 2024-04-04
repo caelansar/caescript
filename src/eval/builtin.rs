@@ -91,7 +91,7 @@ fn push(args: Vec<Rc<Object>>) -> Object {
     }
 
     let obj = args.get(1).unwrap();
-    let arr = args.get(0).unwrap();
+    let arr = args.first().unwrap();
 
     if let Object::Array(mut arr) = (*arr.as_ref()).clone() {
         arr.push((*obj.as_ref()).clone());
@@ -106,7 +106,7 @@ fn first(args: Vec<Rc<Object>>) -> Object {
         return Object::Error(format!("invalid args number: {:?}", args));
     }
 
-    let arr = args.get(0).unwrap().clone();
+    let arr = args.first().unwrap().clone();
 
     if let Object::Array(arr) = &*arr {
         arr.first().cloned().unwrap_or(Object::Null)
@@ -120,7 +120,7 @@ fn last(args: Vec<Rc<Object>>) -> Object {
         return Object::Error("invalid args number".into());
     }
 
-    let arr = args.get(0).unwrap().clone();
+    let arr = args.first().unwrap().clone();
 
     if let Object::Array(arr) = &*arr {
         arr.last().cloned().unwrap_or(Object::Null)
@@ -134,7 +134,7 @@ fn rest(args: Vec<Rc<Object>>) -> Object {
         return Object::Error("invalid args number".into());
     }
 
-    let arr = args.get(0).unwrap().clone();
+    let arr = args.first().unwrap().clone();
 
     if let Object::Array(arr) = &*arr {
         arr.split_first()

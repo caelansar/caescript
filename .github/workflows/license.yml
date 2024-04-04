@@ -1,4 +1,4 @@
-name: Update copyright year(s) in license file
+name: update copyright year(s) in license file
 
 on: workflow_dispatch
 
@@ -11,4 +11,4 @@ jobs:
           fetch-depth: 0
       - uses: FantasticFiasco/action-update-license-year@v3
         with:
-          token: ${{ secrets.TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
