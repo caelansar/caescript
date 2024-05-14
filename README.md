@@ -19,20 +19,20 @@ reading through [Writing An Interpreter In Go](https://interpreterbook.com/) and
 ### Build from source code
 - Build release
 ```
-$ cargo build --release --bin caescript
+$ make install_eval
 ```
 - Build release using the Compiler implementation
 ```
-$ cargo build --release --features=vm  --bin caescript
+$ make install
 ```
 - Running the REPL
 ```bash
-$ ./caescript
+$ caescript
 ```
 
 - Running the Interpreter/Compiler
 ```bash
-$ ./caescript [vm/eval] examples/hello.cae
+$ caescript [vm/eval] examples/hello.cae
 ```
 
 ### With online playground

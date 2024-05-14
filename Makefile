@@ -6,6 +6,12 @@ build:
 build_eval:
 	cargo build --release --bin caescript --features=build-binary
 
+install:
+	cargo install --features=build-binary,vm --path .
+
+install_eval:
+	cargo install --features=build-binary --path .
+
 .PHONY: test
 test:
 	cargo test --all-features
