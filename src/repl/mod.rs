@@ -72,7 +72,7 @@ pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
 
                 let obj = vm.last_popped();
 
-                global = vm.global.clone();
+                global.clone_from(&vm.global);
                 constants = bytecode.consts.to_vec();
                 symbol_table = compiler.symbol_table;
 
