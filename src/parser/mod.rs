@@ -236,7 +236,7 @@ impl<'a> Parser<'a> {
     }
 
     #[inline(always)]
-    fn parse_block_statemnt(&mut self) -> ast::BlockStatement {
+    fn parse_block_statement(&mut self) -> ast::BlockStatement {
         let mut statements = Vec::new();
 
         self.next_token();
@@ -278,14 +278,14 @@ impl<'a> Parser<'a> {
             return None;
         }
 
-        let consequence = self.parse_block_statemnt();
+        let consequence = self.parse_block_statement();
 
         let mut alternative = None;
 
         if self.next_token_is(&token::Token::Else) {
             self.next_token();
             if self.expect_next(&token::Token::Lbrace) {
-                alternative = Some(self.parse_block_statemnt());
+                alternative = Some(self.parse_block_statement());
             }
         }
 
@@ -316,7 +316,7 @@ impl<'a> Parser<'a> {
             return None;
         }
 
-        let consequence = self.parse_block_statemnt();
+        let consequence = self.parse_block_statement();
 
         Some(ast::Expression::For {
             condition: Box::new(condition.unwrap()),
@@ -513,7 +513,7 @@ impl<'a> Parser<'a> {
             return None;
         }
 
-        let body = self.parse_block_statemnt();
+        let body = self.parse_block_statement();
 
         Some(ast::Expression::Func {
             name: None,
@@ -535,7 +535,7 @@ impl<'a> Parser<'a> {
                 return None;
             }
 
-            let body = self.parse_block_statemnt();
+            let body = self.parse_block_statement();
 
             if self.next_token_is(&token::Token::SemiColon) {
                 self.next_token();
@@ -1011,7 +1011,7 @@ mod test {
             program,
             ast::BlockStatement(vec![ast::Statement::Expression(ast::Expression::Prefix(
                 ast::Prefix::Minus,
-                Box::new(ast::Expression::Literal(ast::Literal::Int(5)))
+                Box::new(ast::Expression::Literal(ast::Literal::Int(5))),
             ))])
         );
     }
@@ -1029,7 +1029,7 @@ mod test {
             program,
             ast::BlockStatement(vec![ast::Statement::Expression(ast::Expression::Prefix(
                 ast::Prefix::Not,
-                Box::new(ast::Expression::Literal(ast::Literal::Bool(true)))
+                Box::new(ast::Expression::Literal(ast::Literal::Bool(true))),
             ))])
         );
     }
@@ -1103,7 +1103,7 @@ mod test {
                     func: Box::new(ast::Expression::Ident(ast::Ident("add".to_string()))),
                     args: vec![
                         ast::Expression::Literal(ast::Literal::Int(1)),
-                        ast::Expression::Literal(ast::Literal::Int(2))
+                        ast::Expression::Literal(ast::Literal::Int(2)),
                     ],
                 }),
                 ast::Statement::Expression(ast::Expression::Call {
@@ -1112,13 +1112,13 @@ mod test {
                         ast::Expression::Infix(
                             ast::Infix::Plus,
                             Box::new(ast::Expression::Literal(ast::Literal::Int(1))),
-                            Box::new(ast::Expression::Literal(ast::Literal::Int(2)))
+                            Box::new(ast::Expression::Literal(ast::Literal::Int(2))),
                         ),
                         ast::Expression::Infix(
                             ast::Infix::Plus,
                             Box::new(ast::Expression::Literal(ast::Literal::Int(3))),
-                            Box::new(ast::Expression::Literal(ast::Literal::Int(4)))
-                        )
+                            Box::new(ast::Expression::Literal(ast::Literal::Int(4))),
+                        ),
                     ],
                 }),
             ])
@@ -1221,7 +1221,7 @@ mod test {
                 vec![
                     ast::Expression::Literal(ast::Literal::Int(1)),
                     ast::Expression::Literal(ast::Literal::Int(2)),
-                    ast::Expression::Literal(ast::Literal::Int(3))
+                    ast::Expression::Literal(ast::Literal::Int(3)),
                 ]
             ))])
         )
@@ -1244,9 +1244,9 @@ mod test {
                 Box::new(ast::Expression::Array(vec![
                     ast::Expression::Literal(ast::Literal::Int(1)),
                     ast::Expression::Literal(ast::Literal::Int(2)),
-                    ast::Expression::Literal(ast::Literal::Int(3))
+                    ast::Expression::Literal(ast::Literal::Int(3)),
                 ])),
-                Box::new(ast::Expression::Literal(ast::Literal::Int(1)))
+                Box::new(ast::Expression::Literal(ast::Literal::Int(1))),
             ))])
         )
     }

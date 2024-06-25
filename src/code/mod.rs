@@ -66,7 +66,7 @@ fn format_instruction(op: &Op, operands: &[usize]) -> String {
         2 => format!("Op{} {} {}", op, operands[0], operands[1]),
         1 => format!("Op{} {}", op, operands[0]),
         0 => format!("Op{}", op),
-        _ => panic!("unsuported operand width"),
+        _ => panic!("unsupported operand width"),
     }
 }
 

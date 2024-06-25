@@ -82,14 +82,14 @@ pub enum Object {
     Null,
 }
 
-// A closure is an expression with free vairables. The real role
-// of free vairables depends on its referencing lexical environment
-// A free vairables is not a local vairable or a parameter and its
+// A closure is an expression with free variables. The real role
+// of free variables depends on its referencing lexical environment
+// A free variables is not a local variable or a parameter and its
 // scope is within the enclosing function
 #[derive(Debug, PartialEq, Clone)]
 pub struct Closure {
     pub func: CompiledFunction,
-    // Make sure all identical closurea refer to same free variables.
+    // Make sure all identical closure refer to same free variables.
     // If we just clone `Closure`, the changes in free variables
     // cannot be reflected in the next call
     pub free: Rc<RefCell<Vec<Object>>>,

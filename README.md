@@ -5,40 +5,55 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://opensource.org/licenses/MIT)
 [![Codecov](https://codecov.io/gh/caelansar/caescript/graph/badge.svg?token=DB6R06YRQ1)](https://codecov.io/gh/caelansar/caescript)
 
-A dialect of the [Monkey programming language](https://monkeylang.org/) written in Rust, has both interpreted and compiled implementation
+A dialect of the [Monkey programming language](https://monkeylang.org/) written in Rust, has both interpreted and
+compiled implementation
 
 ## What’s Monkey?
 
-Monkey has a C-like syntax, supports **variable bindings**, **prefix** and **infix operators**, has **first-class** and **higher-order functions**, can handle **closures** with ease and has **integers**, **booleans**, **arrays** and **hashes** built-in.
-reading through [Writing An Interpreter In Go](https://interpreterbook.com/) and [Writing A Compiler In Go](https://compilerbook.com/) for more details
+Monkey has a C-like syntax, supports **variable bindings**, **prefix** and **infix operators**, has **first-class** and
+**higher-order functions**, can handle **closures** with ease and has **integers**, **booleans**, **arrays** and *
+*hashes** built-in.
+reading through [Writing An Interpreter In Go](https://interpreterbook.com/)
+and [Writing A Compiler In Go](https://compilerbook.com/) for more details
 
 ## How to use
+
 ### Precompiled binaries
+
 [Archives of precompiled binaries for caescript are available for Windows, macOS and Linux](https://github.com/caelansar/caescript/releases)
 
 ### Build from source code
+
 - Build release
+
 ```
 $ make install_eval
 ```
+
 - Build release using the Compiler implementation
+
 ```
 $ make install
 ```
+
 - Running the REPL
+
 ```bash
 $ caescript
 ```
 
 - Running the Interpreter/Compiler
+
 ```bash
 $ caescript [vm/eval] examples/hello.cae
 ```
 
 ### With online playground
+
 [playground](https://caelansar.github.io/caescript-web/)
 
 ## Syntax
+
 ### Table of Contents
 
 - [Summary](#summary)
@@ -58,13 +73,14 @@ $ caescript [vm/eval] examples/hello.cae
     - [Function](#function)
 - [Built-in Functions](#built-in-functions)
     - [`puts(<arg1>, <arg2>, ...): Null`](#putsarg1-arg2--null)
-    - [`len(<arg>): Intger`](#lenarg-intger)
+    - [`len(<arg>): Integer`](#lenarg-integer)
     - [`first(<arg>): Object`](#firstarg-object)
     - [`last(<arg>): Object`](#lastarg-object)
     - [`rest(<arg>): Array`](#restarg-array)
     - [`push(<arg1>, <arg2>): Array`](#pusharg1-arg2-array)
 
 ### Summary
+
 - Integers, booleans, strings, arrays, hash maps
 - Arithmetic expressions
 - Let statements
@@ -159,7 +175,8 @@ identity("Monkey");
 
 ### Variable bindings
 
-Variable bindings, such as those supported by many programming languages, are implemented. Variables can be defined using the `let` keyword.
+Variable bindings, such as those supported by many programming languages, are implemented. Variables can be defined
+using the `let` keyword.
 
 **Format:**
 
@@ -306,7 +323,8 @@ hash[100 - 1];
 
 #### Function
 
-`Function` supports functions like those supported by other programming languages. Support both anonymous and named functions.
+`Function` supports functions like those supported by other programming languages. Support both anonymous and named
+functions.
 
 **Format:**
 
@@ -355,7 +373,7 @@ puts("Hello");
 puts("World!");
 ```
 
-#### `len(<arg>): Intger`
+#### `len(<arg>): Integer`
 
 For `String`, it returns the number of characters. If it's `Array`, it returns the number of elements.
 
@@ -397,4 +415,5 @@ push([0, 1], 2);
 ```
 
 ## License
+
 Caescript is under [MIT](LICENSE)

@@ -675,7 +675,7 @@ mod test {
                 Some(Object::Int(3)),
             ),
             ("fn add(x,y){x+y}; add(1,2)", Some(Object::Int(3))),
-            // x is capature vairable, every time we call c should update x value
+            // x is capture variable, every time we call c should update x value
             (
                 r#"let closure = fn(){
                     let x= 1;

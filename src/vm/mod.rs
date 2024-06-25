@@ -1024,7 +1024,7 @@ mod test {
     }
 
     #[test]
-    fn vm_resursive_fn_should_work() {
+    fn vm_recursive_fn_should_work() {
         let tests = [
             (
                 r#"
