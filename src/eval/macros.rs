@@ -4,34 +4,26 @@ use crate::eval::object::{BOOL_OBJ_FALSE, BOOL_OBJ_TRUE};
 #[allow(unused_macros)]
 macro_rules! arithmetic_operator {
     ($l:expr, $r:expr, $op:tt, $($t:ident),*) => {
-        match $l {
+        match ($l, $r) {
             $(
-                Object::$t(a) => {
-                    if let Object::$t(b) = $r {
-                        Object::$t(a $op b)
-                    } else {
-                        Object::Error(format!("type mismatch: {} {} {}", a, stringify!($op), $r))
-                    }
-                }
+                (Object::$t(a), Object::$t(b)) => Object::$t(a $op b),
+                (Object::$t(a), b) => Object::Error(format!("type mismatch: {} {} {}", a, stringify!($op), b)),
+                (a, Object::$t(b)) => Object::Error(format!("type mismatch: {} {} {}", a, stringify!($op), b)),
             )*
-            other => Object::Error(format!("unknown operator {} for {:?}", stringify!($op), other))
+            (a, b) => Object::Error(format!("unsupported operator: {} {} {}", a, stringify!($op), b))
         }
     };
 }
 
 macro_rules! arithmetic_operator_ref {
     ($l:expr, $r:expr, $op:tt, $($t:ident),*) => {
-        match $l {
+        match ($l, $r) {
             $(
-                Object::$t(a) => {
-                    if let Object::$t(ref b) = $r {
-                        Object::$t(a $op b)
-                    } else {
-                        Object::Error(format!("type mismatch: {} {} {}", a, stringify!($op), $r))
-                    }
-                }
+                (Object::$t(a), Object::$t(ref b)) => Object::$t(a $op b),
+                (Object::$t(a), b) => Object::Error(format!("type mismatch: {} {} {}", a, stringify!($op), b)),
+                (a, Object::$t(ref b)) => Object::Error(format!("type mismatch: {} {} {}", a, stringify!($op), b)),
             )*
-            other => Object::Error(format!("unknown operator {} for {:?}", stringify!($op), other))
+            (a, b) => Object::Error(format!("unsupported operator: {} {} {}", a, stringify!($op), b))
         }
     };
 }

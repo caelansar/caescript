@@ -217,7 +217,7 @@ fn object_arithmetic_should_work() {
         &Object::String("1".into()) + &Object::String("2".into())
     );
     assert_eq!(
-        Object::Error("unknown operator + for Array([])".into()),
+        Object::Error("unsupported operator: [] + []".into()),
         &Object::Array(Vec::new()) + &Object::Array(Vec::new())
     );
     assert_eq!(Object::Int(1), &Object::Int(1) % &Object::Int(2));
