@@ -791,7 +791,7 @@ mod test {
                 let no_function = "aa";
                 no_function()
                 "#,
-                Some(object::Object::Error("aa not a function".into())),
+                Some(object::Object::Error("\"aa\" not a function".into())),
             ),
             (
                 r#"

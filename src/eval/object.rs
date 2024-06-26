@@ -132,7 +132,7 @@ impl Display for Object {
             Object::Int(i) => write!(f, "{}", i),
             Object::Float(float) => write!(f, "{}", float),
             Object::Bool(b) => write!(f, "{}", b),
-            Object::String(s) => write!(f, "{}", s),
+            Object::String(s) => write!(f, "\"{}\"", s),
             Object::Return(r) => write!(f, "{}", r),
             Object::Array(e) => write!(
                 f,
@@ -203,6 +203,7 @@ fn object_display_should_work() {
     assert_eq!("true", Object::Bool(true).to_string());
     assert_eq!("false", Object::Bool(false).to_string());
     assert_eq!("null", Object::Null.to_string());
+    assert_eq!("\"aa\"", Object::String("aa".into()).to_string());
 }
 
 #[test]
@@ -210,6 +211,10 @@ fn object_arithmetic_should_work() {
     assert_eq!(
         Object::Error("type mismatch: 123 + 1.1".into()),
         &Object::Int(123) + &Object::Float(1.1)
+    );
+    assert_eq!(
+        Object::Error("type mismatch: 123 + \"4\"".into()),
+        &Object::Int(123) + &Object::String("4".into())
     );
     assert_eq!(Object::Int(124), &Object::Int(123) + &Object::Int(1));
     assert_eq!(

@@ -842,7 +842,7 @@ mod test {
             ),
             (
                 r#"-"str""#,
-                Some(Object::Error("unknown operator: -str".into())),
+                Some(Object::Error("unknown operator: -\"str\"".into())),
             ),
             (
                 "1-true; 10",
