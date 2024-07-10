@@ -10,11 +10,8 @@ compiled implementation
 
 ## What’s Monkey?
 
-Monkey has a C-like syntax, supports **variable bindings**, **prefix** and **infix operators**, has **first-class** and
-**higher-order functions**, can handle **closures** with ease and has **integers**, **booleans**, **arrays** and *
-*hashes** built-in.
-reading through [Writing An Interpreter In Go](https://interpreterbook.com/)
-and [Writing A Compiler In Go](https://compilerbook.com/) for more details
+Monkey has a C-like syntax, supports **variable bindings**, **prefix** and **infix operators**, has **first-class** and **higher-order functions**, can handle **closures** with ease and has **integers**, **booleans**, **arrays** and **hashes** built-in.
+Reading through [Writing An Interpreter In Go](https://interpreterbook.com/) and [Writing A Compiler In Go](https://compilerbook.com/) for more details
 
 ## How to use
 
