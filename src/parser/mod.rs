@@ -778,8 +778,7 @@ impl<'a> Parser<'a> {
             .get(&self.current_token)
         {
             Some(parse_fn) => parse_fn(self),
-            None if self.current_token_is(&token::Token::Comment) => return None,
-            _ => {
+            None => {
                 self.no_prefix_parse_fn_error(&self.current_token.clone());
                 return None;
             }

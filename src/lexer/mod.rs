@@ -175,8 +175,16 @@ impl<'a> Lexer<'a> {
                         Token::SlashEq
                     }
                     Some('/') => {
-                        self.skip_comment();
-                        Token::Comment
+                        self.read_char();
+                        // a comment goes until the end of the line.
+                        while let Some(ch) = self.ch {
+                            if ch == '\n' {
+                                break;
+                            }
+                            self.read_char();
+                        }
+                        // do not need to call read_char in this recursion
+                        return self.next_token();
                     }
                     _ => Token::from_str(token.to_string().as_str()).unwrap(),
                 },
