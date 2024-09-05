@@ -80,15 +80,16 @@ impl Evaluator {
     }
 
     fn eval_array(&mut self, elements: Vec<ast::Expression>) -> Option<Object> {
-        let objects = elements
-            .iter()
-            .map(|e| self.eval_expression(e).unwrap_or(Object::Null))
-            .collect::<Vec<_>>();
-
-        Some(Object::Array(objects))
+        Some(Object::Array(
+            elements
+                .iter()
+                .map(|e| self.eval_expression(e).unwrap_or(Object::Null))
+                .collect(),
+        ))
     }
 
     fn eval_hash(&mut self, hash: Vec<(ast::Expression, ast::Expression)>) -> Option<Object> {
+        #[allow(clippy::mutable_key_type)]
         let mut h = HashMap::new();
         for (k, v) in hash.iter().map(|(k, v)| {
             (
