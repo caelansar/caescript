@@ -12,6 +12,17 @@ use self::symbol_table::{Scope, SymbolTable};
 mod scope;
 pub mod symbol_table;
 
+/// Compiler is responsible for compiling the AST into bytecode.
+///
+/// It maintains:
+/// - A list of constants encountered during compilation
+/// - A stack of compilation scopes to handle nested blocks
+/// - The current scope index
+/// - A symbol table for tracking variables and their scopes
+///
+/// The compiler traverses the AST, emitting bytecode instructions and
+/// managing scopes and symbols as it goes. It produces a Bytecode struct
+/// containing the compiled instructions and constants.
 #[derive(Debug, Default)]
 pub struct Compiler {
     consts: Vec<Rc<object::Object>>,
@@ -20,6 +31,8 @@ pub struct Compiler {
     pub symbol_table: SymbolTable,
 }
 
+/// Bytecode is the output of the compiler, which contains the compiled
+/// instructions and constants.
 #[derive(Debug, Clone)]
 pub struct Bytecode<'a> {
     pub instructions: &'a object::Instructions,
