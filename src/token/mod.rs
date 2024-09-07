@@ -1,8 +1,23 @@
 use std::{fmt, mem, str::FromStr};
 
 #[derive(Debug, Clone)]
+pub enum TokenError {
+    UnknowToken(char),
+    UnterminatedString,
+}
+
+impl fmt::Display for TokenError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::UnknowToken(token) => write!(f, "Unknown token: '{}'", token),
+            Self::UnterminatedString => write!(f, "Unterminated string"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum Token {
-    Illegal,
+    Illegal(TokenError),
     Eof,
 
     Ident(String),
@@ -164,7 +179,7 @@ impl fmt::Display for Token {
             Token::Else => write!(f, "else"),
             Token::For => write!(f, "for"),
             Token::Return => write!(f, "return"),
-            Token::Illegal => write!(f, "ILLEGAL"),
+            Token::Illegal(e) => write!(f, "{e}"),
             Token::Break => write!(f, "break"),
             Token::Continue => write!(f, "continue"),
             Token::And => write!(f, "&&"),

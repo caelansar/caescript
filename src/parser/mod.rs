@@ -200,8 +200,8 @@ impl<'a> Parser<'a> {
     }
 
     fn is_illegal_token(&mut self) -> bool {
-        if self.current_token_is(&token::Token::Illegal) {
-            self.errors.push("illegal token".to_string());
+        if let token::Token::Illegal(e) = &self.current_token {
+            self.errors.push(e.to_string());
             true
         } else {
             false
@@ -657,9 +657,10 @@ impl<'a> Parser<'a> {
 
     pub fn parse_program(&mut self) -> Result<ast::Program, String> {
         let mut stmts = Vec::new();
+
         while self.current_token != token::Token::Eof {
             if self.is_illegal_token() {
-                return Ok(ast::BlockStatement(stmts));
+                return Err(self.errors().join("\n"));
             }
             let stmt = self.parse_statement();
             if let Some(stmt) = stmt {
@@ -819,6 +820,16 @@ mod test {
         }
 
         assert!(errs.is_empty())
+    }
+
+    #[test]
+    #[should_panic]
+    fn illegal_float_should_failed() {
+        let input = "1.2.3.";
+        let lexer = lexer::Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+
+        parser.parse_program().unwrap();
     }
 
     #[test]

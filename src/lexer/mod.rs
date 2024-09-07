@@ -1,4 +1,4 @@
-use crate::token::{lookup_ident, Token};
+use crate::token::{lookup_ident, Token, TokenError};
 use std::str::FromStr;
 
 #[derive(Default)]
@@ -73,15 +73,15 @@ impl<'a> Lexer<'a> {
         self.input[pos..self.pos].to_string()
     }
 
-    fn read_string(&mut self) -> String {
+    fn read_string(&mut self) -> Option<String> {
         let pos = self.pos + 1;
         loop {
             self.read_char();
-            if self.ch.is_none() || self.ch.is_some_and(|x| x == '"') {
+            if self.ch? == '"' {
                 break;
             }
         }
-        self.input[pos..self.pos].to_string()
+        Some(self.input[pos..self.pos].to_string())
     }
 
     #[inline(always)]
@@ -144,7 +144,13 @@ impl<'a> Lexer<'a> {
                     }
                     _ => Token::Lt,
                 },
-                '"' => Token::String(self.read_string()),
+                '"' => {
+                    if let Some(s) = self.read_string() {
+                        Token::String(s)
+                    } else {
+                        Token::Illegal(TokenError::UnterminatedString)
+                    }
+                }
                 '+' => {
                     if let Some('=') = self.peek_char() {
                         self.read_char();
@@ -228,7 +234,7 @@ impl<'a> Lexer<'a> {
                 ',' | ';' | ':' | '(' | ')' | '{' | '}' | '[' | ']' => {
                     Token::from_str(token.to_string().as_str()).unwrap()
                 }
-                _ => {
+                other => {
                     if token.is_alphabetic() || token == '_' {
                         let literal = self.read_identifier();
                         let typ = lookup_ident(literal);
@@ -246,7 +252,7 @@ impl<'a> Lexer<'a> {
                             return Token::Int(value);
                         }
                     } else {
-                        return Token::Illegal;
+                        Token::Illegal(crate::token::TokenError::UnknowToken(other))
                     }
                 }
             }
@@ -287,9 +293,49 @@ impl<'a, 'b> Iterator for Iter<'a, 'b> {
 
 #[cfg(test)]
 mod test {
-    use crate::token::Token;
+    use super::*;
 
-    use super::Lexer;
+    #[test]
+    fn test_float_issue() {
+        // this test should failed
+        let input = "1.2.3.";
+
+        let mut lexer = Lexer::new(input);
+
+        let mut tokens = Vec::new();
+        loop {
+            let token = lexer.next_token();
+            tokens.push(token.clone());
+            if token == Token::Eof {
+                break;
+            }
+        }
+
+        assert_eq!(tokens.len(), 4);
+        assert_eq!(tokens[0], Token::Float(1.2));
+        assert_eq!(tokens[1], Token::Illegal(TokenError::UnknowToken('.')));
+        assert_eq!(tokens[2], Token::Float(3.));
+        assert_eq!(tokens[3], Token::Eof);
+    }
+
+    #[test]
+    fn unterminated_string_should_failed() {
+        let input = r#""This string is not terminated"#;
+        let mut lexer = Lexer::new(input);
+
+        let mut tokens = Vec::new();
+        loop {
+            let token = lexer.next_token();
+            tokens.push(token.clone());
+            if token == Token::Eof {
+                break;
+            }
+        }
+
+        assert_eq!(tokens.len(), 2);
+        assert_eq!(tokens[0], Token::Illegal(TokenError::UnterminatedString));
+        assert_eq!(tokens[1], Token::Eof);
+    }
 
     #[test]
     fn next_token_should_work() {

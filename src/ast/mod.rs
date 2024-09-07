@@ -177,7 +177,7 @@ impl fmt::Display for Assign {
         }
     }
 }
-
+/// Represents different types of expressions in the abstract syntax tree.
 #[derive(PartialEq, Clone, Debug)]
 pub enum Expression {
     Ident(Ident),
@@ -358,6 +358,7 @@ impl Display for Literal {
     }
 }
 
+/// Represents different types of statements in the abstract syntax tree.
 #[derive(PartialEq, Clone, Debug)]
 pub enum Statement {
     Let(Ident, Expression),
