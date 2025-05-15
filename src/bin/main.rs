@@ -1,4 +1,4 @@
-use caescript::eval::{env::Environment, Evaluator};
+use caescript::eval::{Evaluator, env::Environment};
 #[cfg(feature = "vm")]
 use caescript::{compiler::Compiler, vm::VM};
 use std::{cell::RefCell, env, fs, io, process::exit, rc::Rc};

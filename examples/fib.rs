@@ -7,7 +7,7 @@ use std::time::Instant;
 use caescript::{compiler::Compiler, vm::VM};
 
 use caescript::{
-    eval::{env::Environment, object::Object, Evaluator},
+    eval::{Evaluator, env::Environment, object::Object},
     lexer,
     parser::Parser,
 };

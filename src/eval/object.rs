@@ -147,7 +147,7 @@ impl Display for Object {
             Object::Error(e) => write!(f, "err: {}", e),
             Object::Break => write!(f, "break"),
             Object::Continue => write!(f, "continue"),
-            Object::Hash(ref hash) => {
+            Object::Hash(hash) => {
                 let mut result = String::new();
                 for (i, (k, v)) in hash.iter().enumerate() {
                     if i < 1 {
@@ -158,9 +158,9 @@ impl Display for Object {
                 }
                 write!(f, "{{{}}}", result)
             }
-            Object::Function(ref params, _, _) => {
+            Object::Function(params, _, _) => {
                 let mut result = String::new();
-                for (i, ast::Ident(ref s)) in params.iter().enumerate() {
+                for (i, ast::Ident(s)) in params.iter().enumerate() {
                     if i < 1 {
                         result.push_str(s);
                     } else {

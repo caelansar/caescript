@@ -1,7 +1,7 @@
 [package]
 name = "caescript"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [[bin]]
@@ -19,6 +19,7 @@ rustyline = { git="https://github.com/caelansar/rustyline.git", branch = "prompt
 chrono = "0.4.31"
 
 [features]
+default = ["vm"]
 trace = []
 vm = ["byteorder", "anyhow"]
 build-binary = ["rustyline"]

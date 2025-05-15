@@ -102,7 +102,7 @@ pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
 pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
     use std::{cell::RefCell, rc::Rc};
 
-    use crate::eval::{env::Environment, object, Evaluator};
+    use crate::eval::{Evaluator, env::Environment, object};
 
     let env = Environment::new();
     let mut evaluator = Evaluator::new(Rc::new(RefCell::new(env)));

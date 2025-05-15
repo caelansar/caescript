@@ -6,9 +6,9 @@ macro_rules! arithmetic_operator {
     ($l:expr, $r:expr, $op:tt, $ref:tt, $($t:ident),*) => {
         match ($l, $r) {
             $(
-                (Object::$t(a), Object::$t($ref b)) => Object::$t(a $op b),
+                (&Object::$t(ref a), &Object::$t($ref b)) => Object::$t(a $op b),
                 (Object::$t(a), b) => Object::Error(format!("type mismatch: {} {} {}", a, stringify!($op), b)),
-                (a, Object::$t($ref b)) => Object::Error(format!("type mismatch: {} {} {}", a, stringify!($op), b)),
+                (a, &Object::$t($ref b)) => Object::Error(format!("type mismatch: {} {} {}", a, stringify!($op), b)),
             )*
             (a, b) => Object::Error(format!("unsupported operator: {} {} {}", a, stringify!($op), b))
         }

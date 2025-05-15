@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use crate::defer;
 use crate::{ast, lexer, map, token};
 #[cfg(feature = "trace")]
-use trace::{trace, untrace, ScopeCall};
+use trace::{ScopeCall, trace, untrace};
 
 type PrefixParseFn = for<'a> fn(&mut Parser<'a>) -> Option<ast::Expression>;
 type InfixParseFn = for<'a> fn(&mut Parser<'a>, Option<ast::Expression>) -> Option<ast::Expression>;

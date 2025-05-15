@@ -213,7 +213,7 @@ impl Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Expression::Ident(Ident(ident)) => f.write_str(ident),
-            Expression::Literal(ref literal) => f.write_str(&literal.to_string()),
+            Expression::Literal(literal) => f.write_str(&literal.to_string()),
             Expression::Prefix(prefix, expr) => {
                 let mut out = String::new();
 
@@ -262,7 +262,7 @@ impl Display for Expression {
                 out.push(' ');
                 out.push_str(&consequence.to_string());
                 out.push(' ');
-                if let Some(ref alternative) = alternative {
+                if let Some(alternative) = alternative {
                     out.push_str("else ");
                     out.push_str(&alternative.to_string());
                 }

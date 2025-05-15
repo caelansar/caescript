@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 
 use crate::{ast, code};
 
@@ -148,7 +148,7 @@ impl Compiler {
                 let pos = self.add_const(float);
                 self.emit(code::Op::Const, &[pos]);
             }
-            ast::Expression::Literal(ast::Literal::String(ref s)) => {
+            ast::Expression::Literal(ast::Literal::String(s)) => {
                 let s = object::Object::String(s.as_str().into());
                 let pos = self.add_const(s);
                 self.emit(code::Op::Const, &[pos]);

@@ -1,4 +1,4 @@
-use crate::token::{lookup_ident, Token, TokenError};
+use crate::token::{Token, TokenError, lookup_ident};
 use std::str::FromStr;
 
 #[derive(Default)]
@@ -276,7 +276,7 @@ pub struct Iter<'a, 'b> {
     end: bool,
 }
 
-impl<'a, 'b> Iterator for Iter<'a, 'b> {
+impl Iterator for Iter<'_, '_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
