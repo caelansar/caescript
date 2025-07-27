@@ -20,6 +20,7 @@ module.exports = grammar({
             $.for_statement,
             $.break_statement,
             $.continue_statement,
+            $.function_statement,
             $.expression_statement,
         ),
 
@@ -29,15 +30,15 @@ module.exports = grammar({
             field('name', $.identifier),
             '=',
             field('value', $.expression),
-            ';'
+            optional(';')
         ),
 
         // Return statement: return [expression];
-        return_statement: $ => seq(
+        return_statement: $ => prec.right(seq(
             'return',
             optional(field('value', $.expression)),
-            ';'
-        ),
+            optional(';')
+        )),
 
         // For statement: for (condition) { body }
         for_statement: $ => seq(
@@ -49,13 +50,13 @@ module.exports = grammar({
         ),
 
         // Break statement
-        break_statement: $ => seq('break', ';'),
+        break_statement: $ => seq('break', optional(';')),
 
         // Continue statement
-        continue_statement: $ => seq('continue', ';'),
+        continue_statement: $ => seq('continue', optional(';')),
 
         // Expression statement: expression;
-        expression_statement: $ => seq($.expression, ';'),
+        expression_statement: $ => seq($.expression, optional(';')),
 
         // Block statement: { statements }
         block_statement: $ => seq(
@@ -265,10 +266,17 @@ module.exports = grammar({
             field('value', $.expression)
         ),
 
-        // Function literal: fn(params) { body } or fn name(params) { body }
+        // Function statement: fn name(params) { body }
+        function_statement: $ => seq(
+            'fn',
+            field('name', $.identifier),
+            field('parameters', $.parameter_list),
+            field('body', $.block_statement)
+        ),
+
+        // Function literal: fn(params) { body } (anonymous only)
         function_literal: $ => seq(
             'fn',
-            optional(field('name', $.identifier)),
             field('parameters', $.parameter_list),
             field('body', $.block_statement)
         ),
