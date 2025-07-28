@@ -1,7 +1,21 @@
 use std::borrow::Cow;
+use std::cell::RefCell;
 use std::io;
 
 use crate::{lexer, parser};
+
+use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter as TSHighlighter};
+
+// Static ANSI color codes to avoid repeated allocations
+static ANSI_KEYWORD: &str = "\x1b[94m"; // bright blue
+static ANSI_FUNCTION: &str = "\x1b[96m"; // bright cyan
+static ANSI_STRING: &str = "\x1b[92m"; // green
+static ANSI_COMMENT: &str = "\x1b[90m"; // gray
+static ANSI_NUMBER: &str = "\x1b[93m"; // yellow
+static ANSI_CONSTANT: &str = "\x1b[95m"; // magenta
+static ANSI_OPERATOR: &str = "\x1b[97m"; // bright white
+static ANSI_DEFAULT: &str = "\x1b[37m"; // white
+static ANSI_RESET: &str = "\x1b[0m";
 
 use rustyline::completion::{Completer, FilenameCompleter, Pair};
 use rustyline::config::OutputStreamType;
@@ -33,6 +47,8 @@ pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
         colored_prompt: "  0> ".to_owned(),
         continuation_prompt: "\x1b[1;32m.> \x1b[0m".to_owned(),
         validator: MatchingBracketValidator::new(),
+        highlighter: create_highlight_config(),
+        last_highlighted_line: RefCell::new(None),
     };
     let mut rl = Editor::with_config(config);
     rl.set_helper(Some(h));
@@ -121,6 +137,8 @@ pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
         colored_prompt: "  0> ".to_owned(),
         continuation_prompt: "\x1b[1;32m.> \x1b[0m".to_owned(),
         validator: MatchingBracketValidator::new(),
+        highlighter: create_highlight_config(),
+        last_highlighted_line: RefCell::new(None),
     };
     let mut rl = Editor::with_config(config);
     rl.set_helper(Some(h));
@@ -176,12 +194,49 @@ pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
     Ok(())
 }
 
+fn create_highlight_config() -> Option<(RefCell<TSHighlighter>, HighlightConfiguration)> {
+    let language = tree_sitter_caescript::LANGUAGE;
+
+    let mut config = HighlightConfiguration::new(
+        language.into(),
+        "caescript",
+        include_str!("../../tree-sitter-caescript/queries/highlights.scm"),
+        "", // No injection query
+        "", // No locals query
+    )
+    .ok()?;
+
+    // Configure recognized highlight names
+    let highlight_names = vec![
+        "keyword",
+        "function",
+        "function.builtin",
+        "function.call",
+        "string",
+        "comment",
+        "number",
+        "constant.builtin",
+        "parameter",
+        "variable",
+        "variable.definition",
+        "operator",
+        "punctuation",
+    ];
+
+    config.configure(&highlight_names);
+
+    Some((RefCell::new(TSHighlighter::new()), config))
+}
+
 struct MyHelper {
     completer: FilenameCompleter,
     validator: MatchingBracketValidator,
     hinter: HistoryHinter,
     colored_prompt: String,
     continuation_prompt: String,
+    highlighter: Option<(RefCell<TSHighlighter>, HighlightConfiguration)>,
+    // Cache for syntax highlighting
+    last_highlighted_line: RefCell<Option<(String, String)>>, // (input, highlighted_output)
 }
 
 impl Helper for MyHelper {}
@@ -231,11 +286,145 @@ impl Highlighter for MyHelper {
     }
 
     fn highlight<'l>(&self, line: &'l str, _pos: usize) -> Cow<'l, str> {
+        // Early exit for very short inputs
+        if line.len() < 2 {
+            return Cow::Borrowed(line);
+        }
+
+        // Check cache first
+        {
+            let cache = self.last_highlighted_line.borrow();
+            if let Some((cached_input, cached_output)) = cache.as_ref() {
+                if cached_input == line {
+                    return Cow::Owned(cached_output.clone());
+                }
+            }
+        }
+
+        if let Some((highlighter, config)) = &self.highlighter {
+            let mut highlighter = highlighter.borrow_mut();
+
+            // Try to highlight the input
+            if let Ok(events) = highlighter.highlight(config, line.as_bytes(), None, |_| None) {
+                // Pre-allocate with estimated capacity
+                let mut highlighted = String::with_capacity(line.len() * 2);
+                let mut current_style: Option<usize> = None;
+
+                for event in events {
+                    match event.unwrap() {
+                        HighlightEvent::Source { start, end } => {
+                            let text = &line[start..end];
+
+                            // Apply current style if any
+                            if let Some(style_idx) = current_style {
+                                let ansi_code = match style_idx {
+                                    0 => ANSI_KEYWORD,   // keyword
+                                    1 => ANSI_FUNCTION,  // function
+                                    2 => ANSI_FUNCTION,  // function.builtin
+                                    3 => ANSI_FUNCTION,  // function.call
+                                    4 => ANSI_STRING,    // string
+                                    5 => ANSI_COMMENT,   // comment
+                                    6 => ANSI_NUMBER,    // number
+                                    7 => ANSI_CONSTANT,  // constant.builtin
+                                    8 => ANSI_DEFAULT,   // parameter
+                                    9 => ANSI_DEFAULT,   // variable
+                                    10 => ANSI_DEFAULT,  // variable.definition
+                                    11 => ANSI_OPERATOR, // operator
+                                    12 => ANSI_DEFAULT,  // punctuation
+                                    _ => "",
+                                };
+
+                                if !ansi_code.is_empty() {
+                                    highlighted.push_str(ansi_code);
+                                    highlighted.push_str(text);
+                                    highlighted.push_str(ANSI_RESET);
+                                } else {
+                                    highlighted.push_str(text);
+                                }
+                            } else {
+                                highlighted.push_str(text);
+                            }
+                        }
+                        HighlightEvent::HighlightStart(s) => {
+                            current_style = Some(s.0);
+                        }
+                        HighlightEvent::HighlightEnd => {
+                            current_style = None;
+                        }
+                    }
+                }
+
+                // Update cache
+                *self.last_highlighted_line.borrow_mut() =
+                    Some((line.to_string(), highlighted.clone()));
+
+                return Cow::Owned(highlighted);
+            }
+        }
+
+        // Fallback to unhighlighted text
         Cow::Borrowed(line)
     }
 
-    fn highlight_char(&self, _line: &str, _pos: usize) -> bool {
-        false
+    fn highlight_char(&self, line: &str, pos: usize) -> bool {
+        if pos == line.len() {
+            // 行尾
+            true
+        } else if pos > 0 {
+            let prev_ch = line.chars().nth(pos - 1).unwrap_or(' ');
+            let current_ch = line.chars().nth(pos).unwrap_or(' ');
+            matches!(
+                prev_ch,
+                ' ' | '\t'
+                    | '('
+                    | ')'
+                    | '{'
+                    | '}'
+                    | '['
+                    | ']'
+                    | ';'
+                    | ','
+                    | ':'
+                    | '"'
+                    | '\''
+                    | '='
+                    | '+'
+                    | '-'
+                    | '*'
+                    | '/'
+                    | '!'
+                    | '<'
+                    | '>'
+                    | '&'
+                    | '|'
+            ) || matches!(
+                current_ch,
+                ' ' | '\t'
+                    | '('
+                    | ')'
+                    | '{'
+                    | '}'
+                    | '['
+                    | ']'
+                    | ';'
+                    | ','
+                    | ':'
+                    | '"'
+                    | '\''
+                    | '='
+                    | '+'
+                    | '-'
+                    | '*'
+                    | '/'
+                    | '!'
+                    | '<'
+                    | '>'
+                    | '&'
+                    | '|'
+            )
+        } else {
+            false
+        }
     }
 }
 
