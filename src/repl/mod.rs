@@ -1,8 +1,11 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::io;
+use std::rc::Rc;
 
 use crate::{lexer, parser};
+
+mod completer;
 
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter as TSHighlighter};
 
@@ -17,13 +20,15 @@ static ANSI_OPERATOR: &str = "\x1b[97m"; // bright white
 static ANSI_DEFAULT: &str = "\x1b[37m"; // white
 static ANSI_RESET: &str = "\x1b[0m";
 
-use rustyline::completion::{Completer, FilenameCompleter, Pair};
+use rustyline::completion::{Completer, Pair};
 use rustyline::config::OutputStreamType;
 use rustyline::error::ReadlineError;
 use rustyline::highlight::{Highlighter, PromptInfo};
 use rustyline::hint::{Hinter, HistoryHinter};
 use rustyline::validate::{self, MatchingBracketValidator, Validator};
 use rustyline::{Cmd, CompletionType, Config, Context, EditMode, Editor, Helper, KeyPress};
+
+use self::completer::CaescriptCompleter;
 
 #[cfg(feature = "vm")]
 pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
@@ -32,17 +37,36 @@ pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
     let mut constants = vec![];
     let mut global = vec![];
     let mut symbol_table = compiler::symbol_table::SymbolTable::new();
+    let symbol_table_ref = Rc::new(RefCell::new(symbol_table.clone()));
 
     writer.write_all(b"engine: vm\n")?;
 
+    // Use completion type from environment variable or default based on platform
+    let completion_type = match std::env::var("CAESCRIPT_COMPLETION_TYPE").as_deref() {
+        Ok("circular") => CompletionType::Circular,
+        Ok("list") => CompletionType::List,
+        #[cfg(all(unix, feature = "fuzzy-completion"))]
+        Ok("fuzzy") => CompletionType::Fuzzy,
+        _ => {
+            #[cfg(all(unix, feature = "fuzzy-completion"))]
+            {
+                CompletionType::Fuzzy
+            }
+            #[cfg(not(all(unix, feature = "fuzzy-completion")))]
+            {
+                CompletionType::Circular
+            }
+        }
+    };
+
     let config = Config::builder()
         .history_ignore_space(true)
-        .completion_type(CompletionType::List)
+        .completion_type(completion_type)
         .edit_mode(EditMode::Emacs)
         .output_stream(OutputStreamType::Stdout)
         .build();
     let h = MyHelper {
-        completer: FilenameCompleter::new(),
+        completer: CaescriptCompleter::new_vm(symbol_table_ref.clone()),
         hinter: HistoryHinter {},
         colored_prompt: "  0> ".to_owned(),
         continuation_prompt: "\x1b[1;32m.> \x1b[0m".to_owned(),
@@ -54,7 +78,6 @@ pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
     rl.set_helper(Some(h));
     rl.bind_sequence(KeyPress::Meta('N'), Cmd::HistorySearchForward);
     rl.bind_sequence(KeyPress::Meta('P'), Cmd::HistorySearchBackward);
-    rl.bind_sequence(KeyPress::Tab, Cmd::Insert(1, "    ".into()));
 
     let mut count = 1;
     loop {
@@ -91,6 +114,7 @@ pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
                 global.clone_from(&vm.global);
                 constants = bytecode.consts.to_vec();
                 symbol_table = compiler.symbol_table;
+                *symbol_table_ref.borrow_mut() = symbol_table.clone();
 
                 if let Some(obj) = obj {
                     writeln!(writer, "< {}", obj)?;
@@ -116,23 +140,40 @@ pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
 
 #[cfg(not(feature = "vm"))]
 pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
-    use std::{cell::RefCell, rc::Rc};
-
     use crate::eval::{Evaluator, env::Environment, object};
 
     let env = Environment::new();
-    let mut evaluator = Evaluator::new(Rc::new(RefCell::new(env)));
+    let env_ref = Rc::new(RefCell::new(env));
+    let mut evaluator = Evaluator::new(env_ref.clone());
 
     writer.write_all(b"engine: interpreter\n")?;
 
+    // Use completion type from environment variable or default based on platform
+    let completion_type = match std::env::var("CAESCRIPT_COMPLETION_TYPE").as_deref() {
+        Ok("circular") => CompletionType::Circular,
+        Ok("list") => CompletionType::List,
+        #[cfg(all(unix, feature = "fuzzy-completion"))]
+        Ok("fuzzy") => CompletionType::Fuzzy,
+        _ => {
+            #[cfg(all(unix, feature = "fuzzy-completion"))]
+            {
+                CompletionType::Fuzzy
+            }
+            #[cfg(not(all(unix, feature = "fuzzy-completion")))]
+            {
+                CompletionType::Circular
+            }
+        }
+    };
+
     let config = Config::builder()
         .history_ignore_space(true)
-        .completion_type(CompletionType::List)
+        .completion_type(completion_type)
         .edit_mode(EditMode::Emacs)
         .output_stream(OutputStreamType::Stdout)
         .build();
     let h = MyHelper {
-        completer: FilenameCompleter::new(),
+        completer: CaescriptCompleter::new_interpreter(env_ref.clone()),
         hinter: HistoryHinter {},
         colored_prompt: "  0> ".to_owned(),
         continuation_prompt: "\x1b[1;32m.> \x1b[0m".to_owned(),
@@ -144,7 +185,6 @@ pub fn repl<W: io::Write>(mut writer: W) -> io::Result<()> {
     rl.set_helper(Some(h));
     rl.bind_sequence(KeyPress::Meta('N'), Cmd::HistorySearchForward);
     rl.bind_sequence(KeyPress::Meta('P'), Cmd::HistorySearchBackward);
-    rl.bind_sequence(KeyPress::Tab, Cmd::Insert(1, "    ".into()));
 
     let mut count = 1;
     loop {
@@ -228,8 +268,8 @@ fn create_highlight_config() -> Option<(RefCell<TSHighlighter>, HighlightConfigu
     Some((RefCell::new(TSHighlighter::new()), config))
 }
 
-struct MyHelper {
-    completer: FilenameCompleter,
+struct MyHelper<C> {
+    completer: C,
     validator: MatchingBracketValidator,
     hinter: HistoryHinter,
     colored_prompt: String,
@@ -239,9 +279,9 @@ struct MyHelper {
     last_highlighted_line: RefCell<Option<(String, String)>>, // (input, highlighted_output)
 }
 
-impl Helper for MyHelper {}
+impl<C: Completer<Candidate = Pair>> Helper for MyHelper<C> {}
 
-impl Completer for MyHelper {
+impl<C: Completer<Candidate = Pair>> Completer for MyHelper<C> {
     type Candidate = Pair;
 
     fn complete(
@@ -254,13 +294,13 @@ impl Completer for MyHelper {
     }
 }
 
-impl Hinter for MyHelper {
+impl<C> Hinter for MyHelper<C> {
     fn hint(&self, line: &str, pos: usize, ctx: &Context<'_>) -> Option<String> {
         self.hinter.hint(line, pos, ctx)
     }
 }
 
-impl Highlighter for MyHelper {
+impl<C> Highlighter for MyHelper<C> {
     fn highlight_prompt<'b, 's: 'b, 'p: 'b>(
         &'s self,
         prompt: &'p str,
@@ -428,7 +468,7 @@ impl Highlighter for MyHelper {
     }
 }
 
-impl Validator for MyHelper {
+impl<C> Validator for MyHelper<C> {
     fn validate(
         &self,
         ctx: &mut validate::ValidationContext,

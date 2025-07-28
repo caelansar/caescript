@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use super::{builtin::new_builtins, object::Object};
 
@@ -34,13 +34,13 @@ impl Environment {
         }
     }
 
-    pub fn get(&self, name: impl Borrow<str>) -> Option<Object> {
-        match self.store.get(name.borrow()) {
+    pub fn get(&self, name: &str) -> Option<Object> {
+        match self.store.get(name) {
             Some(obj) => Some(obj.clone()),
             None => self
                 .outer
                 .as_ref()
-                .and_then(|outer| outer.borrow_mut().get(name.borrow())),
+                .and_then(|outer| outer.borrow_mut().get(name)),
         }
     }
 
@@ -65,6 +65,18 @@ impl Environment {
         } else {
             self.set_self(name, value)
         }
+    }
+
+    pub fn get_all_symbols(&self) -> Vec<String> {
+        let mut symbols: Vec<String> = self.store.keys().cloned().collect();
+
+        // Also include symbols from outer scopes
+        if let Some(outer) = &self.outer {
+            let outer_env = outer.borrow();
+            symbols.extend(outer_env.get_all_symbols());
+        }
+
+        symbols
     }
 }
 
