@@ -266,8 +266,10 @@ impl CaescriptCompleter {
         for symbol in symbols {
             if symbol.starts_with(prefix) {
                 // Determine if it's a function or variable
-                // For now, we'll mark all user symbols as variables
-                // This could be enhanced if symbol table tracks types
+                // Note: In VM mode, we can't distinguish between functions and variables
+                // as the symbol table doesn't store type information. All non-builtin
+                // symbols are marked as variables. The interpreter version can distinguish
+                // these by inspecting the actual Object values.
                 let completion_type = if self.builtin_functions.contains(symbol.as_str()) {
                     CompletionType::BuiltinFunction
                 } else {
@@ -289,16 +291,23 @@ impl CaescriptCompleter {
         candidates: &mut Vec<TypedCompletion>,
         prefix: &str,
     ) {
-        // Get all symbols from the environment
-        let symbols = env.get_all_symbols();
+        use crate::eval::object::Object;
 
-        for symbol in symbols {
+        // Get all symbols with their values from the environment
+        let symbols = env.get_all_symbols_with_values();
+
+        for (symbol, value) in symbols {
             if symbol.starts_with(prefix) {
                 // Determine if it's a function or variable
                 let completion_type = if self.builtin_functions.contains(symbol.as_str()) {
                     CompletionType::BuiltinFunction
                 } else {
-                    CompletionType::Variable
+                    match value {
+                        Object::Function(_, _, _) | Object::Closure(_) => {
+                            CompletionType::UserFunction
+                        }
+                        _ => CompletionType::Variable,
+                    }
                 };
 
                 candidates.push(TypedCompletion {
@@ -322,6 +331,8 @@ enum CompletionContext {
 enum CompletionType {
     Keyword,
     BuiltinFunction,
+    #[cfg(not(feature = "vm"))]
+    UserFunction,
     Variable,
 }
 
@@ -351,6 +362,8 @@ impl Completer for CaescriptCompleter {
                 let type_indicator = match &c.completion_type {
                     CompletionType::Keyword => "[keyword]",
                     CompletionType::BuiltinFunction => "[builtin]",
+                    #[cfg(not(feature = "vm"))]
+                    CompletionType::UserFunction => "[func]",
                     CompletionType::Variable => "[var]",
                 };
 

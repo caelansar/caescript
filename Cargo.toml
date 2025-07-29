@@ -22,7 +22,7 @@ tree-sitter-highlight = { version = "0.24.4", optional = true }
 chrono = "0.4.31"
 
 [features]
-default = ["vm", "build-binary"]
+default = ["build-binary"]
 trace = []
 vm = ["byteorder", "anyhow"]
 build-binary = ["rustyline", "tree-sitter-caescript", "tree-sitter", "tree-sitter-highlight"]

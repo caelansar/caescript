@@ -78,6 +78,20 @@ impl Environment {
 
         symbols
     }
+
+    pub fn get_all_symbols_with_values(&self) -> Vec<(String, Object)> {
+        let mut symbols: Vec<(String, Object)> = self
+            .store
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+        // Also include symbols from outer scopes
+        if let Some(outer) = &self.outer {
+            let outer_env = outer.borrow();
+            symbols.extend(outer_env.get_all_symbols_with_values());
+        }
+        symbols
+    }
 }
 
 #[test]
