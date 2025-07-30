@@ -152,21 +152,22 @@ impl CaescriptCompleter {
     /// mutable self reference, eliminating the need for expensive cloning.
     ///
     /// Now uses cached parsing to improve performance by avoiding redundant parse operations.
+    /// Updated to use improved node detection that handles cursor boundary cases.
     fn get_completion_context(&self, line: &str, pos: usize) -> CompletionContext {
         // Parse the current line to understand context using cache
         if let Some(tree) = self.get_or_parse_cached(line) {
             let root = tree.root_node();
-            let point = self.byte_offset_to_point(line, pos);
+            let point = Self::byte_offset_to_point(line, pos);
 
-            // Find the node at cursor position
-            let node = root.descendant_for_point_range(point, point);
+            // Find the node at cursor position using improved multi-fallback detection
+            let node = self.find_node_at_cursor(&root, point, line, pos);
 
             if let Some(node) = node {
                 match node.kind() {
                     "identifier" => {
                         // Check if we're after a let keyword
                         if let Some(parent) = node.parent() {
-                            if parent.kind() == "let_statement" {
+                            if parent.kind() == "let_statement" || parent.kind() == "ERROR" {
                                 // Check if this is the variable name position
                                 if let Some(let_node) = parent.child(0) {
                                     if let_node.kind() == "let"
@@ -194,6 +195,14 @@ impl CaescriptCompleter {
                         }
                     }
                     _ => {
+                        if let Some(child) = node.child(0) {
+                            if child.kind() == "ERROR"
+                                && child.utf8_text(line.as_bytes()) == Ok("let")
+                            {
+                                // Imcomplete input, no suggestions
+                                return CompletionContext::NewVariable;
+                            }
+                        }
                         // Check if we're at the beginning of a statement
                         if line[..pos].trim().is_empty() {
                             CompletionContext::StatementStart
@@ -215,7 +224,67 @@ impl CaescriptCompleter {
         }
     }
 
-    fn byte_offset_to_point(&self, text: &str, byte_offset: usize) -> Point {
+    /// Finds the most specific node at the cursor position using multi-fallback detection.
+    ///
+    /// This method addresses the issue where `descendant_for_point_range(point, point)`
+    /// returns the outermost containing node (usually "program") instead of the specific
+    /// node at the cursor position. It uses multiple query strategies:
+    ///
+    /// 1. **Method 1**: Exact position query with program node filtering
+    /// 2. **Method 2**: Previous position (pos-1) query for token boundaries
+    /// 3. **Method 3**: Byte range query as additional fallback
+    /// 4. **Method 4**: Graceful fallback to original behavior
+    ///
+    /// # Arguments
+    /// * `root` - The root node of the parsed tree
+    /// * `point` - The cursor position as a tree-sitter Point
+    /// * `line` - The input line string
+    /// * `pos` - The byte offset cursor position
+    ///
+    /// # Returns
+    /// The most specific node at the cursor position, or None if no node found
+    fn find_node_at_cursor<'a>(
+        &self,
+        root: &tree_sitter::Node<'a>,
+        point: Point,
+        line: &str,
+        pos: usize,
+    ) -> Option<tree_sitter::Node<'a>> {
+        // Method 1: Try exact cursor position with program node filtering
+        if let Some(node) = root.descendant_for_point_range(point, point) {
+            // If we got a specific node (not program or ERROR), use it
+            if node.kind() != "program" {
+                return Some(node);
+            }
+        }
+
+        // Method 2: If cursor is at end of token, try position - 1
+        // This handles the common case where cursor is at token boundaries
+        if pos > 0 {
+            let prev_point = Self::byte_offset_to_point(line, pos - 1);
+            if let Some(node) = root.descendant_for_point_range(prev_point, prev_point) {
+                if node.kind() != "program" {
+                    return Some(node);
+                }
+            }
+        }
+
+        // Method 3: Use descendant_for_byte_range with cursor position
+        // This provides an alternative query method for edge cases
+        if pos > 0 {
+            if let Some(node) = root.descendant_for_byte_range(pos - 1, pos) {
+                if node.kind() != "program" {
+                    return Some(node);
+                }
+            }
+        }
+
+        // Method 4: Graceful fallback to original behavior
+        // Return the first descendant we found, even if it's program or ERROR
+        root.descendant_for_point_range(point, point)
+    }
+
+    fn byte_offset_to_point(text: &str, byte_offset: usize) -> Point {
         let mut row = 0;
         let mut column = 0;
 
@@ -453,5 +522,28 @@ impl Completer for CaescriptCompleter {
             .collect();
 
         Ok((pos - prefix.len(), pairs))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(not(feature = "vm"))]
+    #[test]
+    fn test_get_completion_context() {
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_caescript::LANGUAGE.into())
+            .expect("Error loading Caescript parser");
+
+        let completer =
+            CaescriptCompleter::new_interpreter(Rc::new(RefCell::new(Environment::new())));
+
+        let context = completer.get_completion_context("let ", 4);
+        assert_eq!(context, CompletionContext::NewVariable);
+
+        let context = completer.get_completion_context("let x", 5);
+        assert_eq!(context, CompletionContext::NewVariable);
     }
 }
