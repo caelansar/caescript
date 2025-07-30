@@ -6,6 +6,8 @@ use rustyline::Context;
 use rustyline::completion::{Completer, Pair};
 use rustyline::error::ReadlineError;
 
+use super::parse_cache::ParseCache;
+
 #[cfg(feature = "vm")]
 use crate::compiler::symbol_table::SymbolTable;
 
@@ -27,20 +29,33 @@ pub enum CompletionState {
 
 /// REPL completion engine for Caescript, providing intelligent auto-completion
 /// for keywords, functions, and variables based on current execution state.
-/// 
+///
 /// Uses interior mutability (RefCell<Parser>) to eliminate expensive cloning
 /// of the tree-sitter parser on every keystroke, providing 50-80% performance
 /// improvement over the previous implementation.
+///
+/// Now includes parse result caching to further improve performance by avoiding
+/// redundant parsing operations for repeated input strings.
 pub struct CaescriptCompleter {
     state: CompletionState,
     /// Tree-sitter parser wrapped in RefCell for interior mutability.
     /// This allows mutable access from immutable methods without cloning.
     parser: RefCell<Parser>,
+    /// Parse result cache to avoid redundant parsing operations.
+    /// Uses RefCell for interior mutability to match parser pattern.
+    parse_cache: RefCell<ParseCache>,
     keywords: HashSet<&'static str>,
     builtin_functions: HashSet<&'static str>,
 }
 
 impl CaescriptCompleter {
+    /// Get the cache size configuration from environment variable or use default.
+    fn get_cache_size() -> usize {
+        std::env::var("CAESCRIPT_PARSE_CACHE_SIZE")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(100) // Default cache size
+    }
     #[cfg(feature = "vm")]
     pub fn new_vm(symbol_table: Rc<RefCell<SymbolTable>>) -> Self {
         let mut parser = Parser::new();
@@ -48,9 +63,13 @@ impl CaescriptCompleter {
             .set_language(&tree_sitter_caescript::LANGUAGE.into())
             .expect("Error loading Caescript parser");
 
+        let cache_size = Self::get_cache_size();
+        let parse_cache = ParseCache::new(cache_size);
+
         Self {
             state: CompletionState::Vm { symbol_table },
             parser: RefCell::new(parser),
+            parse_cache: RefCell::new(parse_cache),
             keywords: Self::get_keywords(),
             builtin_functions: Self::get_builtin_functions(),
         }
@@ -63,9 +82,13 @@ impl CaescriptCompleter {
             .set_language(&tree_sitter_caescript::LANGUAGE.into())
             .expect("Error loading Caescript parser");
 
+        let cache_size = Self::get_cache_size();
+        let parse_cache = ParseCache::new(cache_size);
+
         Self {
             state: CompletionState::Interpreter { environment },
             parser: RefCell::new(parser),
+            parse_cache: RefCell::new(parse_cache),
             keywords: Self::get_keywords(),
             builtin_functions: Self::get_builtin_functions(),
         }
@@ -84,13 +107,54 @@ impl CaescriptCompleter {
         functions.into_iter().collect()
     }
 
+    /// Parse input with caching support.
+    ///
+    /// This method first checks the parse cache for a previously parsed Tree.
+    /// If found, returns a clone of the cached Tree. Otherwise, parses the input
+    /// using the tree-sitter parser, caches the result, and returns the Tree.
+    ///
+    /// # Arguments
+    ///
+    /// * `line` - The input string to parse
+    ///
+    /// # Returns
+    ///
+    /// A Tree object representing the parsed input, or None if parsing fails.
+    /// Handles RefCell borrow conflicts gracefully by falling back to direct parsing.
+    fn get_or_parse_cached(&self, line: &str) -> Option<tree_sitter::Tree> {
+        // Try to use cache first
+        match (
+            self.parse_cache.try_borrow_mut(),
+            self.parser.try_borrow_mut(),
+        ) {
+            (Ok(mut cache), Ok(mut parser)) => {
+                // Both borrows successful - use cache
+                cache.get_or_parse(line, &mut parser)
+            }
+            (Err(_), Ok(mut parser)) => {
+                // Cache borrow failed - fall back to direct parsing
+                parser.parse(line, None)
+            }
+            (Ok(_), Err(_)) => {
+                // Parser borrow failed - this shouldn't happen in normal usage
+                // but we handle it gracefully
+                None
+            }
+            (Err(_), Err(_)) => {
+                // Both borrows failed - this shouldn't happen in single-threaded REPL
+                None
+            }
+        }
+    }
+
     /// Analyzes the line context at cursor position for intelligent completion suggestions.
     /// Uses interior mutability via RefCell to access the tree-sitter parser without requiring
     /// mutable self reference, eliminating the need for expensive cloning.
+    ///
+    /// Now uses cached parsing to improve performance by avoiding redundant parse operations.
     fn get_completion_context(&self, line: &str, pos: usize) -> CompletionContext {
-        // Parse the current line to understand context
-        // Note: borrow_mut() should never panic in single-threaded REPL environment
-        if let Some(tree) = self.parser.borrow_mut().parse(line, None) {
+        // Parse the current line to understand context using cache
+        if let Some(tree) = self.get_or_parse_cached(line) {
             let root = tree.root_node();
             let point = self.byte_offset_to_point(line, pos);
 
@@ -391,4 +455,3 @@ impl Completer for CaescriptCompleter {
         Ok((pos - prefix.len(), pairs))
     }
 }
-

@@ -17,6 +17,7 @@ rustyline = { git="https://github.com/caelansar/rustyline.git", branch = "prompt
 tree-sitter-caescript = { path = "./tree-sitter-caescript", optional = true }
 tree-sitter = { version = "0.24.4", optional = true }
 tree-sitter-highlight = { version = "0.24.4", optional = true }
+lru = { version = "0.12", optional = true }
 
 [build-dependencies]
 chrono = "0.4.31"
@@ -25,5 +26,5 @@ chrono = "0.4.31"
 default = ["build-binary"]
 trace = []
 vm = ["byteorder", "anyhow"]
-build-binary = ["rustyline", "tree-sitter-caescript", "tree-sitter", "tree-sitter-highlight"]
+build-binary = ["rustyline", "tree-sitter-caescript", "tree-sitter", "tree-sitter-highlight", "lru"]
 fuzzy-completion = ["rustyline/with-fuzzy"]

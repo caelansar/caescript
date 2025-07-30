@@ -5,7 +5,8 @@ use std::rc::Rc;
 
 use crate::{lexer, parser};
 
-mod completer;
+pub mod completer;
+pub mod parse_cache;
 
 use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter as TSHighlighter};
 
