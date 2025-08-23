@@ -1,0 +1,36 @@
+{
+  "grammars": [
+    {
+      "name": "caescript",
+      "camelcase": "Caescript",
+      "scope": "source.caescript",
+      "file-types": [
+        ".cae"
+      ],
+      "injection-regex": "^caescript$",
+      "highlights": ["queries/highlights.scm"]
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Caescript grammar for tree-sitter",
+    "authors": [
+      {
+        "name": "caelansar",
+        "email": "caelansar@qq.com"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/tree-sitter/tree-sitter-caescript"
+    }
+  },
+  "bindings": {
+    "c": false,
+    "go": false,
+    "node": true,
+    "python": false,
+    "rust": true,
+    "swift": false
+  }
+}

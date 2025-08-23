@@ -44,6 +44,17 @@ impl SymbolTable {
         Self::new_with_builtins(builtin::default_builtins)
     }
 
+    pub fn get_all_symbols(&self) -> Vec<String> {
+        let mut symbols: Vec<String> = self.store.keys().cloned().collect();
+
+        // Also include symbols from outer scopes
+        if let Some(outer) = &self.outer {
+            symbols.extend(outer.get_all_symbols());
+        }
+
+        symbols
+    }
+
     pub(crate) fn new_with_builtins(f: impl FnOnce() -> Vec<(String, builtin::BuiltinFn)>) -> Self {
         let mut symbol_table = Self::default();
 
